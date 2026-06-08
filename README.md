@@ -37,7 +37,7 @@ HTML5 · CSS3 · JavaScript vanilla · Google Fonts
 
 ## 🔗 Lien
 
-🌐 [Voir la démo](https://julieinfo.github.io/carlog-pro)
+🌐 [Voir la démo](https://julieinfo.github.io/carlog_pro/)
 
 ## 👩‍💻 Auteure
 
