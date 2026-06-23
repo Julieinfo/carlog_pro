@@ -1,0 +1,11 @@
+# Node modules
+node_modules/
+backend/node_modules/
+
+# Environnement et secrets
+.env
+backend/.env
+
+# Fichiers système
+.DS_Store
+Thumbs.db
