@@ -13,7 +13,7 @@
 
 CarLog Pro est une landing page SaaS non fonctionnelle conçue pour simuler un produit B2B de gestion de parc automobile. Ce projet démontre des compétences en design UI, mise en page web responsive et animations CSS3/JS.
 
-> ⚠️ Projet vitrine uniquement — aucun backend, aucune vente, aucun service réel.
+> ⚠️ Projet vitrine uniquement - aucun backend, aucune vente, aucun service réel.
 
 ## ✨ Sections
 
@@ -37,7 +37,7 @@ HTML5 · CSS3 · JavaScript vanilla · Google Fonts
 
 ## 🔗 Lien
 
-🌐 [Voir la démo](https://julieinfo.github.io/carlog-pro)
+🌐 [Voir la démo](https://julieinfo.github.io/carlog_pro/frontend/)
 
 ## 👩‍💻 Auteure
 
