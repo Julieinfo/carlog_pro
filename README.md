@@ -1,4 +1,4 @@
-# 🚗 CarLog Pro — Landing Page SaaS
+# 🚗 CarLog Pro - Landing Page SaaS
 
 > Landing page fictive d'une plateforme SaaS de gestion de flotte automobile
 
@@ -11,18 +11,18 @@
 
 ## 📱 Aperçu
 
-CarLog Pro est une landing page SaaS non fonctionnelle conçue pour simuler un produit B2B de gestion de parc automobile. Ce projet démontre des compétences en design UI, mise en page web responsive et animations CSS/JS.
+CarLog Pro est une landing page SaaS non fonctionnelle conçue pour simuler un produit B2B de gestion de parc automobile. Ce projet démontre des compétences en design UI, mise en page web responsive et animations CSS3/JS.
 
 > ⚠️ Projet vitrine uniquement — aucun backend, aucune vente, aucun service réel.
 
 ## ✨ Sections
 
-- **Hero** — Accroche, dashboard mockup animé et statistiques clés
-- **Fonctionnalités** — 6 features présentées en grille
-- **Tarifs** — 3 plans fictifs (Starter / Pro / Entreprise)
-- **Témoignages** — Avis clients fictifs
-- **CTA** — Formulaire d'inscription fictif
-- **Footer** — Navigation et liens
+- **Hero** - Accroche, dashboard mockup animé et statistiques clés
+- **Fonctionnalités** - 6 features présentées en grille
+- **Tarifs** - 3 plans fictifs (Starter / Pro / Entreprise)
+- **Témoignages** - Avis clients fictifs
+- **CTA** - Formulaire d'inscription fictif
+- **Footer** - Navigation et liens
 
 ## 🎨 Design
 
@@ -41,5 +41,5 @@ HTML5 · CSS3 · JavaScript vanilla · Google Fonts
 
 ## 👩‍💻 Auteure
 
-**Julie de Castro** — Développeuse Logiciel & Web  
+**Julie De Castro** - Développeuse Web  
 [GitHub](https://github.com/julieinfo) · [Portfolio](https://julieinfo.github.io)
