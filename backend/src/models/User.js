@@ -32,10 +32,9 @@ const userSchema = new mongoose.Schema({
     actif: { type: Boolean, default: true },
     }, { timestamps: true });
     // Hash avant sauvegarde
-    userSchema.pre('save', async function (next) {
-        if (!this.isModified('motDePasse')) return next();
+    userSchema.pre('save', async function () {
+        if (!this.isModified('motDePasse')) return;
             this.motDePasse = await bcrypt.hash(this.motDePasse, 12);
-            next();
         });
     // Méthode de comparaison
     userSchema.methods.verifierMotDePasse = async function (candidat) {
