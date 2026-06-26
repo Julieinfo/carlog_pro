@@ -8,7 +8,7 @@
 exports.creerVehicule = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
-        const { immatriculation, marque, modele, type, kilometrage, statut } = req.body;
+        const { immatriculation, marque, modele, typeVehicule, kilometrage, ptac, carburant, statut } = req.body;
 
         // Validation des champs obligatoires
         if (!immatriculation || !marque || !modele) {
@@ -16,7 +16,7 @@ exports.creerVehicule = async (req, res) => {
         }
 
         // Vérifier si l'immatriculation existe déjà en base de données
-        const vehiculeExistant = await Vehicule.findOne({ immatriculation: immatriculation.toUpperCase().trim() });
+        const vehiculeExistant = await Vehicule.findOne({ entreprise: entrepriseId, immatriculation: immatriculation.toUpperCase().trim() });
         if (vehiculeExistant) {
         return res.status(400).json({ message: 'Un véhicule avec cette immatriculation existe déjà.' });
         }
@@ -26,8 +26,10 @@ exports.creerVehicule = async (req, res) => {
         immatriculation: immatriculation.toUpperCase().trim(),
         marque,
         modele,
-        type,
+        typeVehicule,
         kilometrage,
+        ptac,
+        carburant,
         statut
         });
 
@@ -48,7 +50,7 @@ exports.getVehicules = async (req, res) => {
 
         // Sécurité : On ne récupère QUE les véhicules de l'entreprise de l'utilisateur connecté
         // On exclut les véhicules archivés si tu optes pour le Soft Delete
-        const vehicules = await Vehicule.find({ entreprise: entrepriseId, statut: { $ne: 'archive' } });
+        const vehicules = await Vehicule.find({ entreprise: entrepriseId, actif: true });
 
         res.status(200).json(vehicules);
     } catch (err) {
@@ -129,12 +131,11 @@ exports.supprimerVehicule = async (req, res) => {
         return res.status(404).json({ message: 'Véhicule introuvable ou accès non autorisé.' });
         }
 
-        // Option Soft Delete (Recommandé pour préserver l'historique des affectations/alertes)
-        vehicule.statut = 'archive';
+        // 💡 LA SOLUTION ICI : On utilise le booléen que tu as créé dans ton schéma !
+        vehicule.actif = false; 
+        
+        // On sauvegarde le changement sans toucher au 'statut' (il reste 'disponible' ou 'en_panne' en arrière-plan)
         await vehicule.save();
-
-        // Si tu préfères une suppression définitive, décommente la ligne ci-dessous et vire le soft delete :
-        // await Vehicule.findByIdAndDelete(id);
 
         res.status(200).json({ message: 'Véhicule archivé avec succès.' });
     } catch (err) {
