@@ -5,6 +5,8 @@ const connectDB = require('./config/db'); // Importation de la fonction pour se 
 require('dotenv').config();         // Charge le contenu de ton fichier .env dans 'process.env'
 const authRoutes = require('./routes/authRoutes');
 const affectationRoutes = require('./routes/affectationRoutes');
+const vehiculeRoutes = require('./routes/vehiculeRoutes');
+
 const app = express();
 
 // 2. LES MIDDLEWARES (Les filtres de contrôle)
@@ -12,7 +14,7 @@ app.use(cors());          // Permet au site (port 3000 ou autre) de parler à l'
 app.use(express.json());  // Permet à ton serveur de lire le format JSON quand on lui envoie des données (ex: un formulaire)
 app.use('/api/auth', authRoutes);
 app.use('/api/affectations', affectationRoutes);
-
+app.use('/api/vehicules', vehiculeRoutes);
 // 3. LES ROUTES (Les aiguillages)
 // Quand quelqu'un visite l'adresse racine "http://localhost:5000/", on lui répond un message de bienvenue
 app.get('/', (req, res) => {
