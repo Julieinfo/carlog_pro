@@ -42,33 +42,57 @@ exports.creerVehicule = async (req, res) => {
 // ==========================================
 // GET /api/vehicules (Récupérer les véhicules avec PAGINATION)
 // ==========================================
+// ==========================================
+// GET /api/vehicules (Avec PAGINATION + RECHERCHE + FILTRES)
+// ==========================================
 exports.getVehicules = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
 
-        // 1. Récupération et conversion des paramètres de l'URL (avec valeurs par défaut)
+        // 1. Initialisation de la requête de base (Sécurité Multi-tenant obligatoire)
+        let filtres = { entreprise: entrepriseId, actif: true }; // On ne récupère que les véhicules actifs
+
+        // 2. Extraction des filtres de recherche depuis l'URL
+        const { search, typeVehicule, statut } = req.query;
+
+        // Logique de recherche textuelle (Recherche insensible à la casse avec Regex)
+        if (search) {
+            filtres.$or = [
+                { immatriculation: { $regex: search, $options: 'i' } },
+                { marque: { $regex: search, $options: 'i' } },
+                { modele: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        // Filtrage par type exact (ex: ?type=Poids-lourd)
+        if (typeVehicule) {
+            filtres.typeVehicule = typeVehicule; // Assurez-vous que le nom du champ correspond à votre schéma
+        }
+
+        // Filtrage par statut exact (ex: ?statut=Disponible)
+        if (statut) {
+            filtres.statut = statut;
+        }
+
+        // 3. Gestion de la pagination habituelle
         let page = parseInt(req.query.page, 10) || 1;
         let limit = parseInt(req.query.limit, 10) || 10;
-
-        // Sécurités pour éviter les valeurs aberrantes
         if (page < 1) page = 1;
         if (limit < 1) limit = 1;
-        if (limit > 100) limit = 100; // Protection : max 100 éléments par page
+        if (limit > 100) limit = 100;
 
-        // 2. Calcul du nombre d'éléments à sauter (skip)
         const skip = (page - 1) * limit;
 
-        // 3. Exécution des requêtes en parallèle sur MongoDB (plus rapide)
+        // 4. Exécution de la requête avec les filtres dynamiques appliqués
         const [vehicules, totalVehicules] = await Promise.all([
-            Vehicule.find({ entreprise: entrepriseId, actif: true }) // On ne récupère que les véhicules actifs
+            Vehicule.find(filtres) // On passe l'objet de filtres ici
                 .skip(skip)
                 .limit(limit)
-                .sort({ createdAt: -1 }), // Les plus récents ajoutés en premier
+                .sort({ createdAt: -1 }),
             
-            Vehicule.countDocuments({ entreprise: entrepriseId, actif: true }) // Compte le total pour le Front
+            Vehicule.countDocuments(filtres) // On compte en prenant en compte les filtres !
         ]);
 
-        // 4. Réponse structurée pour faciliter le travail de React plus tard
         res.status(200).json({
             pagination: {
                 totalItems: totalVehicules,
