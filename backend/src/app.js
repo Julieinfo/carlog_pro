@@ -6,6 +6,7 @@ require('dotenv').config();         // Charge le contenu de ton fichier .env dan
 const authRoutes = require('./routes/authRoutes');
 const affectationRoutes = require('./routes/affectationRoutes');
 const vehiculeRoutes = require('./routes/vehiculeRoutes');
+const alerteRoutes = require('./routes/alerteRoutes');
 
 const app = express();
 
@@ -15,6 +16,8 @@ app.use(express.json());  // Permet à ton serveur de lire le format JSON quand 
 app.use('/api/auth', authRoutes);
 app.use('/api/affectations', affectationRoutes);
 app.use('/api/vehicules', vehiculeRoutes);
+app.use('/api/alertes', alerteRoutes);
+
 // 3. LES ROUTES (Les aiguillages)
 // Quand quelqu'un visite l'adresse racine "http://localhost:5000/", on lui répond un message de bienvenue
 app.get('/', (req, res) => {

@@ -1,4 +1,4 @@
-    const Vehicule = require('../models/Vehicule');
+const Vehicule = require('../models/Vehicule');
 
 // ==========================================
 // 1. [CREATE] - Ajouter un véhicule
