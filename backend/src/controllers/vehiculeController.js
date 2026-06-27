@@ -40,19 +40,45 @@ exports.creerVehicule = async (req, res) => {
 };
 
 // ==========================================
-// 2. [READ ALL] - Récupérer la flotte de l'entreprise
-// GET /api/vehicules
+// GET /api/vehicules (Récupérer les véhicules avec PAGINATION)
 // ==========================================
-
 exports.getVehicules = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
 
-        // Sécurité : On ne récupère QUE les véhicules de l'entreprise de l'utilisateur connecté
-        // On exclut les véhicules archivés si tu optes pour le Soft Delete
-        const vehicules = await Vehicule.find({ entreprise: entrepriseId, actif: true });
+        // 1. Récupération et conversion des paramètres de l'URL (avec valeurs par défaut)
+        let page = parseInt(req.query.page, 10) || 1;
+        let limit = parseInt(req.query.limit, 10) || 10;
 
-        res.status(200).json(vehicules);
+        // Sécurités pour éviter les valeurs aberrantes
+        if (page < 1) page = 1;
+        if (limit < 1) limit = 1;
+        if (limit > 100) limit = 100; // Protection : max 100 éléments par page
+
+        // 2. Calcul du nombre d'éléments à sauter (skip)
+        const skip = (page - 1) * limit;
+
+        // 3. Exécution des requêtes en parallèle sur MongoDB (plus rapide)
+        const [vehicules, totalVehicules] = await Promise.all([
+            Vehicule.find({ entreprise: entrepriseId })
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 }), // Les plus récents ajoutés en premier
+            
+            Vehicule.countDocuments({ entreprise: entrepriseId }) // Compte le total pour le Front
+        ]);
+
+        // 4. Réponse structurée pour faciliter le travail de React plus tard
+        res.status(200).json({
+            pagination: {
+                totalItems: totalVehicules,
+                totalPages: Math.ceil(totalVehicules / limit),
+                currentPage: page,
+                itemsPerPage: limit
+            },
+            data: vehicules
+        });
+
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
