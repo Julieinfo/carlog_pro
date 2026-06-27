@@ -23,7 +23,7 @@ router.get('/:id', protect, authorize('admin', 'fleet_manager', 'conducteur'), g
 
 // Créer, Modifier et Clore une affectation (Réservé Admin et Fleet Manager)
 router.post('/', protect, authorize('admin', 'fleet_manager'), creerAffectation);
-router.put('/:id', protect, authorize('admin', 'fleet_manager'), modifierAffectation);
 router.put('/:id/terminer', protect, authorize('admin', 'fleet_manager'), terminerAffectation);
+router.put('/:id', protect, authorize('admin', 'fleet_manager'), modifierAffectation);
 
 module.exports = router;
