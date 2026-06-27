@@ -10,7 +10,7 @@ const {
     creerAffectation,
     getAffectationById,
     modifierAffectation,
-    supprimerAffectation
+    terminerAffectation
 } = require('../controllers/affectationController');
 
 // ==========================================
@@ -21,9 +21,9 @@ const {
 router.get('/', protect, authorize('admin', 'fleet_manager', 'conducteur'), getAffectations);
 router.get('/:id', protect, authorize('admin', 'fleet_manager', 'conducteur'), getAffectationById);
 
-// Créer, Modifier et Supprimer une affectation (Réservé Admin et Fleet Manager)
+// Créer, Modifier et Clore une affectation (Réservé Admin et Fleet Manager)
 router.post('/', protect, authorize('admin', 'fleet_manager'), creerAffectation);
 router.put('/:id', protect, authorize('admin', 'fleet_manager'), modifierAffectation);
-router.delete('/:id', protect, authorize('admin', 'fleet_manager'), supprimerAffectation);
+router.put('/:id/terminer', protect, authorize('admin', 'fleet_manager'), terminerAffectation);
 
 module.exports = router;
