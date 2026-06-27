@@ -7,6 +7,8 @@ const authRoutes = require('./routes/authRoutes');
 const affectationRoutes = require('./routes/affectationRoutes');
 const vehiculeRoutes = require('./routes/vehiculeRoutes');
 const alerteRoutes = require('./routes/alerteRoutes');
+const statsRoutes = require('./routes/statsRoutes');
+const { swaggerUi, specs } = require('./config/swagger'); // Importation de la configuration Swagger
 
 const app = express();
 
@@ -17,6 +19,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/affectations', affectationRoutes);
 app.use('/api/vehicules', vehiculeRoutes);
 app.use('/api/alertes', alerteRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
 // 3. LES ROUTES (Les aiguillages)
 // Quand quelqu'un visite l'adresse racine "http://localhost:5000/", on lui répond un message de bienvenue
@@ -33,3 +37,5 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Serveur démarré sur le port ${PORT}`);
 });
+
+module.exports = { swaggerUi, specs }; // Exportation de la configuration Swagger pour l'utiliser dans d'autres fichiers
