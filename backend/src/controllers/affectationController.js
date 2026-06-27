@@ -3,6 +3,7 @@
 // ==========================================
 // GET /api/affectations (Récupérer toutes les affectations de l'entreprise)
 // ==========================================
+
 exports.getAffectations = async (req, res) => {
     try {
         // Sécurité multi-tenant : on ne récupère QUE les affectations de l'entreprise de l'utilisateur connecté
@@ -22,6 +23,7 @@ exports.getAffectations = async (req, res) => {
 // ==========================================
 // POST /api/affectations (Créer une nouvelle affectation)
 // ==========================================
+
 exports.creerAffectation = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
@@ -64,6 +66,66 @@ exports.creerAffectation = async (req, res) => {
         });
 
         res.status(201).json(nouvelleAffectation);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// ==========================================
+// GET /api/affectations/:id (Lire une seule affectation)
+// ==========================================
+
+exports.getAffectationById = async (req, res) => {
+    try {
+        const affectation = await Affectation.findById(req.params.id)
+            .populate('conducteur', 'nom prenom email')
+            .populate('vehicule', 'immatriculation marque modele');
+
+        if (!affectation) {
+            return res.status(404).json({ message: 'Affectation introuvable.' });
+        }
+
+        res.status(200).json(affectation);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// ==========================================
+// PUT /api/affectations/:id (Modifier une affectation)
+// ==========================================
+
+exports.modifierAffectation = async (req, res) => {
+    try {
+        const affectationModifiee = await Affectation.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true } // new: true renvoie l'objet mis à jour
+        );
+
+        if (!affectationModifiee) {
+            return res.status(404).json({ message: 'Affectation introuvable.' });
+        }
+
+        res.status(200).json({ message: 'Affectation mise à jour avec succès.', affectation: affectationModifiee });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// ==========================================
+// DELETE /api/affectations/:id (Supprimer une affectation)
+// ==========================================
+
+exports.supprimerAffectation = async (req, res) => {
+    try {
+        const affectation = await Affectation.findByIdAndDelete(req.params.id);
+
+        if (!affectation) {
+            return res.status(404).json({ message: 'Affectation introuvable.' });
+        }
+
+        res.status(200).json({ message: 'Affectation supprimée avec succès.' });
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
