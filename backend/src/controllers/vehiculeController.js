@@ -60,12 +60,12 @@ exports.getVehicules = async (req, res) => {
 
         // 3. Exécution des requêtes en parallèle sur MongoDB (plus rapide)
         const [vehicules, totalVehicules] = await Promise.all([
-            Vehicule.find({ entreprise: entrepriseId })
+            Vehicule.find({ entreprise: entrepriseId, actif: true }) // On ne récupère que les véhicules actifs
                 .skip(skip)
                 .limit(limit)
                 .sort({ createdAt: -1 }), // Les plus récents ajoutés en premier
             
-            Vehicule.countDocuments({ entreprise: entrepriseId }) // Compte le total pour le Front
+            Vehicule.countDocuments({ entreprise: entrepriseId, actif: true }) // Compte le total pour le Front
         ]);
 
         // 4. Réponse structurée pour faciliter le travail de React plus tard
