@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, authorize } = require('../middlewares/authMiddleware');
+
 const {
     creerVehicule,
     getVehicules,
@@ -26,7 +27,7 @@ router.get('/:id', protect, getVehiculeById);
 // 4. [UPDATE] - Modifier les informations d'un véhicule
 router.put('/:id', protect, modifierVehicule);
 
-// 5. [DELETE] - Supprimer ou archiver un véhicule
-router.delete('/:id', protect, supprimerVehicule);
+// 5. [DELETE] - Supprimer ou archiver un véhicule (seul un 'admin' peut déclencher supprimerVehicule)
+router.delete('/:id', protect, authorize('admin'), supprimerVehicule);
 
 module.exports = router;

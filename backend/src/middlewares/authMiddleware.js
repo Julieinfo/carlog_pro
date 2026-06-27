@@ -37,4 +37,17 @@ const protect = async (req, res, next) => {
     }
 };
 
-module.exports = { protect };
+// Permet de restreindre l'accès à certains rôles
+const authorize = (...rolesAutorises) => {
+    return (req, res, next) => {
+        // Si le rôle de l'utilisateur n'est pas dans la liste des rôles permis
+        if (!rolesAutorises.includes(req.user.role)) {
+            return res.status(403).json({ 
+                message: `Accès refusé : votre rôle (${req.user.role}) ne vous permet pas d'effectuer cette action.` 
+            });
+        }
+        next(); // Tout est OK, on passe au contrôleur
+    };
+};
+
+module.exports = { protect, authorize };
