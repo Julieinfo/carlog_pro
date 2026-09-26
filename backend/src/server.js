@@ -29,7 +29,7 @@ const PORT = process.env.PORT || 5000;
 // ce qui provoquerait des erreurs. J'ai utilise .then() pour garantir l'ordre d'execution.
 // J'aurais pu aussi utiliser async/await, mais cette version avec Promise me semble plus lisible ici.
 connectDB().then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`Serveur démarré sur le port ${PORT}`);
     });
 });

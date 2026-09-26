@@ -46,6 +46,9 @@ npm ci
 npm run build
 ```
 
+L'endpoint public de verification technique est `GET /api/health` et renvoie uniquement `{ "status": "ok" }`.
+Le frontend Vite ecoute sur le port 5173 par defaut, ou sur le premier port disponible si celui-ci est deja occupe. `VITE_PORT` permet de definir un autre port sans modifier le code.
+
 Les tests backend existants se lancent avec :
 
 ```bash

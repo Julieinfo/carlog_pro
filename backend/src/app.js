@@ -77,6 +77,10 @@ app.use('/api/stats', statsRoutes);
 // La documentation est generee automatiquement a partir des commentaires JSDoc dans les fichiers de routes.
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
+app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok' });
+});
+
 // Route de sante (health check) : permet de verifier rapidement que l'API est en ligne.
 // C'est une bonne pratique, surtout pour le monitoring en prod.
 // J'ai mis un message simple, mais on pourrait aussi retourner des infos sur la version ou le statut de la DB.
