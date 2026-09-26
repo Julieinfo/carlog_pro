@@ -66,6 +66,39 @@ exports.validateInscription = [
     body('nomEntreprise')
         .trim()
         .notEmpty().withMessage('Le nom de l\'entreprise est obligatoire.'),
+
+    body('emailProfessionnel')
+        .trim()
+        .isEmail().withMessage('L\'email professionnel est invalide.')
+        .normalizeEmail(),
+
+    body('telephoneEntreprise')
+        .trim()
+        .notEmpty().withMessage('Le téléphone de l\'entreprise est obligatoire.'),
+
+    body('adresse.rue')
+        .trim()
+        .notEmpty().withMessage('La rue de l\'entreprise est obligatoire.'),
+
+    body('adresse.codePostal')
+        .trim()
+        .notEmpty().withMessage('Le code postal est obligatoire.'),
+
+    body('adresse.ville')
+        .trim()
+        .notEmpty().withMessage('La ville est obligatoire.'),
+
+    body('siret')
+        .if((value, { req }) => req.body.adresse?.pays === 'France')
+        .trim()
+        .notEmpty().withMessage('Le SIRET est obligatoire en France.')
+        .isNumeric().withMessage('Le SIRET doit contenir uniquement des chiffres.')
+        .isLength({ min: 14, max: 14 }).withMessage('Le SIRET doit contenir 14 chiffres.'),
+
+    body('numeroIdentificationEtranger')
+        .if((value, { req }) => req.body.adresse?.pays && req.body.adresse.pays !== 'France')
+        .trim()
+        .notEmpty().withMessage('Le numéro d\'identification est obligatoire hors de France.'),
         // J'ai limite la validation de l'entreprise au nom pour l'instant.
         // On pourrait ajouter des regles pour le SIRET, l'adresse, etc. si necessaire.
 

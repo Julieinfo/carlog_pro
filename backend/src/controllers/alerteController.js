@@ -1,6 +1,9 @@
 // Import du modele Mongoose pour les alertes.
 // Les alertes servent a signaler des problemes ou des evenements sur les vehicules.
 const Alerte = require('../models/Alerte');
+const Vehicule = require('../models/Vehicule');
+const User = require('../models/User');
+const repondreErreur = require('../utils/reponseErreur');
 
 // ==========================================
 // 1. [CREATE] - Créer une alerte
@@ -25,6 +28,15 @@ exports.creerAlerte = async (req, res) => {
         return res.status(400).json({ message: 'Le titre et le type d\'alerte sont obligatoires.' });
         }
 
+        if (vehicule) {
+            const vehiculeValide = await Vehicule.exists({ _id: vehicule, entreprise: entrepriseId, actif: true });
+            if (!vehiculeValide) return res.status(400).json({ message: 'Le véhicule sélectionné est invalide pour cette entreprise.' });
+        }
+        if (conducteur) {
+            const conducteurValide = await User.exists({ _id: conducteur, entreprise: entrepriseId, actif: true });
+            if (!conducteurValide) return res.status(400).json({ message: 'Le conducteur sélectionné est invalide pour cette entreprise.' });
+        }
+
         const nouvelleAlerte = await Alerte.create({
         entreprise: entrepriseId, // Force pour l'isolation multi-tenant
         vehicule,
@@ -38,7 +50,7 @@ exports.creerAlerte = async (req, res) => {
 
         res.status(201).json(nouvelleAlerte);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -61,9 +73,9 @@ exports.getAlertes = async (req, res) => {
         // C'est pratique pour le frontend qui peut avoir des onglets (toutes, actives, resolues).
         // J'ai utilise req.query plutot que des routes separees pour garder l'API simple.
         const filtre = { entreprise: entrepriseId };
-        if (req.query.statut) {
-        filtre.statut = req.query.statut;
-        }
+        if (req.query.statut) filtre.statut = req.query.statut;
+        if (req.query.niveauUrgence) filtre.niveauUrgence = req.query.niveauUrgence;
+        if (req.user.role === 'mecanicien') filtre.typeAlerte = 'maintenance';
 
         const alertes = await Alerte.find(filtre)
         .populate('vehicule', 'marque modele immatriculation')
@@ -72,7 +84,7 @@ exports.getAlertes = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -104,7 +116,7 @@ exports.getAlertesByVehicule = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -124,7 +136,7 @@ exports.getAlerteById = async (req, res) => {
         const { id } = req.params;
         const entrepriseId = req.user.entreprise;
 
-        const alerte = await Alerte.findById(id)
+        const alerte = await Alerte.findOne({ _id: id, entreprise: entrepriseId })
         .populate('vehicule', 'marque modele immatriculation')
         .populate('conducteur', 'nom prenom')
         .populate('resoluePar', 'nom prenom');
@@ -138,7 +150,7 @@ exports.getAlerteById = async (req, res) => {
 
         res.status(200).json(alerte);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -158,10 +170,18 @@ exports.modifierAlerte = async (req, res) => {
         const { id } = req.params;
         const entrepriseId = req.user.entreprise;
 
-        let alerte = await Alerte.findById(id);
+        if (!['admin', 'fleet_manager', 'mecanicien'].includes(req.user.role)) {
+            return res.status(403).json({ message: 'Votre rôle ne permet pas de modifier une alerte.' });
+        }
+
+        let alerte = await Alerte.findOne({ _id: id, entreprise: entrepriseId });
 
         if (!alerte || alerte.entreprise.toString() !== entrepriseId.toString()) {
         return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
+        }
+
+        if (req.user.role === 'mecanicien' && alerte.typeAlerte !== 'maintenance') {
+            return res.status(403).json({ message: 'Un mécanicien ne peut traiter que les alertes de maintenance.' });
         }
 
         // REGLE METIER : Si le statut passe a 'resolue', on injecte l'utilisateur connecte et la date actuelle.
@@ -188,14 +208,14 @@ exports.modifierAlerte = async (req, res) => {
         donneesValides.dateResolution = Date.now();
         }
 
-        alerte = await Alerte.findByIdAndUpdate(id, donneesValides, {
+        alerte = await Alerte.findOneAndUpdate({ _id: id, entreprise: entrepriseId }, donneesValides, {
         new: true,
         runValidators: true
         });
 
         res.status(200).json(alerte);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -215,7 +235,7 @@ exports.supprimerAlerte = async (req, res) => {
         const { id } = req.params;
         const entrepriseId = req.user.entreprise;
 
-        const alerte = await Alerte.findById(id);
+        const alerte = await Alerte.findOne({ _id: id, entreprise: entrepriseId });
 
         if (!alerte || alerte.entreprise.toString() !== entrepriseId.toString()) {
         return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
@@ -225,10 +245,10 @@ exports.supprimerAlerte = async (req, res) => {
         // C'est un choix metier : les alertes sont moins critiques que les donnees vehicules,
         // et on peut avoir besoin de supprimer des erreurs de saisie sans polluer la base.
         // J'aurais pu faire un soft delete aussi, mais ça me semble inutile pour ce cas d'usage.
-        await Alerte.findByIdAndDelete(id);
+        await Alerte.findOneAndDelete({ _id: id, entreprise: entrepriseId });
 
         res.status(200).json({ message: 'Alerte supprimée avec succès.' });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };

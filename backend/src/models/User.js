@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
     telephone: { type: String, trim: true },
     // Mot de passe qui sera hash avant d'etre stocke (voir le pre('save') hook).
     // minlength: 8 impose une longueur minimale pour la securite.
-    motDePasse: { type: String, required: true, minlength: 8 },
+    // select:false evite qu'un mot de passe hashé parte par erreur dans une reponse API.
+    motDePasse: { type: String, required: true, minlength: 8, select: false },
 
     // Ce champ simplifie la suite : on sait vite si on est dans un usage perso ou entreprise.
     // C'est utile pour la logique metier (ex: les comptes entreprise ont des roles, les particuliers non).

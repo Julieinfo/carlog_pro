@@ -82,5 +82,16 @@ affectationSchema.index({ entreprise: 1, statut: 1 });
 // Le -1 sur dateDebut signifie un ordre decroissant (les plus recentes d'abord).
 affectationSchema.index({ vehicule: 1, dateDebut: -1 });
 
+// Ces index complets le controle applicatif : deux requetes concurrentes ne peuvent
+// pas creer deux affectations actives pour le meme vehicule ou le meme conducteur.
+affectationSchema.index(
+    { entreprise: 1, vehicule: 1 },
+    { unique: true, partialFilterExpression: { statut: 'en_cours' } }
+);
+affectationSchema.index(
+    { entreprise: 1, conducteur: 1 },
+    { unique: true, partialFilterExpression: { statut: 'en_cours' } }
+);
+
 // Export du modele Mongoose pour pouvoir l'utiliser dans les controleurs.
 module.exports = mongoose.model('Affectation', affectationSchema);

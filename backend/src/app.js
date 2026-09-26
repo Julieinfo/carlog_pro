@@ -3,6 +3,8 @@
 // C'est une pratique courante, meme si j'aurais pu aussi mettre les middlewares dans un fichier a part.
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const affectationRoutes = require('./routes/affectationRoutes');
@@ -22,6 +24,16 @@ const { swaggerUi, specs } = require('./config/swagger');
 // nosemgrep: javascript.express.security.audit.express-check-csurf-middleware-usage
 // Creation de l'instance Express : c'est cette app qu'on va exporter et utiliser dans server.js
 const app = express();
+
+app.use(helmet());
+
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 20,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { message: 'Trop de tentatives. Réessayez dans quelques minutes.' }
+});
 // La règle Semgrep ci-dessus est ignorée volontairement car notre API utilise des JWT
 // envoyés dans le header Authorization (pas de cookies), ce qui rend les attaques CSRF
 // inapplicables par conception. Le middleware csurf n'est donc pas nécessaire ici.
@@ -32,7 +44,7 @@ const app = express();
 // Avant : app.use(cors()) autorisait TOUTES les origines, ce qui est dangereux (risque d'attaques CSRF).
 // Maintenant : On autorise explicitement localhost en dev et l'URL de prod en environnement de production.
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL] 
+    ? [process.env.FRONTEND_URL].filter(Boolean)
     : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
 app.use(cors({
     origin: allowedOrigins,
@@ -47,11 +59,13 @@ app.use(cors({
 // Ce middleware parse automatiquement le JSON du corps des requetes.
 // Sans lui, req.body serait toujours undefined et on ne pourrait pas recuperer les donnees envoyees par le client.
 // J'ai hesite a mettre une limite de taille, mais pour l'instant la config par defaut suffit.
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 // Enregistrement des routes : chaque routeur est monte sur un prefixe specifique.
 // Ca permet d'organiser l'API de maniere logique : /api/auth pour l'auth, /api/vehicules pour les vehicules, etc.
 // J'aurais pu faire un fichier index.js qui regroupe toutes les routes, mais je trouve plus lisible de les declarer ici explicitement.
+app.use('/api/auth/connexion', authLimiter);
+app.use('/api/auth/inscription', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/affectations', affectationRoutes);
 app.use('/api/vehicules', vehiculeRoutes);
@@ -68,6 +82,16 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 // J'ai mis un message simple, mais on pourrait aussi retourner des infos sur la version ou le statut de la DB.
 app.get('/', (req, res) => {
     res.json({ message: "Bienvenue sur l'API de CarLog Pro !" });
+});
+
+// Les controleurs gerent leurs erreurs metier ; ce filet couvre les erreurs inattendues.
+app.use((error, req, res, next) => {
+    const status = error.status || error.statusCode || 500;
+    const message = process.env.NODE_ENV === 'production'
+        ? 'Une erreur interne est survenue.'
+        : error.message;
+    if (process.env.NODE_ENV !== 'test') console.error(`Erreur API ${status}: ${error.name || 'Erreur'}`);
+    res.status(status).json({ message });
 });
 
 // Export de l'application configuree pour pouvoir l'utiliser dans server.js et dans les tests.

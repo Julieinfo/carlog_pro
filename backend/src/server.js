@@ -2,6 +2,18 @@
 // Je le fais au tout debut pour que toutes les dependances puissent utiliser process.env
 require('dotenv').config();
 
+const variablesObligatoires = ['MONGO_URI', 'JWT_SECRET'];
+if (process.env.NODE_ENV === 'production') {
+    variablesObligatoires.push('FRONTEND_URL');
+}
+
+const variablesManquantes = variablesObligatoires.filter((nom) => !process.env[nom]);
+if (variablesManquantes.length > 0) {
+    // On affiche uniquement les noms manquants, jamais leurs valeurs (qui doivent rester dans les Secrets Replit).
+    console.error(`Variables d'environnement manquantes : ${variablesManquantes.join(', ')}`);
+    process.exit(1);
+}
+
 // Import de l'application Express configuree dans app.js
 const app = require('./app');
 

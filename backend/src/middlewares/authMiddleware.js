@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Entreprise = require('../models/Entreprise');
 
 /**
  * Middleware d'authentification pour proteger les routes.
@@ -39,16 +40,26 @@ const protect = async (req, res, next) => {
         // select('-motDePasse') exclut le mot de passe de la reponse pour la securite.
         req.user = await User.findById(decoded.id).select('-motDePasse');
 
-        if (!req.user) {
-            // Cas rare mais possible : l'utilisateur a ete supprime entre-temps mais le token est encore valide.
+        if (!req.user || !req.user.actif) {
+            // Un JWT reste mathematiquement valide meme apres la desactivation du compte.
+            // Cette verification en base permet donc de revoquer effectivement l'acces.
             return res.status(401).json({ message: 'Utilisateur introuvable, accès refusé.' });
+        }
+
+        if (req.user.typeCompte === 'entreprise') {
+            const entreprise = await Entreprise.findById(req.user.entreprise).select('actif statutAbonnement');
+            if (!entreprise || !entreprise.actif) {
+                return res.status(403).json({ message: 'Cette entreprise est inactive.' });
+            }
+            if (['past_due', 'canceled'].includes(entreprise.statutAbonnement)) {
+                return res.status(403).json({ message: 'L’abonnement de cette entreprise ne permet pas cet accès.' });
+            }
         }
 
         // Tout est valide : le controleur suivant peut utiliser req.user en toute confiance.
         // req.user contient maintenant toutes les infos de l'utilisateur (id, nom, email, role, entreprise, etc.).
         next();
         } catch (error) {
-            console.error('Erreur validation token:', error.message);
             // On renvoie un message generique pour ne pas aider un attaquant a comprendre ce qui ne va pas.
             return res.status(401).json({ message: 'Token invalide ou expiré, accès non autorisé.' });
         }

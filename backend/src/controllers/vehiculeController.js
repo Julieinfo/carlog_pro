@@ -1,4 +1,6 @@
 const Vehicule = require('../models/Vehicule');
+const Affectation = require('../models/Affectation');
+const repondreErreur = require('../utils/reponseErreur');
 
 // Ajout d'un vehicule dans le parc de l'entreprise connectee.
 
@@ -11,7 +13,7 @@ const Vehicule = require('../models/Vehicule');
 exports.creerVehicule = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
-        const { immatriculation, marque, modele, typeVehicule, kilometrage, ptac, carburant, statut } = req.body;
+        const { immatriculation, marque, modele, typeVehicule, annee, kilometrage, ptac, carburant, statut } = req.body;
 
         // On valide ici les champs minimum pour eviter de polluer la base avec des fiches inexploitables.
         // J'ai choisi de faire cette validation manuellement plutot que d'utiliser une bibliotheque de validation
@@ -38,6 +40,7 @@ exports.creerVehicule = async (req, res) => {
         marque,
         modele,
         typeVehicule,
+        annee,
         kilometrage,
         ptac,
         carburant,
@@ -46,7 +49,7 @@ exports.creerVehicule = async (req, res) => {
 
         res.status(201).json(nouveauVehicule);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -67,6 +70,11 @@ exports.getVehicules = async (req, res) => {
         // Le champ actif: false permet de faire un soft delete : les vehicules supprimes ne sont plus affiches
         // mais restent dans la base pour l'historique. J'aurais pu faire un vrai delete, mais le soft delete est plus sur.
         let filtres = { entreprise: entrepriseId, actif: true };
+
+        if (req.user.role === 'conducteur') {
+            const affectations = await Affectation.find({ entreprise: entrepriseId, conducteur: req.user._id, statut: 'en_cours' }).select('vehicule');
+            filtres._id = { $in: affectations.map((item) => item.vehicule) };
+        }
 
         // Les filtres arrivent en query string (pratique pour brancher des filtres front simples).
         // J'ai choisi cette approche plutot que des routes separees (ex: /api/vehicules/disponible)
@@ -142,7 +150,7 @@ exports.getVehicules = async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -159,7 +167,7 @@ exports.getVehiculeById = async (req, res) => {
         const { id } = req.params;
         const entrepriseId = req.user.entreprise;
 
-        const vehicule = await Vehicule.findById(id);
+        const vehicule = await Vehicule.findOne({ _id: id, entreprise: entrepriseId, actif: true });
 
         // Double verification : existence + appartenance a la bonne entreprise.
         // C'est crucial pour la securite multi-tenant : on ne veut pas qu'une entreprise puisse voir
@@ -169,9 +177,14 @@ exports.getVehiculeById = async (req, res) => {
         return res.status(404).json({ message: 'Véhicule introuvable ou accès non autorisé.' });
         }
 
+        if (req.user.role === 'conducteur') {
+            const affectation = await Affectation.exists({ entreprise: entrepriseId, vehicule: id, conducteur: req.user._id, statut: 'en_cours' });
+            if (!affectation) return res.status(404).json({ message: 'Véhicule introuvable ou accès non autorisé.' });
+        }
+
         res.status(200).json(vehicule);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -192,7 +205,7 @@ exports.modifierVehicule = async (req, res) => {
         // C'est une verification de securite importante pour eviter qu'un utilisateur ne modifie
         // un vehicule qui ne lui appartient pas. J'aurais pu utiliser findOneAndUpdate avec filtre,
         // mais la verification explicite est plus lisible et permet de renvoyer un message d'erreur clair.
-        let vehicule = await Vehicule.findById(id);
+        let vehicule = await Vehicule.findOne({ _id: id, entreprise: entrepriseId, actif: true });
 
         if (!vehicule || vehicule.entreprise.toString() !== entrepriseId.toString()) {
         return res.status(404).json({ message: 'Véhicule introuvable ou accès non autorisé.' });
@@ -217,6 +230,7 @@ exports.modifierVehicule = async (req, res) => {
             ...(req.body.marque !== undefined && { marque: req.body.marque }),
             ...(req.body.modele !== undefined && { modele: req.body.modele }),
             ...(req.body.typeVehicule !== undefined && { typeVehicule: req.body.typeVehicule }),
+            ...(req.body.annee !== undefined && { annee: req.body.annee }),
             ...(req.body.kilometrage !== undefined && { kilometrage: req.body.kilometrage }),
             ...(req.body.ptac !== undefined && { ptac: req.body.ptac }),
             ...(req.body.carburant !== undefined && { carburant: req.body.carburant }),
@@ -226,14 +240,14 @@ exports.modifierVehicule = async (req, res) => {
         // runValidators est important ici : sinon certains updates contournent les validations Mongoose.
         // Par defaut, Mongoose ne valide pas les champs lors d'un update, ce qui pourrait permettre
         // d'inserer des donnees invalides. J'active cette option pour garantir la coherence des donnees.
-        vehicule = await Vehicule.findByIdAndUpdate(id, donneesValides, {
+        vehicule = await Vehicule.findOneAndUpdate({ _id: id, entreprise: entrepriseId }, donneesValides, {
         new: true,
         runValidators: true
         });
 
         res.status(200).json(vehicule);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -251,7 +265,7 @@ exports.supprimerVehicule = async (req, res) => {
         const { id } = req.params;
         const entrepriseId = req.user.entreprise;
 
-        const vehicule = await Vehicule.findById(id);
+        const vehicule = await Vehicule.findOne({ _id: id, entreprise: entrepriseId, actif: true });
 
         if (!vehicule || vehicule.entreprise.toString() !== entrepriseId.toString()) {
         return res.status(404).json({ message: 'Véhicule introuvable ou accès non autorisé.' });
@@ -271,6 +285,6 @@ exports.supprimerVehicule = async (req, res) => {
 
         res.status(200).json({ message: 'Véhicule archivé avec succès.' });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };

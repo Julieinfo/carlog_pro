@@ -1,0 +1,4 @@
+run = "sh -c 'npm --prefix backend start & npm --prefix frontend run dev -- --host 0.0.0.0'"
+
+[deployment]
+run = ["sh", "-c", "npm --prefix backend start & npm --prefix frontend run dev -- --host 0.0.0.0"]

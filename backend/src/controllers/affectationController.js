@@ -1,6 +1,10 @@
 // Import du modele Mongoose pour les affectations.
 // C'est ce modele qui definit la structure des donnees dans MongoDB.
+const mongoose = require('mongoose');
 const Affectation = require('../models/Affectation');
+const Vehicule = require('../models/Vehicule');
+const User = require('../models/User');
+const repondreErreur = require('../utils/reponseErreur');
 
 // ==========================================
 // GET /api/affectations (Récupérer toutes les affectations de l'entreprise)
@@ -22,7 +26,13 @@ exports.getAffectations = async (req, res) => {
         // Requete avec populate : ca permet de recuperer les details des references (vehicule, conducteur)
         // au lieu d'avoir juste les IDs. J'ai choisi de ne recuperer que certains champs pour alleger la reponse.
         // J'aurais pu faire une requete separee pour chaque reference, mais populate est plus performant.
-        const affectations = await Affectation.find({ entreprise: entrepriseId })
+        const filtre = { entreprise: entrepriseId };
+        // Un conducteur ne doit pas pouvoir parcourir les affectations de ses collegues.
+        if (req.user.role === 'conducteur') {
+            filtre.conducteur = req.user._id;
+        }
+
+        const affectations = await Affectation.find(filtre)
         .populate('vehicule', 'marque modele immatriculation') // optionnel: pour embarquer les détails du véhicule
         .populate('conducteur', 'nom prenom email')            // optionnel: pour embarquer les détails du chauffeur
         .sort({ dateDebut: -1 }); // Les plus récentes en premier
@@ -31,7 +41,7 @@ exports.getAffectations = async (req, res) => {
     } catch (err) {
         // En cas d'erreur, on renvoie un 500 avec le message d'erreur.
         // En prod, on devrait logger l'erreur et renvoyer un message plus genérique pour ne pas exposer les details techniques.
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -46,6 +56,7 @@ exports.getAffectations = async (req, res) => {
  * Valeur de retour : l'objet affectation cree avec statut 'en_cours'
  */
 exports.creerAffectation = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         const entrepriseId = req.user.entreprise;
         const { vehicule, conducteur, dateDebut, kmDebut, observations } = req.body;
@@ -53,50 +64,46 @@ exports.creerAffectation = async (req, res) => {
         // 1. Verification basique des champs obligatoires.
         // J'ai choisi de faire cette verification ici plutot que dans un middleware pour garder la logique metier au meme endroit.
         // Ca pourrait etre deplace dans un validator middleware si l'application grossit.
-        if (!vehicule || !conducteur || !kmDebut) {
+        if (!vehicule || !conducteur || kmDebut === undefined || kmDebut === null) {
         return res.status(400).json({ message: 'Veuillez fournir le véhicule, le conducteur et le kilométrage de départ.' });
         }
 
-        // 2. Regle metier : Verifier si le vehicule est deja pris.
-        // C'est important pour eviter qu'un meme vehicule soit attribue a plusieurs conducteurs en meme temps.
-        // On filtre par entreprise pour rester dans le contexte multi-tenant.
-        const vehiculeOccupe = await Affectation.findOne({
-        entreprise: entrepriseId,
-        vehicule,
-        statut: 'en_cours'
-        });
-        if (vehiculeOccupe) {
-        return res.status(400).json({ message: 'Ce véhicule est déjà affecté à un autre conducteur actuellement.' });
-        }
+        let nouvelleAffectation;
+        await session.withTransaction(async () => {
+            const vehiculeDocument = await Vehicule.findOne({ _id: vehicule, entreprise: entrepriseId, actif: true }).session(session);
+            if (!vehiculeDocument) throw Object.assign(new Error('Véhicule introuvable, archivé ou rattaché à une autre entreprise.'), { status: 400 });
+            if (['en_panne', 'en_maintenance'].includes(vehiculeDocument.statut)) throw Object.assign(new Error('Ce véhicule ne peut pas être affecté dans son état actuel.'), { status: 400 });
 
-        // 3. Regle metier : Verifier si le conducteur conduit deja un autre vehicule.
-        // Meme logique : un conducteur ne peut avoir qu'un vehicule a la fois.
-        // J'aurais pu combiner les deux requetes en une avec $or, mais deux requetes separes sont plus lisibles.
-        const conducteurOccupe = await Affectation.findOne({
-        entreprise: entrepriseId,
-        conducteur,
-        statut: 'en_cours'
-        });
-        if (conducteurOccupe) {
-        return res.status(400).json({ message: 'Ce conducteur est déjà affecté à un autre véhicule actuellement.' });
-        }
+            const conducteurDocument = await User.findOne({ _id: conducteur, entreprise: entrepriseId, role: 'conducteur', actif: true }).session(session);
+            if (!conducteurDocument) throw Object.assign(new Error('Conducteur introuvable, inactif ou rattaché à une autre entreprise.'), { status: 400 });
 
-        // 4. Creation de l'affectation.
-        // On force l'entrepriseId pour garantir l'isolation multi-tenant, meme si un utilisateur malveillant l'envoyait dans le body.
-        // dateDebut est optionnel : si non fourni, on utilise la date actuelle par defaut.
-        const nouvelleAffectation = await Affectation.create({
-        entreprise: entrepriseId, // Forcé pour l'isolation multi-tenant
-        vehicule,
-        conducteur,
-        dateDebut: dateDebut || Date.now(),
-        kmDebut,
-        observations,
-        statut: 'en_cours'
+            const conflit = await Affectation.findOne({
+                entreprise: entrepriseId,
+                $or: [{ vehicule }, { conducteur }],
+                statut: 'en_cours'
+            }).session(session);
+            if (conflit) throw Object.assign(new Error('Ce véhicule ou ce conducteur possède déjà une affectation en cours.'), { status: 400 });
+
+            [nouvelleAffectation] = await Affectation.create([{
+                entreprise: entrepriseId,
+                vehicule,
+                conducteur,
+                dateDebut: dateDebut || Date.now(),
+                kmDebut,
+                observations,
+                statut: 'en_cours'
+            }], { session });
+
+            vehiculeDocument.statut = 'en_course';
+            await vehiculeDocument.save({ session });
         });
 
         res.status(201).json(nouvelleAffectation);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        if (err.code === 11000) return res.status(409).json({ message: 'Ce véhicule ou ce conducteur possède déjà une affectation en cours.' });
+        res.status(err.status || 500).json({ message: err.message });
+    } finally {
+        await session.endSession();
     }
 };
 
@@ -127,7 +134,7 @@ exports.getAffectationById = async (req, res) => {
 
         res.status(200).json(affectation);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -165,6 +172,24 @@ exports.modifierAffectation = async (req, res) => {
             ...(req.body.kmFin !== undefined && { kmFin: req.body.kmFin })
         };
 
+        const affectationExistante = await Affectation.findOne({ _id: req.params.id, entreprise: entrepriseId });
+        if (!affectationExistante) {
+            return res.status(404).json({ message: 'Affectation introuvable ou accès refusé.' });
+        }
+
+        if (req.body.vehicule !== undefined) {
+            const vehiculeValide = await Vehicule.exists({ _id: req.body.vehicule, entreprise: entrepriseId, actif: true });
+            if (!vehiculeValide) {
+                return res.status(400).json({ message: 'Le véhicule sélectionné est invalide pour cette entreprise.' });
+            }
+        }
+        if (req.body.conducteur !== undefined) {
+            const conducteurValide = await User.exists({ _id: req.body.conducteur, entreprise: entrepriseId, role: 'conducteur', actif: true });
+            if (!conducteurValide) {
+                return res.status(400).json({ message: 'Le conducteur sélectionné est invalide pour cette entreprise.' });
+            }
+        }
+
         const affectationModifiee = await Affectation.findOneAndUpdate(
             { _id: req.params.id, entreprise: entrepriseId },
             donneesValides,
@@ -177,7 +202,7 @@ exports.modifierAffectation = async (req, res) => {
 
         res.status(200).json({ message: 'Affectation mise à jour avec succès.', affectation: affectationModifiee });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -192,19 +217,19 @@ exports.modifierAffectation = async (req, res) => {
  * Valeur de retour : l'objet affectation avec statut 'terminee'
  */
 exports.terminerAffectation = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         const entrepriseId = req.user.entreprise;
         const { dateFin, kmFin, observationsFin } = req.body;
 
         // Le kilometrage de fin est obligatoire car c'est essentiel pour le suivi de l'usure des vehicules.
         // J'ai choisi de le rendre obligatoire ici plutot que dans le schema pour avoir un message d'erreur plus clair.
-        if (!kmFin) {
+        if (kmFin === undefined || kmFin === null) {
             return res.status(400).json({ message: 'Le kilométrage de fin est obligatoire pour clore l\'affectation.' });
         }
 
         // On cherche l'affectation active appartenant a l'entreprise.
-        // J'utilise findOne au lieu de findById pour verifier l'appartenance a l'entreprise en meme temps.
-        const affectation = await Affectation.findOne({ _id: req.params.id, entreprise: entrepriseId });
+        const affectation = await Affectation.findOne({ _id: req.params.id, entreprise: entrepriseId }).session(session);
 
         if (!affectation) {
             return res.status(404).json({ message: 'Affectation introuvable ou accès refusé.' });
@@ -224,20 +249,26 @@ exports.terminerAffectation = async (req, res) => {
             });
         }
 
-        // Mise a jour pour l'historique.
-        // Je modifie directement l'objet et j'appelle save() plutot que d'utiliser findOneAndUpdate,
-        // car j'ai besoin de faire plusieurs modifications et une verification de logique metier avant.
-        affectation.statut = 'terminee';
-        affectation.dateFin = dateFin || Date.now();
-        affectation.kmFin = kmFin;
-        // Je concatene les observations de fin a celles existantes pour garder l'historique complet.
-        if (observationsFin) affectation.observations = `${affectation.observations || ''} | Fin: ${observationsFin}`;
+        await session.withTransaction(async () => {
+            affectation.statut = 'terminee';
+            affectation.dateFin = dateFin || Date.now();
+            affectation.kmFin = kmFin;
+            if (observationsFin) affectation.observations = `${affectation.observations || ''} | Fin: ${observationsFin}`;
+            await affectation.save({ session });
 
-        await affectation.save();
+            const vehicule = await Vehicule.findOne({ _id: affectation.vehicule, entreprise: entrepriseId }).session(session);
+            if (vehicule) {
+                vehicule.statut = 'disponible';
+                if (kmFin > vehicule.kilometrage) vehicule.kilometrage = kmFin;
+                await vehicule.save({ session });
+            }
+        });
 
         res.status(200).json({ message: 'Affectation clôturée avec succès et archivée dans l\'historique.', affectation });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        res.status(err.status || 500).json({ message: err.message });
+    } finally {
+        await session.endSession();
     }
 };
 
@@ -270,6 +301,6 @@ exports.supprimerAffectation = async (req, res) => {
         // Mais pour l'instant, ça donne de la flexibilite pour corriger les erreurs.
         res.status(200).json({ message: 'Affectation supprimée avec succès.' });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };

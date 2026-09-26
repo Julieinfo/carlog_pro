@@ -5,7 +5,8 @@ const router = express.Router();
 // Ici j'utilise seulement protect car toutes les routes d'alertes sont accessibles
 // a tous les utilisateurs authentifies de l'entreprise (pas de restriction de role).
 // J'ai choisi cette approche car la gestion des alertes est une activite commune.
-const { protect } = require('../middlewares/authMiddleware');
+const { protect, authorize } = require('../middlewares/authMiddleware');
+const validateObjectId = require('../middlewares/validateObjectId');
 
 // Import des validateurs express-validator pour les alertes.
 const { validateCreerAlerte, validateModifierAlerte } = require('../middlewares/validators/alerteValidator');
@@ -31,7 +32,7 @@ const {
 // J'ai autorise tous les utilisateurs authentifies a creer des alertes,
 // car meme un conducteur peut signaler un probleme sur son vehicule.
 // J'ajoute le validateur pour s'assurer que les donnees sont valides.
-router.post('/', protect, validateCreerAlerte, creerAlerte);
+router.post('/', protect, authorize('admin', 'fleet_manager', 'conducteur', 'mecanicien'), validateCreerAlerte, creerAlerte);
 
 // 2. [READ ALL] - Recuperer toutes les alertes de l'entreprise.
 // Pratique pour filtrer par statut via req.query (ex: ?statut=en_cours).
@@ -41,21 +42,21 @@ router.get('/', protect, getAlertes);
 // 3. [READ VEHICLE HISTORY] - Recuperer l'historique des alertes d'un vehicule specifique.
 // Cette route est utile pour analyser les problemes recurrents d'un vehicule.
 // :vehiculeId est un parametre d'URL dynamique capture par Express.
-router.get('/vehicule/:vehiculeId', protect, getAlertesByVehicule);
+router.get('/vehicule/:vehiculeId', protect, validateObjectId('vehiculeId'), getAlertesByVehicule);
 
 // 4. [READ ONE] - Recuperer les details d'une alerte specifique.
 // :id est un parametre d'URL dynamique qui correspond a l'ID MongoDB de l'alerte.
-router.get('/:id', protect, getAlerteById);
+router.get('/:id', protect, validateObjectId('id'), getAlerteById);
 
 // 5. [UPDATE] - Modifier ou Resoudre une alerte (statut, notes de maintenance...).
 // Permet de mettre a jour les informations ou de marquer l'alerte comme resolue.
 // J'ajoute le validateur pour s'assurer que les donnees sont valides.
-router.put('/:id', protect, validateModifierAlerte, modifierAlerte);
+router.put('/:id', protect, validateObjectId('id'), validateModifierAlerte, modifierAlerte);
 
 // 6. [DELETE] - Supprimer definitivement une alerte (erreur de saisie).
 // J'ai autorise la suppression car les alertes peuvent etre creees par erreur.
 // En prod, on pourrait limiter ça aux admins pour plus de controle.
-router.delete('/:id', protect, supprimerAlerte);
+router.delete('/:id', protect, authorize('admin'), validateObjectId('id'), supprimerAlerte);
 
 // Export du routeur pour pouvoir l'utiliser dans app.js.
 module.exports = router;

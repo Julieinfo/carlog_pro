@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Entreprise = require('../models/Entreprise');
+const repondreErreur = require('../utils/reponseErreur');
 
 /**
  * Genere un token JWT pour un utilisateur.
@@ -28,6 +30,7 @@ const genererToken = (id) =>
  * Valeur de retour : token JWT + infos utilisateur + entrepriseId
  */
 exports.inscription = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         // On recupere les infos admin et les infos entreprise depuis le formulaire d'inscription.
         // J'ai choisi de tout recevoir dans un seul body plutot que de faire deux appels separe,
@@ -61,26 +64,30 @@ exports.inscription = async (req, res) => {
         // On cree l'entreprise avant l'utilisateur pour recuperer son _id et faire le lien proprement.
         // L'ordre est important : l'utilisateur a besoin de l'ID de l'entreprise pour etre rattache.
         // Si on faisait l'inverse, on devrait faire un update supplementaire sur l'utilisateur.
-        const entreprise = await Entreprise.create({ 
-        nom: nomEntreprise,
-        siret,
-        emailProfessionnel,
-        telephone: telephoneEntreprise,
-        adresse
-        });
+        let entreprise;
+        let user;
+        await session.withTransaction(async () => {
+            [entreprise] = await Entreprise.create([{
+                nom: nomEntreprise,
+                siret,
+                emailProfessionnel,
+                telephone: telephoneEntreprise,
+                adresse
+            }], { session });
         
         // Le premier compte est force en admin entreprise : c'est le compte "owner" initial.
         // C'est une mesure de securite importante pour eviter que le premier utilisateur n'ait pas les droits.
         // On force aussi typeCompte a 'entreprise' pour differencier des autres types de comptes (ex: conducteurs).
-        const user = await User.create({ 
-        nom, 
-        prenom,
-        email, 
-        motDePasse, 
-        telephone,
-        entreprise: entreprise._id,
-        role: 'admin',             // Sécurité : Forcé pour le créateur du compte SaaS
-        typeCompte: 'entreprise'   // Sécurité : Forcé pour le compte principal
+            [user] = await User.create([{
+                nom,
+                prenom,
+                email,
+                motDePasse,
+                telephone,
+                entreprise: entreprise._id,
+                role: 'admin',
+                typeCompte: 'entreprise'
+            }], { session });
         });
         
         // On renvoie le token des l'inscription pour connecter l'utilisateur automatiquement.
@@ -97,7 +104,13 @@ exports.inscription = async (req, res) => {
         },
         });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        if (err.code === 11000) {
+            return res.status(400).json({ message: 'Un compte ou une entreprise avec ces informations existe déjà.' });
+        }
+        const message = process.env.NODE_ENV === 'production' ? 'Erreur lors de la création du compte.' : err.message;
+        res.status(500).json({ message });
+    } finally {
+        await session.endSession();
     }
 };
 
@@ -139,7 +152,7 @@ exports.connexion = async (req, res) => {
         },
         });
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };
 
@@ -166,6 +179,39 @@ exports.getProfil = async (req, res) => {
         
         res.status(200).json(userSansMotDePasse);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
+    }
+};
+
+exports.modifierEtatEntreprise = async (req, res) => {
+    try {
+        const donnees = {};
+        if (req.body.statutAbonnement !== undefined) {
+            if (!['trial', 'active', 'past_due', 'canceled'].includes(req.body.statutAbonnement)) {
+                return res.status(400).json({ message: 'Statut d’abonnement invalide.' });
+            }
+            donnees.statutAbonnement = req.body.statutAbonnement;
+        }
+        if (req.body.formuleAbonnement !== undefined) {
+            if (!['starter', 'premium', 'enterprise'].includes(req.body.formuleAbonnement)) {
+                return res.status(400).json({ message: 'Formule d’abonnement invalide.' });
+            }
+            donnees.formuleAbonnement = req.body.formuleAbonnement;
+        }
+        if (req.body.actif !== undefined) {
+            if (typeof req.body.actif !== 'boolean') return res.status(400).json({ message: 'L’état actif doit être booléen.' });
+            donnees.actif = req.body.actif;
+        }
+
+        const entreprise = await Entreprise.findOneAndUpdate(
+            { _id: req.user.entreprise },
+            donnees,
+            { new: true, runValidators: true }
+        ).select('-__v');
+
+        if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
+        res.status(200).json(entreprise);
+    } catch (err) {
+        repondreErreur(res, err);
     }
 };

@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 const Vehicule = require('../models/Vehicule');
 const Affectation = require('../models/Affectation');
+const repondreErreur = require('../utils/reponseErreur');
 
 // ==========================================
 // GET /api/stats (Récupérer les KPI du tableau de bord)
@@ -27,7 +28,7 @@ exports.getDashboardStats = async (req, res) => {
         // - $match : filtre pour ne garder que les vehicules de l'entreprise (isolation multi-tenant)
         // - $group : regroupe les vehicules par statut et compte combien il y en a dans chaque groupe
         const statsVehicules = await Vehicule.aggregate([
-            { $match: { entreprise: entrepriseId } }, // Multi-tenant : uniquement l'entreprise courante
+            { $match: { entreprise: entrepriseId, actif: true } }, // Les vehicules archives ne comptent plus dans les KPI.
             {
                 $group: {
                     _id: '$statut', // On groupe par le champ 'statut'
@@ -44,7 +45,7 @@ exports.getDashboardStats = async (req, res) => {
             total: 0,
             disponible: 0,
             en_course: 0,
-            maintenance: 0,
+            en_maintenance: 0,
             en_panne: 0
         };
 
@@ -77,6 +78,6 @@ exports.getDashboardStats = async (req, res) => {
         });
 
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        repondreErreur(res, err);
     }
 };

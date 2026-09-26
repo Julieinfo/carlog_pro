@@ -17,7 +17,7 @@ const { getDashboardStats } = require('../controllers/statsController');
 // J'ai restreint l'acces aux roles admin et fleet_manager car les statistiques
 // sont des informations sensibles sur la performance de la flotte.
 // Les conducteurs n'ont pas besoin d'acceder aux KPI globaux de l'entreprise.
-router.get('/', protect, authorize('admin', 'fleet_manager'), getDashboardStats);
+router.get('/', protect, authorize('admin', 'fleet_manager', 'comptable'), getDashboardStats);
 
 // Export du routeur pour pouvoir l'utiliser dans app.js.
 module.exports = router;

@@ -1,8 +1,19 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+  // En production, /api passe par le meme domaine que le frontend.
+  // VITE_API_URL reste disponible si le frontend et l'API sont deployes separement.
+  baseURL: import.meta.env.VITE_API_URL || '/api',
 });
+
+export function messageErreurApi(error, fallback = 'Une erreur est survenue.') {
+  if (!error.response) return 'Le serveur est inaccessible. Vérifiez votre connexion.';
+  if (error.response.status === 401) return 'Votre session a expiré. Veuillez vous reconnecter.';
+  if (error.response.status === 403) return 'Votre rôle ne permet pas cette action.';
+  const erreurs = error.response.data?.erreurs;
+  if (Array.isArray(erreurs) && erreurs.length) return erreurs.map((item) => item.msg).join(' ');
+  return error.response.data?.message || fallback;
+}
 
 // Intercepteur pour injecter automatiquement le token JWT s'il existe dans le localStorage
 API.interceptors.request.use((config) => {
@@ -20,13 +31,15 @@ export const api = {
   inscription: (userData) => API.post('/auth/inscription', userData),
 
   // Véhicules
-  getVehicules: () => API.get('/vehicules'),
+  getVehicules: (params = {}) => API.get('/vehicules', { params }),
+  getVehicule: (id) => API.get(`/vehicules/${id}`),
   addVehicule: (data) => API.post('/vehicules', data),
   updateVehicule: (id, data) => API.put(`/vehicules/${id}`, data),
   deleteVehicule: (id) => API.delete(`/vehicules/${id}`),
 
   // Alertes
-  getAlertes: () => API.get('/alertes'),
+  getAlertes: (params = {}) => API.get('/alertes', { params }),
+  getAlerte: (id) => API.get(`/alertes/${id}`),
   addAlerte: (data) => API.post('/alertes', data),
   updateAlerte: (id, data) => API.put(`/alertes/${id}`, data),
   deleteAlerte: (id) => API.delete(`/alertes/${id}`),
@@ -34,9 +47,17 @@ export const api = {
   // Affectations
   getAffectations: () => API.get('/affectations'),
   addAffectation: (data) => API.post('/affectations', data),
+  updateAffectation: (id, data) => API.put(`/affectations/${id}`, data),
+  terminerAffectation: (id, data) => API.put(`/affectations/${id}/terminer`, data),
+  deleteAffectation: (id) => API.delete(`/affectations/${id}`),
 
   // Statistiques
   getStats: () => API.get('/stats'),
+
+  // Utilisateurs de l'entreprise (administrateur uniquement)
+  getUtilisateurs: () => API.get('/auth/utilisateurs'),
+  addUtilisateur: (data) => API.post('/auth/utilisateurs', data),
+  disableUtilisateur: (id) => API.patch(`/auth/utilisateurs/${id}/desactiver`),
 };
 
 export default API;
