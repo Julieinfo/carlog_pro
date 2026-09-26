@@ -52,54 +52,59 @@ export default function Register({ onGoToLogin }) {
   }
 
   return (
-    <div className="auth-page">
-      <h1>Créer un compte entreprise</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Nom
-          <input name="nom" value={form.nom} onChange={handleChange} required />
-        </label>
-        <label>
-          Prénom
-          <input name="prenom" value={form.prenom} onChange={handleChange} required />
-        </label>
-        <label>
-          Email
-          <input type="email" name="email" value={form.email} onChange={handleChange} required />
-        </label>
-        <label>
-          Mot de passe
-          <input
-            type="password"
-            name="motDePasse"
-            value={form.motDePasse}
-            onChange={handleChange}
-            required
-          />
-        </label>
-        <label>
-          Nom de l'entreprise
-          <input
-            name="nomEntreprise"
-            value={form.nomEntreprise}
-            onChange={handleChange}
-            required
-          />
-        </label>
+    <div className="auth-shell">
+      <header className="navbar">
+        <div className="logo">CarLog <span>Pro</span></div>
+      </header>
 
-        {erreur && <p className="erreur" style={{ color: 'red' }}>{erreur}</p>}
+      <main className="dashboard-container auth-container">
+        <section className="card-section auth-card">
+          <div className="section-header">
+            <div>
+              <p className="eyebrow">Espace entreprise</p>
+              <h1>Créer un compte</h1>
+            </div>
+          </div>
 
-        <button type="submit" disabled={chargement}>
-          {chargement ? 'Création...' : 'Créer le compte'}
-        </button>
-      </form>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="auth-fields-row">
+              <label className="field">
+                <span>Nom</span>
+                <input name="nom" value={form.nom} onChange={handleChange} required autoComplete="family-name" />
+              </label>
+              <label className="field">
+                <span>Prénom</span>
+                <input name="prenom" value={form.prenom} onChange={handleChange} required autoComplete="given-name" />
+              </label>
+            </div>
+            <label className="field">
+              <span>Email</span>
+              <input type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" />
+            </label>
+            <label className="field">
+              <span>Mot de passe</span>
+              <input type="password" name="motDePasse" value={form.motDePasse} onChange={handleChange} required autoComplete="new-password" />
+            </label>
+            <label className="field">
+              <span>Nom de l'entreprise</span>
+              <input name="nomEntreprise" value={form.nomEntreprise} onChange={handleChange} required autoComplete="organization" />
+            </label>
 
-      <p>
-        Déjà un compte ?{' '}
-        <button type="button" onClick={onGoToLogin}>
-          Se connecter
-        </button>
-      </p>
+            {erreur && <p className="auth-error" role="alert">{erreur}</p>}
+
+            <button className="btn-primary auth-submit" type="submit" disabled={chargement}>
+              {chargement ? 'Création...' : 'Créer le compte'}
+            </button>
+          </form>
+
+          <p className="auth-switch">
+            Déjà un compte ?{' '}
+            <button className="link-button" type="button" onClick={onGoToLogin}>
+              Se connecter
+            </button>
+          </p>
+        </section>
+      </main>
     </div>
   );
 }

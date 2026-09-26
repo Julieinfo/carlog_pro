@@ -27,41 +27,57 @@ export default function Login({ onGoToRegister }) {
   }
 
   return (
-    <div className="auth-page">
-      <h1>Connexion</h1>
-      <form onSubmit={handleSubmit}>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </label>
-        <label>
-          Mot de passe
-          <input
-            type="password"
-            value={motDePasse}
-            onChange={(e) => setMotDePasse(e.target.value)}
-            required
-          />
-        </label>
+    <div className="auth-shell">
+      <header className="navbar">
+        <div className="logo">CarLog <span>Pro</span></div>
+      </header>
 
-        {erreur && <p className="erreur" style={{ color: 'red' }}>{erreur}</p>}
+      <main className="dashboard-container auth-container">
+        <section className="card-section auth-card">
+          <div className="section-header">
+            <div>
+              <p className="eyebrow">Espace entreprise</p>
+              <h1>Connexion</h1>
+            </div>
+          </div>
 
-        <button type="submit" disabled={chargement}>
-          {chargement ? 'Connexion...' : 'Se connecter'}
-        </button>
-      </form>
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <label className="field">
+              <span>Email</span>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </label>
+            <label className="field">
+              <span>Mot de passe</span>
+              <input
+                type="password"
+                value={motDePasse}
+                onChange={(e) => setMotDePasse(e.target.value)}
+                required
+                autoComplete="current-password"
+              />
+            </label>
 
-      <p>
-        Pas encore de compte ?{' '}
-        <button type="button" onClick={onGoToRegister}>
-          Créer un compte entreprise
-        </button>
-      </p>
+            {erreur && <p className="auth-error" role="alert">{erreur}</p>}
+
+            <button className="btn-primary auth-submit" type="submit" disabled={chargement}>
+              {chargement ? 'Connexion...' : 'Se connecter'}
+            </button>
+          </form>
+
+          <p className="auth-switch">
+            Pas encore de compte ?{' '}
+            <button className="link-button" type="button" onClick={onGoToRegister}>
+              Créer un compte entreprise
+            </button>
+          </p>
+        </section>
+      </main>
     </div>
   );
 }
