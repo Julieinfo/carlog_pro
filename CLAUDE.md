@@ -154,6 +154,7 @@ Une feature est finie quand :
 - [2026-09] · RBAC suppressions — suppression des alertes réservée à admin et fleet_manager ; suppression des affectations réservée à admin. Matrice vérifiée sur les cinq rôles.
 - [2026-09] · Phase 2 — session frontend vérifiée via `/auth/me` au montage ; 401 déconnecte et notifie le contexte, hors échec de connexion. Messages d’erreur API uniformisés dans les formulaires.
 - [2026-09] · Contrat d’authentification — `/auth/me` renvoie les six mêmes champs `user` que l’inscription et la connexion ; test d’intégration ajouté pour comparer exactement les clés.
+- [2026-09] · Inscription réelle — formulaire entreprise collecte SIRET, téléphone et adresse ; validation frontend/backend des formats SIRET/code postal, sans valeurs générées.
 
 ## 11 · Pièges connus
 
