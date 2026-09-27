@@ -150,6 +150,7 @@ Une feature est finie quand :
 > Ajoute une ligne ici à chaque session. Date · ce qui a été fait · ce qui reste.
 
 - [2026-09] · Backend terminé (auth, CRUD véhicules/alertes/affectations, stats, RBAC, Swagger, tests Jest) · Frontend React en cours (dashboard connecté à l'API)
+- [2026-09] · Phase 1 — 43 tests backend passent sur la base de test ; isolation, RBAC, auth, secrets et affectations concurrentes vérifiés. Correction : un conducteur ne peut consulter que ses propres affectations ; les erreurs MongoDB internes ne divulguent plus leur message en production · validation explicite de Julie à confirmer.
 
 ## 11 · Pièges connus
 

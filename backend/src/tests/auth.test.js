@@ -69,12 +69,43 @@ describe('POST /api/auth/inscription', () => {
         // Verification que la reponse contient un token JWT.
         // C'est important car le frontend a besoin du token pour connecter l'utilisateur automatiquement.
         expect(res.body).toHaveProperty('token');
+        expect(res.body.user).not.toHaveProperty('motDePasse');
+        expect(JSON.stringify(res.body)).not.toContain('SuperPassword123!');
         
         // Verification directe dans MongoDB pour s'assurer que les donnees sont bien stockees.
         // J'ai ajoute cette verification pour tester la persistence des donnees, pas seulement la reponse HTTP.
         const userInDb = await User.findOne({ email: 'jean.dupont@example.com' });
         expect(userInDb).toBeTruthy(); // L'utilisateur doit exister dans la base
         expect(userInDb.motDePasse).not.toBe('SuperPassword123!'); // Hachage OK : le mot de passe ne doit pas etre en clair
+    });
+
+    it('devrait connecter l\'utilisateur et renvoyer son profil sans mot de passe', async () => {
+        const connexion = await request(app)
+            .post('/api/auth/connexion')
+            .send({ email: 'jean.dupont@example.com', motDePasse: 'SuperPassword123!' });
+
+        expect(connexion.statusCode).toBe(200);
+        expect(connexion.body).toHaveProperty('token');
+        expect(connexion.body.user).not.toHaveProperty('motDePasse');
+        expect(JSON.stringify(connexion.body)).not.toContain('SuperPassword123!');
+
+        const profil = await request(app)
+            .get('/api/auth/me')
+            .set('Authorization', `Bearer ${connexion.body.token}`);
+
+        expect(profil.statusCode).toBe(200);
+        expect(profil.body.email).toBe('jean.dupont@example.com');
+        expect(profil.body).not.toHaveProperty('motDePasse');
+    });
+
+    it('devrait refuser une connexion avec un mot de passe incorrect', async () => {
+        const res = await request(app)
+            .post('/api/auth/connexion')
+            .send({ email: 'jean.dupont@example.com', motDePasse: 'MauvaisMotDePasse123!' });
+
+        expect(res.statusCode).toBe(401);
+        expect(res.body).not.toHaveProperty('token');
+        expect(JSON.stringify(res.body)).not.toContain('MauvaisMotDePasse123!');
     });
 
     // Test 2 : La gestion des conflits (Doublon).

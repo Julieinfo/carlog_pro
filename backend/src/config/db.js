@@ -27,7 +27,8 @@ const connectDB = async () => {
     const conn = await mongoose.connect(uri);
     console.log(`MongoDB connecté (${isTest ? 'test' : 'principal'}) : ${conn.connection.host}`);
   } catch (error) {
-    console.error(`Erreur : ${error.message}`);
+    // Les erreurs de connexion peuvent inclure l’URI MongoDB et ses identifiants.
+    console.error(`Erreur MongoDB : ${error.name || 'Erreur de connexion'}`);
     // CORRECTION : process.exit(1) tuerait le process Jest lui-même en test
     // (les tests ne pourraient jamais s'exécuter ni afficher d'échec propre).
     // En test, on relance l'erreur pour que Jest l'affiche normalement.

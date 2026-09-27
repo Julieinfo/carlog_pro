@@ -101,7 +101,8 @@ exports.creerAffectation = async (req, res) => {
         res.status(201).json(nouvelleAffectation);
     } catch (err) {
         if (err.code === 11000) return res.status(409).json({ message: 'Ce véhicule ou ce conducteur possède déjà une affectation en cours.' });
-        res.status(err.status || 500).json({ message: err.message });
+        if (err.status) return res.status(err.status).json({ message: err.message });
+        repondreErreur(res, err);
     } finally {
         await session.endSession();
     }
@@ -124,7 +125,12 @@ exports.getAffectationById = async (req, res) => {
         // Securisation multi-tenant : l'affectation doit appartenir a l'entreprise de l'user.
         // J'utilise findOne avec deux criteres (_id et entreprise) au lieu de findById + verification,
         // car c'est plus performant (une seule requete) et plus securise (pas de race condition).
-        const affectation = await Affectation.findOne({ _id: req.params.id, entreprise: entrepriseId })
+        const filtre = { _id: req.params.id, entreprise: entrepriseId };
+        if (req.user.role === 'conducteur') {
+            filtre.conducteur = req.user._id;
+        }
+
+        const affectation = await Affectation.findOne(filtre)
             .populate('conducteur', 'nom prenom email')
             .populate('vehicule', 'immatriculation marque modele');
 
@@ -266,7 +272,8 @@ exports.terminerAffectation = async (req, res) => {
 
         res.status(200).json({ message: 'Affectation clôturée avec succès et archivée dans l\'historique.', affectation });
     } catch (err) {
-        res.status(err.status || 500).json({ message: err.message });
+        if (err.status) return res.status(err.status).json({ message: err.message });
+        repondreErreur(res, err);
     } finally {
         await session.endSession();
     }

@@ -52,12 +52,34 @@ describe('Middleware JWT et etat des comptes', () => {
         expect(Entreprise.findById).not.toHaveBeenCalled();
     });
 
-    it('refuse une entreprise annulee', async () => {
+    it.each(['past_due', 'canceled'])('refuse une entreprise avec abonnement %s', async (statutAbonnement) => {
         User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ actif: true, typeCompte: 'entreprise', entreprise: 'company-id' }) });
-        Entreprise.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ actif: true, statutAbonnement: 'canceled' }) });
+        Entreprise.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ actif: true, statutAbonnement }) });
         const res = responseMock();
         const req = { headers: { authorization: `Bearer ${token({ id: '1' })}` } };
         await protect(req, res, jest.fn());
         expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('refuse une entreprise desactivee meme avec un token valide', async () => {
+        User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ actif: true, typeCompte: 'entreprise', entreprise: 'company-id' }) });
+        Entreprise.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ actif: false, statutAbonnement: 'active' }) });
+        const res = responseMock();
+        const req = { headers: { authorization: `Bearer ${token({ id: '1' })}` } };
+
+        await protect(req, res, jest.fn());
+
+        expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it.each(['trial', 'active'])('autorise une entreprise avec abonnement %s', async (statutAbonnement) => {
+        User.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ _id: '1', actif: true, typeCompte: 'entreprise', entreprise: 'company-id' }) });
+        Entreprise.findById.mockReturnValue({ select: jest.fn().mockResolvedValue({ actif: true, statutAbonnement }) });
+        const next = jest.fn();
+        const req = { headers: { authorization: `Bearer ${token({ id: '1' })}` } };
+
+        await protect(req, responseMock(), next);
+
+        expect(next).toHaveBeenCalledTimes(1);
     });
 });
