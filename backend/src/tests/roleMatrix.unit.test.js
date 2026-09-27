@@ -26,7 +26,9 @@ describe('Matrice RBAC des routes protégées', () => {
         [vehiculeRoutes, 'post', '/', ['admin', 'fleet_manager']],
         [vehiculeRoutes, 'delete', '/:id', ['admin']],
         [alerteRoutes, 'post', '/', ['admin', 'fleet_manager', 'conducteur', 'mecanicien']],
+        [alerteRoutes, 'delete', '/:id', ['admin', 'fleet_manager']],
         [affectationRoutes, 'post', '/', ['admin', 'fleet_manager']],
+        [affectationRoutes, 'delete', '/:id', ['admin']],
         [statsRoutes, 'get', '/', ['admin', 'fleet_manager', 'comptable']]
     ])('%s applique les rôles attendus sur %s %s', (router, method, path, autorises) => {
         const middleware = permissionMiddleware(router, method, path);
