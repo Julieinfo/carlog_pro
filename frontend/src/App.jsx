@@ -5,8 +5,10 @@ import Dashboard from './pages/Dashboard';
 import { useState } from 'react';
 
 export default function App() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, verification } = useAuth();
   const [pageAuth, setPageAuth] = useState('login'); // 'login' ou 'register'
+
+  if (verification) return <p>Chargement...</p>;
 
   if (!isAuthenticated) {
     return pageAuth === 'login' ? (

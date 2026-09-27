@@ -6,9 +6,13 @@ const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
+const estRequeteConnexion = (error) => /\/auth\/connexion(?:[/?#]|$)/.test(error.config?.url || '');
+
 export function messageErreurApi(error, fallback = 'Une erreur est survenue.') {
   if (!error.response) return 'Le serveur est inaccessible. Vérifiez votre connexion.';
-  if (error.response.status === 401) return 'Votre session a expiré. Veuillez vous reconnecter.';
+  if (error.response.status === 401) {
+    return estRequeteConnexion(error) ? fallback : 'Votre session a expiré. Veuillez vous reconnecter.';
+  }
   if (error.response.status === 403) return 'Votre rôle ne permet pas cette action.';
   const erreurs = error.response.data?.erreurs;
   if (Array.isArray(erreurs) && erreurs.length) return erreurs.map((item) => item.msg).join(' ');
@@ -24,11 +28,24 @@ API.interceptors.request.use((config) => {
   return config;
 });
 
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 && !estRequeteConnexion(error)) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.dispatchEvent(new Event('auth:session-expired'));
+    }
+    return Promise.reject(error);
+  },
+);
+
 // Export des méthodes réutilisables dans toute l'application
 export const api = {
   // Authentification
   connexion: (credentials) => API.post('/auth/connexion', credentials),
   inscription: (userData) => API.post('/auth/inscription', userData),
+  getProfil: () => API.get('/auth/me'),
 
   // Véhicules
   getVehicules: (params = {}) => API.get('/vehicules', { params }),
