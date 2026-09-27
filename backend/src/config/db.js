@@ -5,30 +5,35 @@ const mongoose = require('mongoose');
 /**
  * Fonction de connexion a la base de donnees MongoDB.
  * Role : etablir la connexion et gerer les erreurs potentielles.
- * Parametres : aucun (utilise la variable d'environnement MONGO_URI)
+ * Parametres : aucun (utilise MONGO_URI_TEST si NODE_ENV=test, sinon MONGO_URI)
  * Valeur de retour : Promise qui se resout quand la connexion est etablie
  */
 const connectDB = async () => {
   try {
-    // CORRECTION SÉCURITÉ : Vérification de la présence de MONGO_URI avant tentative de connexion.
-    // Avant : process.env.MONGO_URI était utilisé directement sans vérification.
-    // Risque : Si la variable d'environnement est manquante, l'erreur serait détectée tardivement
-    // avec un message d'erreur cryptique de Mongoose, rendant le debug difficile.
-    // Maintenant : On vérifie explicitement que MONGO_URI existe et n'est pas vide avant de tenter la connexion.
-    if (!process.env.MONGO_URI) {
-      throw new Error('La variable d\'environnement MONGO_URI est manquante. Veuillez la définir dans le fichier .env.');
+    // CORRECTION : selon l'environnement, on utilise une base differente.
+    // En test (NODE_ENV=test), on pointe vers MONGO_URI_TEST pour ne jamais
+    // toucher aux donnees de developpement ou de production.
+    const isTest = process.env.NODE_ENV === 'test';
+    const uri = isTest ? process.env.MONGO_URI_TEST : process.env.MONGO_URI;
+    const nomVariable = isTest ? 'MONGO_URI_TEST' : 'MONGO_URI';
+
+    if (!uri) {
+      throw new Error(
+        `La variable d'environnement ${nomVariable} est manquante. Veuillez la définir dans les Secrets/.env.`
+      );
     }
 
     // Mongoose gere automatiquement le pool de connexions.
-    // Une seule connexion ici suffit pour toute l'application, Mongoose se charge de reutiliser les connexions.
-    // J'ai hesite a ajouter des options de configuration (comme useNewUrlParser), mais Mongoose les gere par defaut maintenant.
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB connecté : ${conn.connection.host}`);
+    const conn = await mongoose.connect(uri);
+    console.log(`MongoDB connecté (${isTest ? 'test' : 'principal'}) : ${conn.connection.host}`);
   } catch (error) {
-    // En production, il vaut mieux arreter le processus que de lancer une API "a moitie vivante" sans base de donnees.
-    // Sinon, toutes les requetes echoueraient et les utilisateurs verraient des erreurs 500.
-    // J'ai choisi process.exit(1) pour indiquer que le processus s'est termine avec une erreur.
     console.error(`Erreur : ${error.message}`);
+    // CORRECTION : process.exit(1) tuerait le process Jest lui-même en test
+    // (les tests ne pourraient jamais s'exécuter ni afficher d'échec propre).
+    // En test, on relance l'erreur pour que Jest l'affiche normalement.
+    if (process.env.NODE_ENV === 'test') {
+      throw error;
+    }
     process.exit(1);
   }
 };

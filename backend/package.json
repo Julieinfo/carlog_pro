@@ -11,6 +11,11 @@
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "jest": {
+    "setupFiles": [
+      "<rootDir>/jest.setup.js"
+    ]
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",

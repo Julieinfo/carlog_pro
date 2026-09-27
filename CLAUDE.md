@@ -41,16 +41,23 @@ Deux règles qui évitent des soirées perdues :
 
 ## 4 · Direction artistique
 
-- **Personnalité de la marque :** [à définir]
-- **Couleur principale :** [#______]
-- **Couleur d'accent :** [#______]
-- **Fond / surfaces :** [ex. fond sombre, cartes contrastées]
-- **Typo titres :** [ex. Inter 600-700]
-- **Typo texte :** [ex. Inter 400-500]
-- **Rayons :** [ex. 8-12px]
-- **Interdits :** [ex. dégradés criards, plus de 2 couleurs d'accent]
+- **Personnalité de la marque :** Professionnelle, fiable, axée sur la performance et la précision automobile.
+- **Couleur principale (Marque & CTA) :** #DC2626 (Rouge Vif Automobile — uniquement logo, boutons d'action principaux "CTA", états actifs de navigation).
+- **Couleur secondaire (Structure) :** #0F172A (Bleu Ardoise Foncé — texte principal, sidebar de navigation, cadre sérieux/B2B).
+- **Couleur d'accent (Neutral) :** #475569 (Gris Ardoise — icônes secondaires, texte d'explication).
+- **Fond / surfaces :** Fond clair #F8FAFC (gris chirurgical/propre), cartes blanches #FFFFFF avec ombre légère pour détacher les indicateurs de la flotte.
+- **Statuts UI (crucial pour CarLog Pro) :**
+  - 🟢 Succès (véhicule disponible / inspecté) : #10B981
+  - ⚠️ Alerte / Warning (maintenance proche, carburant bas) : #F59E0B
+  - 🔴 Erreur / Urgence (panne, géofencing franchi, document expiré) : #EF4444 (distinct du rouge marque, pour ne jamais confondre un bouton et une erreur)
+- **Typo titres :** Inter, Sans-serif (600-700)
+- **Typo texte :** Inter, Sans-serif (400-500)
+- **Rayons (border-radius) :** 8px (cartes, boutons, inputs)
+- **Interdits :** pas de mode sombre par défaut (fatiguant pour la saisie de données de flotte en journée), pas de dégradés sur les boutons, pas plus de 10% de rouge visible à l'écran en même temps.
 
 Règle : chaque nouvel écran React respecte ces tokens. Si un écran a besoin d'un style qui n'existe pas ici, tu me le proposes AVANT.
+
+**⚠️ Le `styles.css` actuel est en mode sombre (`--bg-dark`, cartes `#18181c`, texte blanc) — en contradiction directe avec cette DA (fond clair, pas de dark mode par défaut). Refonte du CSS existant à planifier comme tâche explicite avant de styler tout nouvel écran, pour ne pas avoir un mélange d'écrans clairs et sombres.**
 
 ## 5 · Sécurité (non négociable)
 
@@ -64,11 +71,68 @@ Règle : chaque nouvel écran React respecte ces tokens. Si un écran a besoin d
 
 5. **Whitelist des champs modifiables.** Sur les `PUT`, on extrait explicitement les champs autorisés (déjà en place sur véhicules/alertes/affectations) — jamais `req.body` passé tel quel à `findByIdAndUpdate`, pour empêcher l'injection de champs comme `entreprise`, `role`, `resoluePar`.
 
-6. **Ce qui coûte de l'argent ou peut être abusé est limité.** Inscription, connexion, envoi d'email (à venir) : limiter par IP/compte et par heure.
+6. **Ce qui coûte de l'argent ou peut être abusé est limité (rate limiting).**
+   - `POST /api/auth/inscription` et `POST /api/auth/connexion` : limiter par IP (ex. `express-rate-limit`, 10 tentatives / 15 min).
+   - Connexion : après 5 échecs sur le même email, ralentir ou bloquer temporairement ce compte (pas seulement l'IP, pour éviter le bourrage sur un compte ciblé).
+   - Toute route d'envoi d'email (à venir) : limiter par compte et par heure.
+   - Ne jamais annoncer publiquement les seuils exacts dans les messages d'erreur retournés au client.
 
 7. **Mini-audit à chaque feature qui touche des données :** « qu'est-ce qu'un attaquant pourrait faire avec ça (accéder aux données d'une autre entreprise, escalader son rôle) ? ». Tu corriges avant de me montrer.
 
-## 6 · Definition of done
+## 6 · Conventions API
+
+**Format des réponses succès** — à uniformiser sur toutes les routes (actuellement incohérent : `getVehicules` renvoie `{pagination, data}`, d'autres renvoient un tableau ou un objet brut) :
+
+```json
+// Liste paginée
+{ "data": [...], "pagination": { "totalItems": 0, "totalPages": 0, "currentPage": 1, "itemsPerPage": 10 } }
+
+// Liste simple (pas de pagination)
+{ "data": [...] }
+
+// Ressource unique
+{ "data": { ... } }
+
+// Action sans retour de ressource (delete, etc.)
+{ "message": "..." }
+```
+
+**Format des erreurs** — à uniformiser (actuellement `{message}` et `{erreurs: [...]}` coexistent sans règle) :
+
+```json
+// Erreur simple (métier, 400/401/403/404/500)
+{ "message": "Description claire pour l'utilisateur." }
+
+// Erreur de validation (express-validator, 400)
+{ "message": "Données invalides.", "erreurs": [ { "champ": "email", "message": "Le format de l'email est invalide." } ] }
+```
+
+- Codes HTTP : 200 (succès), 201 (création), 400 (validation/métier), 401 (non authentifié), 403 (authentifié mais rôle/accès refusé), 404 (introuvable ou appartient à une autre entreprise — ne jamais distinguer les deux dans le message), 500 (erreur serveur imprévue).
+- Ne jamais renvoyer la stack trace ou `err.message` brut d'une erreur Mongoose/Mongo au client en production — logger côté serveur, renvoyer un message générique.
+- Une route existante qui ne suit pas encore ce format n'est pas à corriger en masse spontanément : on l'aligne quand on la touche pour autre chose, feature par feature.
+
+## 7 · Git / Workflow
+
+- **Branches :** `main` (stable, déployable) · `dev` (intégration) · `feature/nom-court` pour chaque feature. Jamais de commit direct sur `main`.
+- **Commits :** message court à l'impératif, en français, préfixé par type : `feat:`, `fix:`, `sec:` (correctif sécurité), `refacto:`, `docs:`, `test:`. Ex. `feat: ajout pagination alertes`.
+- **Un commit = un sujet.** Pas de commit qui mélange une feature et un renommage de fichiers sans rapport.
+- **Avant de pousser :** tests Jest passent, pas de `console.log` de debug oublié, pas de secret en clair.
+- **Merge vers `main`** uniquement après validation manuelle par Julie (pas d'auto-merge décidé par l'IA).
+
+## 8 · Environnements
+
+| | Local (dev) | Test (Jest) | Production |
+|---|---|---|---|
+| Backend | `localhost:5000` | `NODE_ENV=test` | Render |
+| Frontend | `localhost:5173` | — | Vercel |
+| Base de données | MongoDB Atlas (dev) | MongoDB Atlas (base test dédiée) | MongoDB Atlas (prod) |
+| Variables d'env | `backend/.env` | `backend/.env.test` | Render (dashboard, jamais en dur) |
+| CORS autorisé | `localhost:3000/5173`, `127.0.0.1` équivalents | — | `FRONTEND_URL` (Vercel), défini via variable d'env Render |
+
+- La base de test (`.env.test`) doit être **physiquement différente** de la base de dev/prod — jamais la même URI avec juste un `NODE_ENV` qui change, sinon un test mal nettoyé pollue les vraies données.
+- Toute nouvelle variable d'env : l'ajouter dans `.env.example` (sans valeur réelle) pour que la doc reste à jour, et me dire de l'ajouter dans Render/Vercel.
+
+## 9 · Definition of done
 
 Une feature est finie quand :
 
@@ -76,17 +140,18 @@ Une feature est finie quand :
 - [ ] Elle marche avec l'API en environnement de test, pas seulement en dev
 - [ ] Elle respecte la DA (section 4)
 - [ ] Elle respecte la sécurité (section 5), **testée avec un compte d'une autre entreprise et/ou un rôle non autorisé**
+- [ ] Elle respecte les conventions API (section 6) pour toute route touchée
 - [ ] Les cas vides, le chargement et les erreurs sont traités côté frontend
 - [ ] Je l'ai testée moi-même avec une vraie donnée
-- [ ] Le journal (section 7) est à jour
+- [ ] Le journal (section 10) est à jour
 
-## 7 · Journal du projet
+## 10 · Journal du projet
 
 > Ajoute une ligne ici à chaque session. Date · ce qui a été fait · ce qui reste.
 
 - [2026-09] · Backend terminé (auth, CRUD véhicules/alertes/affectations, stats, RBAC, Swagger, tests Jest) · Frontend React en cours (dashboard connecté à l'API)
 
-## 8 · Pièges connus
+## 11 · Pièges connus
 
 | Symptôme | Cause réelle | Règle |
 |---|---|---|
@@ -95,6 +160,7 @@ Une feature est finie quand :
 | Connexion MongoDB Atlas échoue en DNS | URI SRV mal résolue | Utiliser l'URI longue (sans SRV) en dépannage |
 | Les variables d'environnement sont vides en local | `.env` / `.env.test` non chargés ou mal nommés | Vérifier `dotenv.config()` et le `NODE_ENV` utilisé |
 | Double hash du mot de passe | Hook `pre('save')` déclenché même sans modification du mot de passe | Toujours vérifier `isModified('motDePasse')` avant de hasher |
+| Erreur 500 avec message Mongo brut affiché à l'utilisateur | `err.message` renvoyé tel quel au lieu d'un message générique | Logger l'erreur serveur, renvoyer un message générique en prod |
 
 - [ajoute les tiens ici]
 
