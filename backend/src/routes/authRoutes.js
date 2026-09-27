@@ -6,7 +6,7 @@ const router = express.Router();
 // C'est important pour la securite et pour eviter les erreurs de saisie dans la base.
 const { validateInscription, validateConnexion } = require('../middlewares/validators/authValidator');
 const { protect, authorize } = require('../middlewares/authMiddleware');
-const { getUtilisateurs, creerUtilisateur, desactiverUtilisateur } = require('../controllers/userController');
+const { getUtilisateurs, creerUtilisateur, modifierUtilisateur, desactiverUtilisateur, reactiverUtilisateur } = require('../controllers/userController');
 
 // Import des fonctions du controleur.
 // Ces fonctions contiennent la logique metier pour l'inscription, la connexion et le profil.
@@ -34,7 +34,9 @@ router.get('/me', protect, getProfil);
 
 router.get('/utilisateurs', protect, authorize('admin', 'fleet_manager'), getUtilisateurs);
 router.post('/utilisateurs', protect, authorize('admin'), creerUtilisateur);
+router.patch('/utilisateurs/:id', protect, authorize('admin'), modifierUtilisateur);
 router.patch('/utilisateurs/:id/desactiver', protect, authorize('admin'), desactiverUtilisateur);
+router.patch('/utilisateurs/:id/reactiver', protect, authorize('admin'), reactiverUtilisateur);
 router.patch('/entreprise', protect, authorize('admin'), modifierEtatEntreprise);
 
 // Export du routeur pour pouvoir l'utiliser dans app.js.
