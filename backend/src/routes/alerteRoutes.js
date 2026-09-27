@@ -54,9 +54,8 @@ router.get('/:id', protect, validateObjectId('id'), getAlerteById);
 router.put('/:id', protect, validateObjectId('id'), validateModifierAlerte, modifierAlerte);
 
 // 6. [DELETE] - Supprimer definitivement une alerte (erreur de saisie).
-// J'ai autorise la suppression car les alertes peuvent etre creees par erreur.
-// En prod, on pourrait limiter ça aux admins pour plus de controle.
-router.delete('/:id', protect, authorize('admin'), validateObjectId('id'), supprimerAlerte);
+// La suppression est réservée aux rôles de gestion.
+router.delete('/:id', protect, authorize('admin', 'fleet_manager'), validateObjectId('id'), supprimerAlerte);
 
 // Export du routeur pour pouvoir l'utiliser dans app.js.
 module.exports = router;
