@@ -40,7 +40,7 @@ describe('POST /api/auth/inscription', () => {
     
     // Test 1 : Le chemin ideal avec toutes les donnees requises par le modele.
     // Ce test verifie que l'inscription fonctionne correctement quand tout est OK.
-    it('devrait creer un nouvel utilisateur et son entreprise', async () => {
+    it('devrait creer un utilisateur et exposer les mêmes clés user sur /auth/me', async () => {
         // supertest permet de simuler une requete HTTP vers l'application Express.
         // C'est plus simple que de faire de vraies requetes HTTP avec curl ou Postman.
         const res = await request(app)
@@ -71,7 +71,14 @@ describe('POST /api/auth/inscription', () => {
         expect(res.body).toHaveProperty('token');
         expect(res.body.user).not.toHaveProperty('motDePasse');
         expect(JSON.stringify(res.body)).not.toContain('SuperPassword123!');
-        
+
+        const profil = await request(app)
+            .get('/api/auth/me')
+            .set('Authorization', `Bearer ${res.body.token}`);
+
+        expect(profil.statusCode).toBe(200);
+        expect(Object.keys(profil.body).sort()).toEqual(Object.keys(res.body.user).sort());
+
         // Verification directe dans MongoDB pour s'assurer que les donnees sont bien stockees.
         // J'ai ajoute cette verification pour tester la persistence des donnees, pas seulement la reponse HTTP.
         const userInDb = await User.findOne({ email: 'jean.dupont@example.com' });
