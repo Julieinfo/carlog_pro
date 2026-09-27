@@ -157,6 +157,7 @@ Une feature est finie quand :
 - [2026-09] · Inscription réelle — formulaire entreprise collecte SIRET, téléphone et adresse ; validation frontend/backend des formats SIRET/code postal, sans valeurs générées.
 - [2026-09] · Validation PTAC — valeur minimale portée à 1 kg dans le modèle, les validateurs de création/modification et le formulaire ; tests ajoutés pour PTAC absent, nul et valide.
 - [2026-09] · Phase 4 — modification et suppression d’affectation synchronisent les statuts véhicule dans une transaction ; les conducteurs ne voient que les alertes de leurs véhicules affectés en cours.
+- [2026-09] · Phase 5 — gestion des utilisateurs : édition, promotion de rôles, contrôle d’unicité de l’email et réactivation ajoutés ; ces opérations sont réservées aux admins, avec blocage de la modification du rôle et du statut de son propre compte. Les rôles sont libellés en français dans l’interface, les secrets restent exclus des réponses.
 
 ## 11 · Pièges connus
 
