@@ -105,6 +105,48 @@ describe('POST /api/auth/inscription', () => {
         expect(profil.body).not.toHaveProperty('motDePasse');
     });
 
+    it('devrait rejeter une inscription sans SIRET avec une erreur exploitable', async () => {
+        const res = await request(app)
+            .post('/api/auth/inscription')
+            .send({
+                nom: 'Martin',
+                prenom: 'Camille',
+                email: 'camille.martin@example.com',
+                motDePasse: 'SecurePassword123!',
+                nomEntreprise: 'Transports Martin',
+                emailProfessionnel: 'camille.martin@example.com',
+                telephoneEntreprise: '0559000000',
+                adresse: { rue: '10 avenue du Béarn', codePostal: '64000', ville: 'Pau', pays: 'France' }
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(Array.isArray(res.body.erreurs)).toBe(true);
+        expect(res.body.erreurs).toEqual(expect.arrayContaining([
+            expect.objectContaining({ path: 'siret', msg: 'Le SIRET doit contenir exactement 14 chiffres.' })
+        ]));
+    });
+
+    it('devrait rejeter un SIRET dont le format est invalide', async () => {
+        const res = await request(app)
+            .post('/api/auth/inscription')
+            .send({
+                nom: 'Martin',
+                prenom: 'Camille',
+                email: 'camille.martin@example.com',
+                motDePasse: 'SecurePassword123!',
+                nomEntreprise: 'Transports Martin',
+                siret: '123',
+                emailProfessionnel: 'camille.martin@example.com',
+                telephoneEntreprise: '0559000000',
+                adresse: { rue: '10 avenue du Béarn', codePostal: '64000', ville: 'Pau', pays: 'France' }
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.erreurs).toEqual(expect.arrayContaining([
+            expect.objectContaining({ path: 'siret', msg: 'Le SIRET doit contenir exactement 14 chiffres.' })
+        ]));
+    });
+
     it('devrait refuser une connexion avec un mot de passe incorrect', async () => {
         const res = await request(app)
             .post('/api/auth/connexion')
