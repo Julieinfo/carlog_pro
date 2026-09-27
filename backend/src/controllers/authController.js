@@ -168,16 +168,14 @@ exports.connexion = async (req, res) => {
  */
 exports.getProfil = async (req, res) => {
     try {
-        // req.user est disponible grace au middleware protect qui a decode le JWT.
-        // J'ai choisi de renvoyer req.user directement plutot que de refaire une requete a la base,
-        // car les infos dans le token sont suffisantes pour afficher le profil.
-        // Si on avait besoin de donnees a jour (ex: role modifie), il faudrait refaire une requete.
-        
-        // J'exclus explicitement le mot de passe de la reponse pour la securite.
-        // Meme si le middleware le fait deja, c'est une double securite.
-        const { motDePasse, ...userSansMotDePasse } = req.user.toObject();
-        
-        res.status(200).json(userSansMotDePasse);
+        res.status(200).json({
+            id: req.user._id,
+            nom: req.user.nom,
+            prenom: req.user.prenom,
+            email: req.user.email,
+            role: req.user.role,
+            entrepriseId: req.user.entreprise
+        });
     } catch (err) {
         repondreErreur(res, err);
     }
