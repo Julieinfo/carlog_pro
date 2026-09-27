@@ -1,77 +1,67 @@
-# 🚗 CarLog Pro - Landing Page SaaS
+# CarLog Pro
 
-> Application SaaS fullstack de gestion de flotte automobile
+Application web de gestion de flotte pour petites entreprises. Le MVP permet de gérer les véhicules, les alertes, les affectations et les utilisateurs d'une entreprise avec authentification et isolation multi-tenant.
 
-![HTML](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-![CSS](https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
-![Status](https://img.shields.io/badge/Status-En%20cours-orange?style=for-the-badge)
+> Projet de formation en cours. Les phases de validation manuelle et la préparation à la production ne sont pas toutes terminées.
 
----
+## Fonctionnalités disponibles
 
-## 📱 Aperçu
+- Création d'un compte entreprise et d'un administrateur, connexion JWT et restauration de session.
+- Gestion des véhicules : liste paginée, recherche, filtres, création, modification et archivage.
+- Gestion des alertes : signalement, consultation, filtres, résolution et suppression selon le rôle.
+- Affectations véhicule/conducteur : création, vérification des conflits, modification, clôture et kilométrage.
+- Vue d'ensemble avec indicateurs de flotte.
+- Gestion admin des utilisateurs : création, consultation et désactivation.
+- Contrôle d'accès selon les rôles `admin`, `fleet_manager`, `conducteur`, `mecanicien` et `comptable`.
 
-CarLog Pro est une plateforme SaaS de gestion de parc automobile destinée aux entreprises et aux particuliers. Le projet évolue d'un site vitrine statique vers une application fullstack complète avec API REST, authentification JWT et base de données MongoDB.
+## Architecture
 
-> ⚠️ Projet personnel de formation - aucune vente, aucun service réel.
+| Partie | Technologies | Dossier |
+|---|---|---|
+| Frontend | React, Vite, Axios | `frontend/` |
+| API | Node.js, Express, express-validator | `backend/` |
+| Données | MongoDB, Mongoose | modèles dans `backend/src/models/` |
+| Tests API | Jest, Supertest | `backend/src/tests/` |
 
----
+L'API REST est organisée en routes, contrôleurs, middlewares et modèles. Les routes métier filtrent les données par entreprise depuis l'utilisateur authentifié. La documentation Swagger est disponible sur `/api-docs` lorsque l'API tourne.
 
-## ✨ Frontend - Landing Page
+## Démarrage local
 
-- **Hero** - Accroche, dashboard mockup animé et statistiques clés
-- **Fonctionnalités** - 6 features présentées en grille
-- **Tarifs** - 3 plans fictifs (Starter / Pro / Entreprise)
-- **Témoignages** - Avis clients fictifs
-- **CTA** - Formulaire d'inscription fictif
-- **Footer** - Navigation et liens
+Prérequis : Node.js et une instance MongoDB accessible.
 
-## 🎨 Design
+1. Installer les dépendances :
 
-- Dark mode · Rouge & noir
-- Typographie : Bebas Neue + DM Sans + JetBrains Mono
-- Animations : révélation au scroll, barres animées, transitions hover
-- Responsive mobile
+   ```bash
+   npm --prefix backend install
+   npm --prefix frontend install
+   ```
 
----
+2. Configurer `backend/.env` avec `MONGO_URI` et `JWT_SECRET`. En production, définir aussi `FRONTEND_URL`. Garder les secrets côté backend.
 
-## 🔧 Backend — API REST
+3. Lancer l'API et le frontend dans deux terminaux :
 
-- **Authentification** - Inscription, connexion, JWT (7 jours), route `/me`
-- **Middleware protect** - Vérification JWT sur toutes les routes protégées
-- **Middleware authorize** - Contrôle d'accès par rôle (admin, fleet_manager, conducteur...)
-- **CRUD Véhicules** - Gestion de la flotte avec isolation multi-tenant
-- **CRUD Alertes** - Maintenance, sécurité, administratif, géofencing
-- **CRUD Affectations** - Suivi conducteur/véhicule avec historique
-- **Validation** - express-validator sur toutes les routes
-- **Base de données** - MongoDB Atlas avec Mongoose
+   ```bash
+   npm --prefix backend start
+   npm --prefix frontend run dev
+   ```
 
----
+Le backend utilise le port `5000` par défaut. Vite utilise `5173` et relaie `/api` vers `http://127.0.0.1:5000`. `VITE_API_URL` peut remplacer la base API lorsque frontend et backend sont hébergés séparément. `GET /api/health` permet de vérifier l'API.
 
-## 🛠️ Stack technique
+## Tests et build
 
-| Couche | Technologie |
-|--------|------------|
-| Frontend | HTML5 · CSS3 · JavaScript vanilla |
-| Backend | Node.js · Express |
-| Base de données | MongoDB Atlas · Mongoose |
-| Authentification | JWT · bcryptjs |
-| Validation | express-validator |
-| Frontend (à venir) | React.js · Vite |
-| Paiement (à venir) | Stripe |
-| Déploiement (à venir) | Render · Vercel |
+```bash
+npm --prefix backend test
+npm --prefix frontend run build
+```
 
----
+Les suites d'intégration nécessitent `backend/.env.test` avec `MONGO_URI_TEST` pointant vers une base de test dédiée, séparée des bases de développement et de production.
 
-## 🔗 Lien
+## État du projet
 
-🌐 [Voir la démo frontend](https://julieinfo.github.io/carlog_pro/frontend/)
+Le backend MVP et l'interface web sont largement implémentés. La dernière exécution de la suite complète a passé 59 tests sur 11 suites ; le build frontend a également réussi lors de la dernière vérification. Les validations de parcours réels, l'acceptation explicite des phases, certaines améliorations de gestion des utilisateurs et la préparation de production restent ouvertes.
 
----
+La checklist de validation et l'ordre de travail restant sont dans [`docs/validation-et-prochaines-etapes.md`](docs/validation-et-prochaines-etapes.md). Le dossier PDF conserve son contenu initial ; une copie actualisée avec une synthèse des statuts est jointe sous `docs/CarLog_projet_maj_2026-09.pdf`.
 
-## 👩‍💻 Auteure
+## Hors périmètre actuel
 
-**Julie De Castro** - Développeuse Web  
-[GitHub](https://github.com/julieinfo) · [Portfolio](https://julieinfo.github.io)
+Application mobile native, Stripe et paiements, notifications email, PWA, géolocalisation active, exports comptables avancés et maintenance prédictive sont des pistes ultérieures, pas des prérequis du MVP actuel.
