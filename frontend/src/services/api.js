@@ -74,7 +74,9 @@ export const api = {
   // Utilisateurs de l'entreprise (administrateur uniquement)
   getUtilisateurs: () => API.get('/auth/utilisateurs'),
   addUtilisateur: (data) => API.post('/auth/utilisateurs', data),
+  updateUtilisateur: (id, data) => API.patch(`/auth/utilisateurs/${id}`, data),
   disableUtilisateur: (id) => API.patch(`/auth/utilisateurs/${id}/desactiver`),
+  reactivateUtilisateur: (id) => API.patch(`/auth/utilisateurs/${id}/reactiver`),
 };
 
 export default API;
