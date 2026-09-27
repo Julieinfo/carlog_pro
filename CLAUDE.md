@@ -156,6 +156,7 @@ Une feature est finie quand :
 - [2026-09] · Contrat d’authentification — `/auth/me` renvoie les six mêmes champs `user` que l’inscription et la connexion ; test d’intégration ajouté pour comparer exactement les clés.
 - [2026-09] · Inscription réelle — formulaire entreprise collecte SIRET, téléphone et adresse ; validation frontend/backend des formats SIRET/code postal, sans valeurs générées.
 - [2026-09] · Validation PTAC — valeur minimale portée à 1 kg dans le modèle, les validateurs de création/modification et le formulaire ; tests ajoutés pour PTAC absent, nul et valide.
+- [2026-09] · Phase 4 — modification et suppression d’affectation synchronisent les statuts véhicule dans une transaction ; les conducteurs ne voient que les alertes de leurs véhicules affectés en cours.
 
 ## 11 · Pièges connus
 
