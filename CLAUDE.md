@@ -152,6 +152,8 @@ Une feature est finie quand :
 - [2026-09] · Backend terminé (auth, CRUD véhicules/alertes/affectations, stats, RBAC, Swagger, tests Jest) · Frontend React en cours (dashboard connecté à l'API)
 - [2026-09] · Phase 1 — 43 tests backend passent sur la base de test ; isolation, RBAC, auth, secrets et affectations concurrentes vérifiés. Correction : un conducteur ne peut consulter que ses propres affectations ; les erreurs MongoDB internes ne divulguent plus leur message en production · validation explicite de Julie à confirmer.
 - [2026-09] · RBAC suppressions — suppression des alertes réservée à admin et fleet_manager ; suppression des affectations réservée à admin. Matrice vérifiée sur les cinq rôles.
+- [2026-09] · Phase 2 — session frontend vérifiée via `/auth/me` au montage ; 401 déconnecte et notifie le contexte, hors échec de connexion. Messages d’erreur API uniformisés dans les formulaires.
+- [2026-09] · Contrat d’authentification — `/auth/me` renvoie les six mêmes champs `user` que l’inscription et la connexion ; test d’intégration ajouté pour comparer exactement les clés.
 
 ## 11 · Pièges connus
 
