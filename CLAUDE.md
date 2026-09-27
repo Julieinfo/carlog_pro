@@ -155,6 +155,7 @@ Une feature est finie quand :
 - [2026-09] · Phase 2 — session frontend vérifiée via `/auth/me` au montage ; 401 déconnecte et notifie le contexte, hors échec de connexion. Messages d’erreur API uniformisés dans les formulaires.
 - [2026-09] · Contrat d’authentification — `/auth/me` renvoie les six mêmes champs `user` que l’inscription et la connexion ; test d’intégration ajouté pour comparer exactement les clés.
 - [2026-09] · Inscription réelle — formulaire entreprise collecte SIRET, téléphone et adresse ; validation frontend/backend des formats SIRET/code postal, sans valeurs générées.
+- [2026-09] · Validation PTAC — valeur minimale portée à 1 kg dans le modèle, les validateurs de création/modification et le formulaire ; tests ajoutés pour PTAC absent, nul et valide.
 
 ## 11 · Pièges connus
 
