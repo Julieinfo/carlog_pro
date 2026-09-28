@@ -70,6 +70,7 @@ describe('POST /api/auth/inscription', () => {
         // C'est important car le frontend a besoin du token pour connecter l'utilisateur automatiquement.
         expect(res.body).toHaveProperty('token');
         expect(res.body.user).not.toHaveProperty('motDePasse');
+        expect(res.body.user.abonnement).toBe('trial');
         expect(JSON.stringify(res.body)).not.toContain('SuperPassword123!');
 
         const profil = await request(app)
@@ -103,6 +104,7 @@ describe('POST /api/auth/inscription', () => {
         expect(profil.statusCode).toBe(200);
         expect(profil.body.email).toBe('jean.dupont@example.com');
         expect(profil.body).not.toHaveProperty('motDePasse');
+        expect(Object.keys(profil.body).sort()).toEqual(Object.keys(connexion.body.user).sort());
     });
 
     it('devrait rejeter une inscription sans SIRET avec une erreur exploitable', async () => {

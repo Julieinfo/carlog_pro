@@ -101,7 +101,8 @@ exports.inscription = async (req, res) => {
             prenom: user.prenom,
             email: user.email, 
             role: user.role,
-            entrepriseId: entreprise._id
+            entrepriseId: entreprise._id,
+            abonnement: entreprise.statutAbonnement
         },
         });
     } catch (err) {
@@ -146,6 +147,10 @@ exports.connexion = async (req, res) => {
 
         reinitialiser(email);
         
+        const entreprise = user.typeCompte === 'entreprise'
+            ? await Entreprise.findById(user.entreprise).select('statutAbonnement')
+            : null;
+
         // On renvoie un nouveau token a chaque connexion.
         // J'aurais pu implementer un systeme de refresh token, mais pour l'instant un simple token suffit.
         res.json({
@@ -156,7 +161,8 @@ exports.connexion = async (req, res) => {
             prenom: user.prenom,
             email: user.email, 
             role: user.role,
-            entrepriseId: user.entreprise
+            entrepriseId: user.entreprise,
+            abonnement: entreprise?.statutAbonnement ?? null
         },
         });
     } catch (err) {
@@ -182,38 +188,18 @@ exports.getProfil = async (req, res) => {
             prenom: req.user.prenom,
             email: req.user.email,
             role: req.user.role,
-            entrepriseId: req.user.entreprise
+            entrepriseId: req.user.entreprise,
+            abonnement: req.entreprise?.statutAbonnement ?? null
         });
     } catch (err) {
         repondreErreur(res, err);
     }
 };
 
-exports.modifierEtatEntreprise = async (req, res) => {
+exports.getEntreprise = async (req, res) => {
     try {
-        const donnees = {};
-        if (req.body.statutAbonnement !== undefined) {
-            if (!['trial', 'active', 'past_due', 'canceled'].includes(req.body.statutAbonnement)) {
-                return res.status(400).json({ message: 'Statut d’abonnement invalide.' });
-            }
-            donnees.statutAbonnement = req.body.statutAbonnement;
-        }
-        if (req.body.formuleAbonnement !== undefined) {
-            if (!['starter', 'premium', 'enterprise'].includes(req.body.formuleAbonnement)) {
-                return res.status(400).json({ message: 'Formule d’abonnement invalide.' });
-            }
-            donnees.formuleAbonnement = req.body.formuleAbonnement;
-        }
-        if (req.body.actif !== undefined) {
-            if (typeof req.body.actif !== 'boolean') return res.status(400).json({ message: 'L’état actif doit être booléen.' });
-            donnees.actif = req.body.actif;
-        }
-
-        const entreprise = await Entreprise.findOneAndUpdate(
-            { _id: req.user.entreprise },
-            donnees,
-            { new: true, runValidators: true }
-        ).select('-__v');
+        const entreprise = await Entreprise.findById(req.user.entreprise)
+            .select('nom statutAbonnement formuleAbonnement');
 
         if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
         res.status(200).json(entreprise);

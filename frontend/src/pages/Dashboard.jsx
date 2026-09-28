@@ -24,12 +24,13 @@ function asList(response) {
 function label(value) { return String(value || '').replaceAll('_', ' '); }
 
 export default function Dashboard() {
-  const { token, logout, user } = useAuth();
+  const { token, logout, user, login } = useAuth();
   const [tab, setTab] = useState('accueil');
   const [vehicles, setVehicles] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [users, setUsers] = useState([]);
+  const [entrepriseInfo, setEntrepriseInfo] = useState(null);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,8 +47,11 @@ export default function Dashboard() {
   const [alertFilters, setAlertFilters] = useState({ statut: '', niveauUrgence: '' });
 
   const isAdmin = user?.role === 'admin';
-  const canManageFleet = ['admin', 'fleet_manager'].includes(user?.role);
-  const canModifyAlerts = ['admin', 'fleet_manager', 'mecanicien'].includes(user?.role);
+  const readOnly = user?.abonnement === 'past_due';
+  const canceled = user?.abonnement === 'canceled';
+  const canManageFleet = !readOnly && ['admin', 'fleet_manager'].includes(user?.role);
+  const canViewUsers = ['admin', 'fleet_manager'].includes(user?.role);
+  const canModifyAlerts = !readOnly && ['admin', 'fleet_manager', 'mecanicien'].includes(user?.role);
 
   async function loadData(params = {}) {
     setLoading(true);
@@ -57,7 +61,7 @@ export default function Dashboard() {
       api.getAlertes(),
       api.getAffectations(),
       api.getStats(),
-      canManageFleet ? api.getUtilisateurs() : Promise.resolve(null),
+      canViewUsers ? api.getUtilisateurs() : Promise.resolve(null),
     ]);
     if (results.some((item) => item.status === 'rejected' && item.reason?.response?.status === 401)) {
       logout();
@@ -79,7 +83,17 @@ export default function Dashboard() {
     setLoading(false);
   }
 
-  useEffect(() => { loadData(); }, [token, canManageFleet]);
+  useEffect(() => { if (!canceled) loadData(); }, [token, canManageFleet, canceled]);
+  useEffect(() => {
+    if (canceled && isAdmin) api.getEntreprise().then((response) => setEntrepriseInfo(response.data)).catch(() => {});
+  }, [canceled, isAdmin]);
+
+  async function refreshSubscription() {
+    try {
+      const response = await api.getProfil();
+      login(response.data, token);
+    } catch (exception) { handleError(exception); }
+  }
 
   function handleError(exception) {
     if (exception.response?.status === 401) {
@@ -141,6 +155,15 @@ export default function Dashboard() {
   async function disableUser(id) { if (!window.confirm('Désactiver cet utilisateur ?')) return; try { await api.disableUtilisateur(id); setNotice('Utilisateur désactivé.'); await loadData(); } catch (exception) { handleError(exception); } }
   async function reactivateUser(id) { try { await api.reactivateUtilisateur(id); setNotice('Utilisateur réactivé.'); await loadData(); } catch (exception) { handleError(exception); } }
 
+  if (canceled) return <div>
+    <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span><button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
+    <main className="dashboard-container">
+      <div className="page-heading"><div><p className="eyebrow">Gestion du compte</p><h1 className="dashboard-title">Abonnement suspendu</h1></div><button className="btn-secondary" onClick={refreshSubscription}>Actualiser le statut</button></div>
+      <div className="notice error" role="status">L’abonnement de votre entreprise est résilié. L’accès aux données de la flotte est suspendu.</div>
+      {isAdmin && <section className="workspace"><h2>{entrepriseInfo?.nom || 'Compte entreprise'}</h2><p>Statut : {entrepriseInfo?.statutAbonnement || 'résilié'} · Formule : {entrepriseInfo?.formuleAbonnement || 'non renseignée'}</p><p>Pour réactiver l’accès, contactez l’assistance CarLog Pro. La réactivation est gérée manuellement pour le moment.</p></section>}
+    </main>
+  </div>;
+
   const filteredAlerts = alerts.filter((item) => (!alertFilters.statut || item.statut === alertFilters.statut) && (!alertFilters.niveauUrgence || item.niveauUrgence === alertFilters.niveauUrgence));
   const activeAssignments = assignments.filter((item) => item.statut === 'en_cours');
   if (loading && !vehicles.length && !alerts.length) return <div className="dashboard-container"><p className="empty-state">Chargement des données de votre entreprise...</p></div>;
@@ -150,12 +173,13 @@ export default function Dashboard() {
     <main className="dashboard-container">
       <div className="page-heading"><div><p className="eyebrow">Gestion de flotte</p><h1 className="dashboard-title">Votre espace de pilotage</h1></div><button className="btn-secondary" onClick={() => loadData()}>Actualiser</button></div>
       {error && <div className="notice error">{error}</div>}{notice && <div className="notice success">{notice}<button onClick={() => setNotice('')} aria-label="Fermer">×</button></div>}
+      {readOnly && <div className="notice error" role="status">L’abonnement de votre entreprise est en attente de régularisation. L’espace est en lecture seule, sauf pour le signalement d’une alerte.{isAdmin && ' La régularisation est gérée manuellement pour le moment ; contactez l’assistance CarLog Pro.'}<button className="btn-secondary" onClick={refreshSubscription}>Actualiser le statut</button></div>}
       <nav className="tabs">{[['accueil', 'Vue d’ensemble'], ['vehicules', 'Véhicules'], ['alertes', 'Alertes'], ['affectations', 'Affectations'], ...(isAdmin ? [['utilisateurs', 'Utilisateurs']] : [])].map(([id, text]) => <button className={tab === id ? 'tab active' : 'tab'} key={id} onClick={() => setTab(id)}>{text}</button>)}</nav>
       {tab === 'accueil' && <Home stats={stats} vehicles={vehicles} alerts={alerts} assignments={activeAssignments} openTab={setTab} />}
-      {tab === 'vehicules' && <VehicleSection {...{ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle }} />}
-      {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin, changeAlert, deleteAlert }} />}
+      {tab === 'vehicules' && <VehicleSection {...{ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin: isAdmin && !readOnly, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle }} />}
+      {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin: isAdmin && !readOnly, changeAlert, deleteAlert }} />}
       {tab === 'affectations' && <AssignmentSection {...{ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }} />}
-      {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser }} />}
+      {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }} />}
     </main>
   </div>;
 }
@@ -177,5 +201,15 @@ function AlertForm({ form, setForm, vehicles, users, submit }) { return <form cl
 function AssignmentSection({ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }) { return <section className="workspace"><div className="section-header"><div><p className="eyebrow">Missions et conducteurs</p><h2>Affectations <span className="count-badge">{activeAssignments.length} en cours</span></h2></div></div>{canManageFleet && <AssignmentForm form={assignmentForm} setForm={setAssignmentForm} vehicles={vehicles} users={users} submit={saveAssignment} editing={editingAssignment} cancel={() => { setEditingAssignment(null); setAssignmentForm(assignmentInitial); }} />}{assignments.length ? <div className="data-list">{assignments.map((item) => <article className="data-item" key={item._id}><div><strong>{item.vehicule?.immatriculation || 'Véhicule'}</strong><small>{item.vehicule?.marque} {item.vehicule?.modele} · conducteur : {item.conducteur?.prenom} {item.conducteur?.nom}</small><p>Début : {new Date(item.dateDebut).toLocaleDateString('fr-FR')} · {item.kmDebut} km {item.kmFin !== undefined && `→ ${item.kmFin} km`}</p></div><div className="item-actions"><span className="status">{label(item.statut)}</span>{canManageFleet && item.statut === 'en_cours' && <><button className="link-button" onClick={() => { setEditingAssignment(item); setAssignmentForm({ vehicule: item.vehicule?._id || '', conducteur: item.conducteur?._id || '', dateDebut: item.dateDebut?.slice(0, 10) || '', kmDebut: item.kmDebut, observations: item.observations || '' }); }}>Modifier</button><button className="link-button" onClick={() => finishAssignment(item)}>Terminer</button></>}</div></article>)}</div> : <p className="empty-state">Aucune affectation enregistrée.</p>}</section>; }
 function AssignmentForm({ form, setForm, vehicles, users, submit, editing, cancel }) { return <form className="form-panel" onSubmit={submit}><div className="form-heading"><h3>{editing ? 'Modifier l’affectation' : 'Nouvelle affectation'}</h3>{editing && <button type="button" className="link-button" onClick={cancel}>Annuler</button>}</div><div className="form-grid"><Field label="Véhicule"><select required value={form.vehicule} onChange={(e) => setForm({ ...form, vehicule: e.target.value })}><option value="">Choisir</option>{vehicles.filter((item) => item.statut === 'disponible' || item._id === form.vehicule).map((item) => <option key={item._id} value={item._id}>{item.immatriculation} · {item.modele}</option>)}</select></Field><Field label="Conducteur"><select required value={form.conducteur} onChange={(e) => setForm({ ...form, conducteur: e.target.value })}><option value="">Choisir</option>{users.filter((item) => item.role === 'conducteur' && item.actif).map((item) => <option key={item._id} value={item._id}>{item.prenom} {item.nom}</option>)}</select></Field><Field label="Date de début"><input type="date" value={form.dateDebut} onChange={(e) => setForm({ ...form, dateDebut: e.target.value })} /></Field><Field label="Kilométrage de départ"><input required min="0" type="number" value={form.kmDebut} onChange={(e) => setForm({ ...form, kmDebut: e.target.value })} /></Field><Field label="Observations"><textarea value={form.observations} onChange={(e) => setForm({ ...form, observations: e.target.value })} /></Field></div><button className="btn-primary">{editing ? 'Enregistrer' : 'Créer l’affectation'}</button></form>; }
 
-function UserSection({ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser }) { return <section className="workspace"><div className="section-header"><div><p className="eyebrow">Équipe entreprise</p><h2>Utilisateurs</h2></div></div><form className="form-panel" autoComplete="off" onSubmit={saveUser}><div className="form-heading"><h3>{editingUser ? 'Modifier un utilisateur' : 'Créer un utilisateur'}</h3><small>{editingUser ? 'Le mot de passe ne peut pas être modifié ici.' : 'Le mot de passe initial est hashé par le backend et jamais renvoyé.'}</small>{editingUser && <button type="button" className="link-button" onClick={() => { setEditingUser(null); setUserForm(userInitial); }}>Annuler</button>}</div><div className="form-grid"><Field label="Nom"><input required value={userForm.nom} onChange={(e) => setUserForm({ ...userForm, nom: e.target.value })} /></Field><Field label="Prénom"><input required value={userForm.prenom} onChange={(e) => setUserForm({ ...userForm, prenom: e.target.value })} /></Field><Field label="Email"><input required type="email" autoComplete="off" name="nouvel-utilisateur-email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} /></Field><Field label="Téléphone"><input value={userForm.telephone} onChange={(e) => setUserForm({ ...userForm, telephone: e.target.value })} /></Field><Field label="Rôle"><select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}>{roles.map((item) => <option key={item} value={item}>{libellesRoles[item]}</option>)}</select></Field>{!editingUser && <Field label="Mot de passe initial"><input required minLength="8" type="password" autoComplete="new-password" name="nouvel-utilisateur-mot-de-passe" value={userForm.motDePasse} onChange={(e) => setUserForm({ ...userForm, motDePasse: e.target.value })} /></Field>}</div><button className="btn-primary">{editingUser ? 'Enregistrer les modifications' : 'Créer l’utilisateur'}</button></form><div className="table-wrap"><table><thead><tr><th>Utilisateur</th><th>Rôle</th><th>État</th><th>Action</th></tr></thead><tbody>{users.map((item) => <tr key={item._id}><td><strong>{item.prenom} {item.nom}</strong><small>{item.email}</small></td><td>{libellesRoles[item.role] || item.role}</td><td>{item.actif ? 'Actif' : 'Désactivé'}</td><td>{item._id !== user?.id && <>{item.actif ? <button className="link-button" onClick={() => { setEditingUser(item); setUserForm({ ...userInitial, ...item, motDePasse: '' }); }}>Modifier</button> : <button className="link-button" onClick={() => reactivateUser(item._id)}>Réactiver</button>}{item.actif && item.role !== 'admin' && <button className="link-button danger" onClick={() => disableUser(item._id)}>Désactiver</button>}</>}</td></tr>)}</tbody></table></div></section>; }
+function UserSection({ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }) {
+  return <section className="workspace">
+    <div className="section-header"><div><p className="eyebrow">Équipe entreprise</p><h2>Utilisateurs</h2></div></div>
+    {!readOnly && <form className="form-panel" autoComplete="off" onSubmit={saveUser}>
+      <div className="form-heading"><h3>{editingUser ? 'Modifier un utilisateur' : 'Créer un utilisateur'}</h3><small>{editingUser ? 'Le mot de passe ne peut pas être modifié ici.' : 'Le mot de passe initial est hashé par le backend et jamais renvoyé.'}</small>{editingUser && <button type="button" className="link-button" onClick={() => { setEditingUser(null); setUserForm(userInitial); }}>Annuler</button>}</div>
+      <div className="form-grid"><Field label="Nom"><input required value={userForm.nom} onChange={(e) => setUserForm({ ...userForm, nom: e.target.value })} /></Field><Field label="Prénom"><input required value={userForm.prenom} onChange={(e) => setUserForm({ ...userForm, prenom: e.target.value })} /></Field><Field label="Email"><input required type="email" autoComplete="off" name="nouvel-utilisateur-email" value={userForm.email} onChange={(e) => setUserForm({ ...userForm, email: e.target.value })} /></Field><Field label="Téléphone"><input value={userForm.telephone} onChange={(e) => setUserForm({ ...userForm, telephone: e.target.value })} /></Field><Field label="Rôle"><select value={userForm.role} onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}>{roles.map((item) => <option key={item} value={item}>{libellesRoles[item]}</option>)}</select></Field>{!editingUser && <Field label="Mot de passe initial"><input required minLength="8" type="password" autoComplete="new-password" name="nouvel-utilisateur-mot-de-passe" value={userForm.motDePasse} onChange={(e) => setUserForm({ ...userForm, motDePasse: e.target.value })} /></Field>}</div>
+      <button className="btn-primary">{editingUser ? 'Enregistrer les modifications' : 'Créer l’utilisateur'}</button>
+    </form>}
+    <div className="table-wrap"><table><thead><tr><th>Utilisateur</th><th>Rôle</th><th>État</th><th>Action</th></tr></thead><tbody>{users.map((item) => <tr key={item._id}><td><strong>{item.prenom} {item.nom}</strong><small>{item.email}</small></td><td>{libellesRoles[item.role] || item.role}</td><td>{item.actif ? 'Actif' : 'Désactivé'}</td><td>{!readOnly && item._id !== user?.id && <>{item.actif ? <button className="link-button" onClick={() => { setEditingUser(item); setUserForm({ ...userInitial, ...item, motDePasse: '' }); }}>Modifier</button> : <button className="link-button" onClick={() => reactivateUser(item._id)}>Réactiver</button>}{item.actif && item.role !== 'admin' && <button className="link-button danger" onClick={() => disableUser(item._id)}>Désactiver</button>}</>}</td></tr>)}</tbody></table></div>
+  </section>;
+}
 function Pagination({ data, change }) { return data.totalPages > 1 && <div className="pagination"><button disabled={data.currentPage <= 1} onClick={() => change(data.currentPage - 1)}>Précédent</button><span>Page {data.currentPage} sur {data.totalPages}</span><button disabled={data.currentPage >= data.totalPages} onClick={() => change(data.currentPage + 1)}>Suivant</button></div>; }

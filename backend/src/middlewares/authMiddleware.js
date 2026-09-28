@@ -51,7 +51,21 @@ const protect = async (req, res, next) => {
             if (!entreprise || !entreprise.actif) {
                 return res.status(403).json({ message: 'Cette entreprise est inactive.' });
             }
-            if (['past_due', 'canceled'].includes(entreprise.statutAbonnement)) {
+
+            req.entreprise = entreprise;
+            const methodeLecture = ['GET', 'HEAD'].includes(req.method);
+            const routeProfil = req.baseUrl === '/api/auth' && req.path === '/me';
+            const routeEntreprise = req.baseUrl === '/api/auth' && req.path === '/entreprise';
+            const signalementAlerte = req.baseUrl === '/api/alertes'
+                && req.path === '/'
+                && req.method === 'POST';
+
+            if (entreprise.statutAbonnement === 'past_due' && !methodeLecture && !signalementAlerte) {
+                return res.status(403).json({ message: 'L’abonnement de cette entreprise ne permet pas cet accès.' });
+            }
+
+            if (entreprise.statutAbonnement === 'canceled'
+                && !(req.user.role === 'admin' && methodeLecture && (routeProfil || routeEntreprise))) {
                 return res.status(403).json({ message: 'L’abonnement de cette entreprise ne permet pas cet accès.' });
             }
         }
