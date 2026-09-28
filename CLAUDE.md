@@ -150,7 +150,7 @@ Une feature est finie quand :
 > Ajoute une ligne ici à chaque session. Date · ce qui a été fait · ce qui reste.
 
 - [2026-09] · Backend terminé (auth, CRUD véhicules/alertes/affectations, stats, RBAC, Swagger, tests Jest) · Frontend React en cours (dashboard connecté à l'API)
-- [2026-09] · Phase 1 — 43 tests backend passent sur la base de test ; isolation, RBAC, auth, secrets et affectations concurrentes vérifiés. Correction : un conducteur ne peut consulter que ses propres affectations ; les erreurs MongoDB internes ne divulguent plus leur message en production · validation explicite de Julie à confirmer.
+- [2026-09] · Phase 1 — 43 tests backend passent sur la base de test ; isolation, RBAC, auth, secrets et affectations concurrentes vérifiés. Correction : un conducteur ne peut consulter que ses propres affectations ; les erreurs MongoDB internes ne divulguent plus leur message en production · validation manuelle acceptée par Julie le 28 septembre 2026.
 - [2026-09] · RBAC suppressions — suppression des alertes réservée à admin et fleet_manager ; suppression des affectations réservée à admin. Matrice vérifiée sur les cinq rôles.
 - [2026-09] · Phase 2 — session frontend vérifiée via `/auth/me` au montage ; 401 déconnecte et notifie le contexte, hors échec de connexion. Messages d’erreur API uniformisés dans les formulaires.
 - [2026-09] · Contrat d’authentification — `/auth/me` renvoie les six mêmes champs `user` que l’inscription et la connexion ; test d’intégration ajouté pour comparer exactement les clés.
@@ -165,6 +165,7 @@ Une feature est finie quand :
 - [2026-09] · Abonnements SaaS — `trial`/`active` accès complet ; `past_due` lecture seule avec création d’alertes toujours permise ; `canceled` bloque les utilisateurs et limite l’admin à la lecture de `/auth/me` et `/auth/entreprise`. Le statut `abonnement` est présent dans les trois réponses d’authentification, une bannière et un écran suspendu sont affichés. Aucun utilisateur ne peut modifier le statut, la formule ou l’activité de l’entreprise via l’API ; jusqu’à Stripe, la régularisation reste manuelle dans MongoDB Atlas. Les trois états et leurs restrictions ont été vérifiés manuellement.
 - [2026-09] · Vérification backend — suite complète exécutée avec accès réseau à MongoDB Atlas : 17 suites et 84 tests passent sur la base dédiée `carlog_pro_test`. L’exécution dans la sandbox échouait avec `EACCES` sur les connexions réseau ; aucun changement de configuration ou de secret n’a été nécessaire.
 - [2026-09] · Phase 7 — sauvegarde/restauration validée sur M0 : dump temporaire de `carlog_pro_test` avec MongoDB Database Tools 100.19.0, puis restauration dans `carlog_pro_restore_check_20260928`. Les 5 collections ont été comparées par nombre de documents, sans différence. Cette vérification ne définit pas encore une sauvegarde durable, sa destination ni sa rétention ; les sauvegardes Atlas natives ne sont pas disponibles pour le cluster Free/M0.
+- [2026-09] · Phase 1 acceptée — Julie confirme que tous les contrôles manuels listés dans la checklist (auth/JWT, compte inactif, isolation multi-entreprises, RBAC des cinq rôles et entreprise issue du JWT) ont été réalisés.
 
 ## 11 · Pièges connus
 

@@ -7,7 +7,7 @@
 | Phase | État du code | Acceptation de phase |
 |---|---|---|
 | 0 — Socle | Largement prêt ; architecture, `.replit`, variables et commandes documentés. `README.md` actualisé. URI de test distincte de l'URI principale. | À compléter : vérifier Preview et démarrage réel ; la cohérence du design system reste à trancher. |
-| 1 — Backend/sécurité | Largement implémenté ; tests backend passent. | À compléter : validation manuelle multi-entreprises et confirmation explicite. |
+| 1 — Backend/sécurité | Largement implémenté ; tests backend passent. | Validée : Julie confirme que tous les parcours de sécurité et d'isolation ont été réalisés. |
 | 2 — Auth frontend | Inscription, connexion, session persistée et expiration gérées dans le code. | À compléter : tests avec vrais comptes dans Preview, notamment compte inactif et serveur indisponible. |
 | 3 — Véhicules | CRUD, archivage, filtres, permissions et validation PTAC présents. | À compléter : vérification manuelle après actualisation ; détails de maintenance absents de la fiche véhicule. |
 | 4 — Alertes/affectations | Fonctions principales présentes ; cohérence des statuts et alertes conducteur renforcées ; scénarios unitaires ajoutés. | À compléter : parcours complet réel, tous les rôles et acceptation de phase. Le filtre d'alertes par véhicule n'est pas disponible dans l'écran actuel. |
@@ -35,12 +35,12 @@
 
 ### Phase 1 — API et sécurité
 
-- [ ] Tester inscription, connexion, `/api/auth/me`, JWT invalide/expiré et absence du mot de passe dans les réponses.
-- [ ] Vérifier compte utilisateur désactivé et entreprise inactive.
+- [x] Tester inscription, connexion, `/api/auth/me`, JWT invalide/expiré et absence du mot de passe dans les réponses (réalisé, confirmation de Julie).
+- [x] Vérifier compte utilisateur désactivé et entreprise inactive (réalisé, confirmation de Julie).
 - [x] Vérifier les règles d'accès des abonnements `trial`, `active`, `past_due`, `canceled` ; Julie a confirmé que tous les scénarios de la politique d'abonnement ont été vérifiés.
-- [ ] Utiliser deux entreprises et vérifier véhicules, alertes, affectations, statistiques et utilisateurs : aucune lecture ou référence croisée ne doit passer.
-- [ ] Tester les permissions des cinq rôles sur les opérations sensibles et vérifier les codes 400/401/403/404 attendus.
-- [ ] Confirmer qu'un `entreprise` fourni par le client ne remplace jamais celle du JWT.
+- [x] Utiliser deux entreprises et vérifier véhicules, alertes, affectations, statistiques et utilisateurs : aucune lecture ou référence croisée ne doit passer (réalisé, confirmation de Julie).
+- [x] Tester les permissions des cinq rôles sur les opérations sensibles et vérifier les codes 400/401/403/404 attendus (réalisé, confirmation de Julie).
+- [x] Confirmer qu'un `entreprise` fourni par le client ne remplace jamais celle du JWT (réalisé, confirmation de Julie).
 
 ### Phase 2 — Authentification frontend
 
