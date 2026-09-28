@@ -4,7 +4,6 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const affectationRoutes = require('./routes/affectationRoutes');
@@ -25,15 +24,9 @@ const { swaggerUi, specs } = require('./config/swagger');
 // Creation de l'instance Express : c'est cette app qu'on va exporter et utiliser dans server.js
 const app = express();
 
-app.use(helmet());
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 
-const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    limit: 20,
-    standardHeaders: 'draft-8',
-    legacyHeaders: false,
-    message: { message: 'Trop de tentatives. Réessayez dans quelques minutes.' }
-});
+app.use(helmet());
 // La règle Semgrep ci-dessus est ignorée volontairement car notre API utilise des JWT
 // envoyés dans le header Authorization (pas de cookies), ce qui rend les attaques CSRF
 // inapplicables par conception. Le middleware csurf n'est donc pas nécessaire ici.
@@ -58,14 +51,12 @@ app.use(cors({
 
 // Ce middleware parse automatiquement le JSON du corps des requetes.
 // Sans lui, req.body serait toujours undefined et on ne pourrait pas recuperer les donnees envoyees par le client.
-// J'ai hesite a mettre une limite de taille, mais pour l'instant la config par defaut suffit.
+// Une limite explicite de 100 kb évite les corps de requête JSON trop volumineux.
 app.use(express.json({ limit: '100kb' }));
 
 // Enregistrement des routes : chaque routeur est monte sur un prefixe specifique.
 // Ca permet d'organiser l'API de maniere logique : /api/auth pour l'auth, /api/vehicules pour les vehicules, etc.
 // J'aurais pu faire un fichier index.js qui regroupe toutes les routes, mais je trouve plus lisible de les declarer ici explicitement.
-app.use('/api/auth/connexion', authLimiter);
-app.use('/api/auth/inscription', authLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/affectations', affectationRoutes);
 app.use('/api/vehicules', vehiculeRoutes);
@@ -75,7 +66,16 @@ app.use('/api/stats', statsRoutes);
 // Swagger UI : genere une interface graphique pour la documentation API.
 // C'est super pratique pour tester les endpoints sans avoir a utiliser Postman ou cURL.
 // La documentation est generee automatiquement a partir des commentaires JSDoc dans les fichiers de routes.
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+app.use('/api-docs', helmet({
+    contentSecurityPolicy: {
+        directives: {
+            ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+            'script-src': ["'self'", "'unsafe-inline'"],
+            'style-src': ["'self'", "'unsafe-inline'"],
+            'img-src': ["'self'", 'data:']
+        }
+    }
+}), swaggerUi.serve, swaggerUi.setup(specs));
 
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok' });
