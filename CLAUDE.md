@@ -158,7 +158,9 @@ Une feature est finie quand :
 - [2026-09] · Validation PTAC — valeur minimale portée à 1 kg dans le modèle, les validateurs de création/modification et le formulaire ; tests ajoutés pour PTAC absent, nul et valide.
 - [2026-09] · Phase 4 — modification et suppression d’affectation synchronisent les statuts véhicule dans une transaction ; les conducteurs ne voient que les alertes de leurs véhicules affectés en cours.
 - [2026-09] · Phase 5 — gestion des utilisateurs : édition, promotion de rôles, contrôle d’unicité de l’email et réactivation ajoutés ; ces opérations sont réservées aux admins, avec blocage de la modification du rôle et du statut de son propre compte. Les rôles sont libellés en français dans l’interface, les secrets restent exclus des réponses.
+- [2026-09] · Phase 5 — statut reporté pour ce jalon selon la demande de Julie : modification et réactivation ne sont pas comptabilisées comme livrées. Leur implémentation existe toutefois déjà dans le code courant ; ne pas supprimer ces fonctions sans demande explicite.
 - [2026-09] · Formulaire utilisateurs — désactivation de l’autocomplétion sur la création de compte et indication explicite d’un nouveau mot de passe pour éviter le préremplissage des identifiants enregistrés par le navigateur.
+- [2026-09] · Phase 7 démarrée — motifs `.env`/`.env.test` séparés dans le `.gitignore` racine ; aucun fichier `.env` n’est suivi ou présent dans l’historique Git vérifié. Arrêt propre sur `SIGTERM`/`SIGINT` ajouté avec fermeture HTTP puis MongoDB, délai de sécurité de 10 s et tests unitaires.
 
 ## 11 · Pièges connus
 
