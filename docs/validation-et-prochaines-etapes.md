@@ -1,6 +1,6 @@
 # CarLog Pro — validation et prochaines étapes
 
-État observé le 27 septembre 2026. Cette checklist distingue les vérifications automatisées déjà observées des parcours manuels encore à valider. Une case non cochée signifie « preuve de validation non trouvée », pas nécessairement « fonctionnalité absente ».
+État observé le 28 septembre 2026. Cette checklist distingue les vérifications automatisées déjà observées des parcours manuels encore à valider. Une case non cochée signifie « preuve de validation non trouvée », pas nécessairement « fonctionnalité absente ».
 
 ## État synthétique
 
@@ -18,7 +18,7 @@
 
 ## Preuves automatisées déjà observées
 
-- [x] Suite backend complète : `npm test` — 59 tests, 11 suites réussis lors de la dernière exécution.
+- [x] Suite backend complète : `npm test` — 84 tests, 17 suites réussis lors de l'exécution du 28 septembre 2026.
 - [x] Build frontend : `npm run build` réussi lors de la dernière vérification.
 - [x] Tests couvrant auth/JWT, autorisations, isolation de certains contrôleurs, affectations concurrentes, PTAC et règles Phase 4.
 - [x] `MONGO_URI_TEST` est configurée séparément de `MONGO_URI` dans l'environnement local vérifié ; ne jamais imprimer leurs valeurs.
@@ -36,7 +36,8 @@
 ### Phase 1 — API et sécurité
 
 - [ ] Tester inscription, connexion, `/api/auth/me`, JWT invalide/expiré et absence du mot de passe dans les réponses.
-- [ ] Vérifier compte utilisateur désactivé, entreprise inactive et abonnements `trial`, `active`, `past_due`, `canceled`.
+- [ ] Vérifier compte utilisateur désactivé et entreprise inactive.
+- [x] Vérifier les règles d'accès des abonnements `trial`, `active`, `past_due`, `canceled` ; Julie a confirmé que tous les scénarios de la politique d'abonnement ont été vérifiés.
 - [ ] Utiliser deux entreprises et vérifier véhicules, alertes, affectations, statistiques et utilisateurs : aucune lecture ou référence croisée ne doit passer.
 - [ ] Tester les permissions des cinq rôles sur les opérations sensibles et vérifier les codes 400/401/403/404 attendus.
 - [ ] Confirmer qu'un `entreprise` fourni par le client ne remplace jamais celle du JWT.
@@ -78,14 +79,16 @@
 
 - [ ] Relever les comptes avant/après création et archivage véhicule, alerte et affectation ; comparer les KPI aux listes.
 - [ ] Comparer les chiffres de deux entreprises et tester les vues admin, manager et comptable.
-- [ ] Tester les états chargement, vide, erreur et API indisponible.
+- [x] Vérifier les états de chargement, de liste vide et d'API indisponible (confirmation de Julie).
+- [ ] Vérifier séparément l'état d'erreur du dashboard.
 
 ### Phase 7 — Préparation production
 
 - [ ] Vérifier séparément configurations dev/test/prod et l'absence de secrets dans Git, logs et bundle frontend.
 - [ ] Retirer `MONGO_URI` et `JWT_SECRET` de `frontend/.env` s'ils y sont encore ; conserver ces secrets dans l'environnement backend.
 - [ ] Vérifier rate limiting, CORS, taille JSON, erreurs génériques, démarrage et arrêt backend.
-- [ ] Définir une sauvegarde et une rétention ; restaurer une sauvegarde de test et consigner le résultat.
+- [ ] Définir la destination protégée, la fréquence et la rétention des sauvegardes durables ; les sauvegardes Cloud Atlas natives ne sont pas disponibles sur le cluster Free/M0 courant.
+- [x] Restaurer un dump de la base dédiée `carlog_pro_test` dans `carlog_pro_restore_check_20260928` ; les 5 collections ont le même nombre de documents après restauration. La copie de vérification est isolée de la source.
 - [ ] Ajouter/valider une CI qui lance tests backend et build frontend avant livraison.
 - [ ] Préparer le déploiement Render/Vercel ou Replit, puis vérifier HTTPS et variables sans afficher leurs valeurs.
 
