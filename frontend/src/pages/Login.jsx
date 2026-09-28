@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-export default function Login({ onGoToRegister }) {
+export default function Login({ onGoToRegister, themeToggle }) {
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
@@ -30,6 +30,7 @@ export default function Login({ onGoToRegister }) {
     <div className="auth-shell">
       <header className="navbar">
         <div className="logo">CarLog <span>Pro</span></div>
+        {themeToggle}
       </header>
 
       <main className="dashboard-container auth-container">

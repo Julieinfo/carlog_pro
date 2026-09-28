@@ -23,7 +23,7 @@ function asList(response) {
 }
 function label(value) { return String(value || '').replaceAll('_', ' '); }
 
-export default function Dashboard() {
+export default function Dashboard({ themeToggle }) {
   const { token, logout, user, login } = useAuth();
   const [tab, setTab] = useState('accueil');
   const [vehicles, setVehicles] = useState([]);
@@ -156,7 +156,7 @@ export default function Dashboard() {
   async function reactivateUser(id) { try { await api.reactivateUtilisateur(id); setNotice('Utilisateur réactivé.'); await loadData(); } catch (exception) { handleError(exception); } }
 
   if (canceled) return <div>
-    <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span><button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
+    <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span>{themeToggle}<button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
     <main className="dashboard-container">
       <div className="page-heading"><div><p className="eyebrow">Gestion du compte</p><h1 className="dashboard-title">Abonnement suspendu</h1></div><button className="btn-secondary" onClick={refreshSubscription}>Actualiser le statut</button></div>
       <div className="notice error" role="status">L’abonnement de votre entreprise est résilié. L’accès aux données de la flotte est suspendu.</div>
@@ -169,7 +169,7 @@ export default function Dashboard() {
   if (loading && !vehicles.length && !alerts.length) return <div className="dashboard-container"><p className="empty-state">Chargement des données de votre entreprise...</p></div>;
 
   return <div>
-    <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span><button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
+    <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span>{themeToggle}<button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
     <main className="dashboard-container">
       <div className="page-heading"><div><p className="eyebrow">Gestion de flotte</p><h1 className="dashboard-title">Votre espace de pilotage</h1></div><button className="btn-secondary" onClick={() => loadData()}>Actualiser</button></div>
       {error && <div className="notice error">{error}</div>}{notice && <div className="notice success">{notice}<button onClick={() => setNotice('')} aria-label="Fermer">×</button></div>}

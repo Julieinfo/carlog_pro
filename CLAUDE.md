@@ -157,15 +157,22 @@ Une feature est finie quand :
 - [2026-09] · Inscription réelle — formulaire entreprise collecte SIRET, téléphone et adresse ; validation frontend/backend des formats SIRET/code postal, sans valeurs générées.
 - [2026-09] · Validation PTAC — valeur minimale portée à 1 kg dans le modèle, les validateurs de création/modification et le formulaire ; tests ajoutés pour PTAC absent, nul et valide.
 - [2026-09] · Phase 4 — modification et suppression d’affectation synchronisent les statuts véhicule dans une transaction ; les conducteurs ne voient que les alertes de leurs véhicules affectés en cours.
+- [2026-09] · Phase 6 officiellement validée — Julie confirme que tous les contrôles du dashboard ont été réalisés : comparaison des KPI aux listes, vérification entre deux entreprises, vues admin/gestionnaire de flotte/comptable, et états de chargement, liste vide, erreur API et erreur dashboard.
 - [2026-09] · Phase 5 — gestion des utilisateurs : édition, promotion de rôles, contrôle d’unicité de l’email et réactivation ajoutés ; ces opérations sont réservées aux admins, avec blocage de la modification du rôle et du statut de son propre compte. Les rôles sont libellés en français dans l’interface, les secrets restent exclus des réponses.
-- [2026-09] · Phase 5 — statut reporté pour ce jalon selon la demande de Julie : modification et réactivation ne sont pas comptabilisées comme livrées. Leur implémentation existe toutefois déjà dans le code courant ; ne pas supprimer ces fonctions sans demande explicite.
+- [2026-09] · Décision de périmètre mise à jour par Julie : l'édition et la réactivation, déjà implémentées, sont officiellement incluses et livrées en phase 5. L'ancienne décision de report est remplacée.
+- [2026-09] · Phase 5 officiellement validée — Julie confirme que tous les parcours de gestion des utilisateurs ont été réalisés : création, consultation, modification, désactivation et tentative de connexion après désactivation, réactivation et reconnexion ; les rôles sont présentés avec leurs libellés français.
 - [2026-09] · Formulaire utilisateurs — désactivation de l’autocomplétion sur la création de compte et indication explicite d’un nouveau mot de passe pour éviter le préremplissage des identifiants enregistrés par le navigateur.
 - [2026-09] · Phase 7 démarrée — motifs `.env`/`.env.test` séparés dans le `.gitignore` racine ; aucun fichier `.env` n’est suivi ou présent dans l’historique Git vérifié. Arrêt propre sur `SIGTERM`/`SIGINT` ajouté avec fermeture HTTP puis MongoDB, délai de sécurité de 10 s et tests unitaires.
-- [2026-09] · Phase 7 sécurité API — Helmet, limite JSON 100 kb, proxy approuvé uniquement en production, limiteurs IP sur connexion/inscription et verrouillage temporaire après cinq échecs. Le verrouillage peut être déclenché par un tiers contre une adresse connue (indisponibilité de 15 min), compromis accepté ; limites mémoire et tests unitaires ajoutés. La modification et la réactivation d’utilisateurs restent reportées.
+- [2026-09] · Phase 7 sécurité API — Helmet, limite JSON 100 kb, proxy approuvé uniquement en production, limiteurs IP sur connexion/inscription et verrouillage temporaire après cinq échecs. Le verrouillage peut être déclenché par un tiers contre une adresse connue (indisponibilité de 15 min), compromis accepté ; limites mémoire et tests unitaires ajoutés.
 - [2026-09] · Abonnements SaaS — `trial`/`active` accès complet ; `past_due` lecture seule avec création d’alertes toujours permise ; `canceled` bloque les utilisateurs et limite l’admin à la lecture de `/auth/me` et `/auth/entreprise`. Le statut `abonnement` est présent dans les trois réponses d’authentification, une bannière et un écran suspendu sont affichés. Aucun utilisateur ne peut modifier le statut, la formule ou l’activité de l’entreprise via l’API ; jusqu’à Stripe, la régularisation reste manuelle dans MongoDB Atlas. Les trois états et leurs restrictions ont été vérifiés manuellement.
 - [2026-09] · Vérification backend — suite complète exécutée avec accès réseau à MongoDB Atlas : 17 suites et 84 tests passent sur la base dédiée `carlog_pro_test`. L’exécution dans la sandbox échouait avec `EACCES` sur les connexions réseau ; aucun changement de configuration ou de secret n’a été nécessaire.
 - [2026-09] · Phase 7 — sauvegarde/restauration validée sur M0 : dump temporaire de `carlog_pro_test` avec MongoDB Database Tools 100.19.0, puis restauration dans `carlog_pro_restore_check_20260928`. Les 5 collections ont été comparées par nombre de documents, sans différence. Cette vérification ne définit pas encore une sauvegarde durable, sa destination ni sa rétention ; les sauvegardes Atlas natives ne sont pas disponibles pour le cluster Free/M0.
 - [2026-09] · Phase 1 acceptée — Julie confirme que tous les contrôles manuels listés dans la checklist (auth/JWT, compte inactif, isolation multi-entreprises, RBAC des cinq rôles et entreprise issue du JWT) ont été réalisés.
+- [2026-09] · Phase 0 officiellement terminée — Julie confirme backend/frontend, ports, API de santé, Preview, erreurs de démarrage et vérification visuelle des thèmes clair/sombre.
+- [2026-09] · Thème frontend — thème clair comme valeur initiale conforme à la DA, bouton de bascule clair/sombre disponible sur connexion, inscription et dashboard ; choix conservé dans `localStorage` et fonctionnement visuel confirmé par Julie.
+- [2026-09] · Phase 2 officiellement validée — Julie confirme que les parcours d'inscription avec données entreprise, erreurs de connexion/API, restauration et expiration de session, déconnexion et protection du dashboard ont tous été réalisés dans Preview.
+- [2026-09] · Phase 3 officiellement validée — Julie confirme que les parcours véhicules, validations, statuts, filtres/pagination, archivage, persistance, droits par rôle et vérification des informations de maintenance ont tous été réalisés.
+- [2026-09] · Phase 4 officiellement validée — Julie confirme que les parcours alertes/affectations, conflits, synchronisation des statuts véhicule, suppression, filtrage conducteur, permissions des rôles et périmètre des filtres ont tous été réalisés.
 
 ## 11 · Pièges connus
 
@@ -179,6 +186,63 @@ Une feature est finie quand :
 | Erreur 500 avec message Mongo brut affiché à l'utilisateur | `err.message` renvoyé tel quel au lieu d'un message générique | Logger l'erreur serveur, renvoyer un message générique en prod |
 
 - [ajoute les tiens ici]
+
+## 12 · Recommandations SaaS complémentaires
+
+### Sécurité, authentification et données
+
+- Les secrets restent dans les fichiers `.env` locaux ignorés par Git et dans les variables d'environnement du backend Render en production. Aucune clé privée ou URI MongoDB ne doit entrer dans le bundle frontend.
+- Les mots de passe sont hachés côté serveur et ne sont jamais renvoyés par l'API. La validation serveur et les contrôles RBAC restent requis même quand l'interface masque une action.
+- Toute requête métier est limitée à `req.user.entreprise`, obtenu du JWT. Aucun identifiant transmis par le client ne peut élargir l'accès à une autre entreprise.
+- Les JWT expirent. Le stockage actuel du jeton dans `localStorage` implique un risque d'exposition en cas de faille XSS. Un passage aux cookies `HttpOnly` nécessiterait une évolution coordonnée du backend et du frontend ; ne pas le faire isolément.
+- Le rate limiting et le verrouillage temporaire des connexions existent déjà ; les entrées continuent à être validées côté serveur.
+- CORS reste limité aux origines attendues et HTTPS doit être vérifié au déploiement de production.
+- La confirmation d'email et la récupération de compte sont formellement hors MVP, décision de Julie consignée le 28 septembre 2026. Ne pas les ajouter au périmètre MVP ; toute évolution ultérieure nécessite une nouvelle décision produit.
+- Les webhooks signés ne seront ajoutés que si un prestataire de paiement tel que Stripe est intégré.
+- Si des fichiers utilisateurs sont ajoutés, contrôler leur taille et leur type réel, et définir leur stockage avant la mise en ligne.
+- Supabase/RLS, les clés `NEXT_PUBLIC_*`, le service-role Supabase et les fonctionnalités LLM ne correspondent pas à l'architecture actuelle (React, Express, MongoDB) et ne sont pas à ajouter sans décision produit.
+
+### Base de données et performances
+
+- Auditer les index des champs fréquemment recherchés, en particulier les références d'entreprise, véhicules, utilisateurs et affectations.
+- Éviter les requêtes répétées dans les boucles et examiner les chargements de documents liés. Les listes susceptibles de grossir doivent être paginées : véhicules, alertes, affectations et utilisateurs.
+- Les quotas par formule (véhicules, comptes, alertes) restent à définir seulement si la politique commerciale les prévoit. Les règles d'accès déjà décidées sont : `trial`/`active` accès complet, `past_due` lecture seule sauf création d'alerte, `canceled` accès restreint ; la réactivation reste manuelle jusqu'à Stripe.
+- Documenter les évolutions de schéma Mongoose et prévoir un script de migration de données lorsqu'un changement de modèle l'exige. Les migrations SQL ne s'appliquent pas.
+- N'ajouter du cache qu'après mesure d'un besoin, en tenant compte du risque de données désynchronisées.
+- Le test de restauration d'un dump de la base Jest vers une base Atlas isolée est réalisé. Une destination durable, la fréquence et la rétention des sauvegardes restent à choisir pour M0.
+
+### Interface et accessibilité
+
+- Garder des états distincts de chargement, erreur API et liste vide ; confirmer à l'écran la réussite ou l'échec d'une action.
+- Demander confirmation avant une opération destructive ou sensible, notamment la suppression et la désactivation.
+- Garder les formulaires utilisables sur mobile et tablette, avec des champs lisibles et des erreurs compréhensibles. Vérifier navigation clavier, libellés accessibles et contrastes.
+- Le thème clair est le thème initial conforme à la DA ; le bouton permet de basculer en mode sombre et le choix est conservé dans `localStorage`.
+- L'affichage/masquage du mot de passe, les CTA marketing fixes, la recherche globale et le bouton de contact flottant sont à évaluer à partir d'un besoin constaté. Animations et contrôles de défilement restent facultatifs.
+
+### Légal, confidentialité et référencement
+
+- Avant une mise en service réelle, préparer les mentions légales, CGU et politique de confidentialité adaptées aux données de compte, d'entreprise, de véhicules, d'affectation et d'incidents.
+- Inventorier les traceurs avant de mettre en place un bandeau cookies ; obtenir le consentement uniquement pour ceux qui le requièrent.
+- Définir une procédure et des durées de conservation pour les demandes d'accès, rectification et suppression des données personnelles.
+- Réserver le référencement aux pages publiques. Le tableau de bord privé n'a pas vocation à être indexé.
+- Pour les pages publiques existantes, vérifier titres/descriptions, favicon, image de partage, `robots.txt` et sitemap selon le contenu réellement publiable. Les images informatives ont un texte `alt` pertinent.
+- Les témoignages, avis et chiffres de clientèle doivent être réels et autorisés. FAQ, remerciements d'achat et autres pages commerciales ne sont ajoutés que s'ils servent un parcours existant.
+
+### Qualité et exploitation
+
+- Retirer les traces de débogage avant livraison ; garder les commentaires utiles à la maintenance.
+- Suivre les dépendances et examiner les changements ; ne pas appliquer automatiquement les mises à jour majeures.
+- Centraliser les erreurs de production sans journaliser secrets, mots de passe, JWT ou URI MongoDB. Mettre en place une alerte de disponibilité API et une surveillance des erreurs.
+- Mesurer le chargement des listes et optimiser les images si le site en utilise. Vérifier les liens et parcours publics.
+- Documenter les décisions d'abonnement et les changements de schéma.
+
+### Ordre de priorité complémentaire
+
+1. La politique de statut d'abonnement est cadrée et implémentée ; les plafonds par formule restent conditionnels à une décision commerciale.
+2. La validation manuelle de l'isolation multi-entreprise est confirmée en phase 1 ; maintenir les tests de non-régression sur chaque nouvel endpoint métier.
+3. Définir les sauvegardes durables et leur rétention pour le cluster M0, puis mettre en place la surveillance d'erreurs en production.
+4. Préparer les documents légaux et la procédure de gestion des données personnelles avant une mise en service réelle.
+5. Faire évoluer l'interface et le référencement public selon les retours d'usage.
 
 ---
 

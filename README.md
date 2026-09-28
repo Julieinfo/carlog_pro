@@ -11,7 +11,7 @@ Application web de gestion de flotte pour petites entreprises. Le MVP permet de 
 - Gestion des alertes : signalement, consultation, filtres, résolution et suppression selon le rôle.
 - Affectations véhicule/conducteur : création, vérification des conflits, modification, clôture et kilométrage.
 - Vue d'ensemble avec indicateurs de flotte.
-- Gestion admin des utilisateurs : création, consultation et désactivation.
+- Gestion admin des utilisateurs : création, consultation, modification, désactivation et réactivation. Les parcours manuels de recette sont suivis dans `docs/validation-et-prochaines-etapes.md`.
 - Contrôle d'accès selon les rôles `admin`, `fleet_manager`, `conducteur`, `mecanicien` et `comptable`.
 
 ## Architecture
@@ -64,4 +64,4 @@ La checklist de validation et l'ordre de travail restant sont dans [`docs/valida
 
 ## Hors périmètre actuel
 
-Application mobile native, Stripe et paiements, notifications email, PWA, géolocalisation active, exports comptables avancés et maintenance prédictive sont des pistes ultérieures, pas des prérequis du MVP actuel.
+Confirmation d'adresse email et récupération de compte sont explicitement hors MVP. Application mobile native, Stripe et paiements, autres notifications email, PWA, géolocalisation active, exports comptables avancés et maintenance prédictive sont des pistes ultérieures, pas des prérequis du MVP actuel.

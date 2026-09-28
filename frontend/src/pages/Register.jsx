@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-export default function Register({ onGoToLogin }) {
+export default function Register({ onGoToLogin, themeToggle }) {
   const [form, setForm] = useState({
     nom: '',
     prenom: '',
@@ -64,6 +64,7 @@ export default function Register({ onGoToLogin }) {
     <div className="auth-shell">
       <header className="navbar">
         <div className="logo">CarLog <span>Pro</span></div>
+        {themeToggle}
       </header>
 
       <main className="dashboard-container auth-container">
