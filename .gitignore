@@ -7,6 +7,16 @@ backend/node_modules/
 .env.test
 backend/.env
 backend/.env.test
+# Variantes lues par dotenv/Vite (.env.local, .env.production, .env.development.local, ...)
+# Seul le modèle sans valeur réelle (.env.example) reste suivi.
+.env.*
+!.env.example
+
+# Sauvegardes MongoDB locales (mongodump) : jamais dans Git
+*.archive
+*.archive.gz
+*.archive.gz.gpg
+sauvegardes/
 
 # Fichiers système
 .DS_Store
