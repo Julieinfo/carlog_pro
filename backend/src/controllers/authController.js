@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Entreprise = require('../models/Entreprise');
 const repondreErreur = require('../utils/reponseErreur');
+const { estVerrouille, enregistrerEchec, reinitialiser } = require('../utils/verrouillageConnexion');
 
 /**
  * Genere un token JWT pour un utilisateur.
@@ -126,6 +127,10 @@ exports.inscription = async (req, res) => {
 exports.connexion = async (req, res) => {
     try {
         const { email, motDePasse } = req.body;
+
+        if (estVerrouille(email)) {
+            return res.status(429).json({ message: 'Trop de tentatives. Réessayez plus tard.' });
+        }
         
         // motDePasse est cache dans le schema (select: false), donc on l'ajoute explicitement juste pour cette verification.
         // C'est une bonne pratique de securite : par defaut, on ne renvoie jamais le mot de passe dans les requetes.
@@ -135,8 +140,11 @@ exports.connexion = async (req, res) => {
         // Si on disait "Email inexistant" ou "Mot de passe incorrect", un attaquant pourrait enumerer les comptes.
         // J'ai choisi de ne pas differencier les cas pour eviter ce type d'attaque.
         if (!user || !(await user.verifierMotDePasse(motDePasse))) {
+        enregistrerEchec(email);
         return res.status(401).json({ message: 'Identifiants invalides.' });
         }
+
+        reinitialiser(email);
         
         // On renvoie un nouveau token a chaque connexion.
         // J'aurais pu implementer un systeme de refresh token, mais pour l'instant un simple token suffit.
@@ -168,16 +176,14 @@ exports.connexion = async (req, res) => {
  */
 exports.getProfil = async (req, res) => {
     try {
-        // req.user est disponible grace au middleware protect qui a decode le JWT.
-        // J'ai choisi de renvoyer req.user directement plutot que de refaire une requete a la base,
-        // car les infos dans le token sont suffisantes pour afficher le profil.
-        // Si on avait besoin de donnees a jour (ex: role modifie), il faudrait refaire une requete.
-        
-        // J'exclus explicitement le mot de passe de la reponse pour la securite.
-        // Meme si le middleware le fait deja, c'est une double securite.
-        const { motDePasse, ...userSansMotDePasse } = req.user.toObject();
-        
-        res.status(200).json(userSansMotDePasse);
+        res.status(200).json({
+            id: req.user._id,
+            nom: req.user.nom,
+            prenom: req.user.prenom,
+            email: req.user.email,
+            role: req.user.role,
+            entrepriseId: req.user.entreprise
+        });
     } catch (err) {
         repondreErreur(res, err);
     }

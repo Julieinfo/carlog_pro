@@ -2,6 +2,7 @@ const vehiculeRoutes = require('../routes/vehiculeRoutes');
 const alerteRoutes = require('../routes/alerteRoutes');
 const affectationRoutes = require('../routes/affectationRoutes');
 const statsRoutes = require('../routes/statsRoutes');
+const authRoutes = require('../routes/authRoutes');
 
 const roles = ['admin', 'fleet_manager', 'conducteur', 'mecanicien', 'comptable'];
 
@@ -26,8 +27,14 @@ describe('Matrice RBAC des routes protégées', () => {
         [vehiculeRoutes, 'post', '/', ['admin', 'fleet_manager']],
         [vehiculeRoutes, 'delete', '/:id', ['admin']],
         [alerteRoutes, 'post', '/', ['admin', 'fleet_manager', 'conducteur', 'mecanicien']],
+        [alerteRoutes, 'delete', '/:id', ['admin', 'fleet_manager']],
         [affectationRoutes, 'post', '/', ['admin', 'fleet_manager']],
-        [statsRoutes, 'get', '/', ['admin', 'fleet_manager', 'comptable']]
+        [affectationRoutes, 'delete', '/:id', ['admin']],
+        [statsRoutes, 'get', '/', ['admin', 'fleet_manager', 'comptable']],
+        [authRoutes, 'post', '/utilisateurs', ['admin']],
+        [authRoutes, 'patch', '/utilisateurs/:id', ['admin']],
+        [authRoutes, 'patch', '/utilisateurs/:id/desactiver', ['admin']],
+        [authRoutes, 'patch', '/utilisateurs/:id/reactiver', ['admin']]
     ])('%s applique les rôles attendus sur %s %s', (router, method, path, autorises) => {
         const middleware = permissionMiddleware(router, method, path);
 

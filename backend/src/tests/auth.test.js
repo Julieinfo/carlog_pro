@@ -40,7 +40,7 @@ describe('POST /api/auth/inscription', () => {
     
     // Test 1 : Le chemin ideal avec toutes les donnees requises par le modele.
     // Ce test verifie que l'inscription fonctionne correctement quand tout est OK.
-    it('devrait creer un nouvel utilisateur et son entreprise', async () => {
+    it('devrait creer un utilisateur et exposer les mêmes clés user sur /auth/me', async () => {
         // supertest permet de simuler une requete HTTP vers l'application Express.
         // C'est plus simple que de faire de vraies requetes HTTP avec curl ou Postman.
         const res = await request(app)
@@ -71,7 +71,14 @@ describe('POST /api/auth/inscription', () => {
         expect(res.body).toHaveProperty('token');
         expect(res.body.user).not.toHaveProperty('motDePasse');
         expect(JSON.stringify(res.body)).not.toContain('SuperPassword123!');
-        
+
+        const profil = await request(app)
+            .get('/api/auth/me')
+            .set('Authorization', `Bearer ${res.body.token}`);
+
+        expect(profil.statusCode).toBe(200);
+        expect(Object.keys(profil.body).sort()).toEqual(Object.keys(res.body.user).sort());
+
         // Verification directe dans MongoDB pour s'assurer que les donnees sont bien stockees.
         // J'ai ajoute cette verification pour tester la persistence des donnees, pas seulement la reponse HTTP.
         const userInDb = await User.findOne({ email: 'jean.dupont@example.com' });
@@ -96,6 +103,48 @@ describe('POST /api/auth/inscription', () => {
         expect(profil.statusCode).toBe(200);
         expect(profil.body.email).toBe('jean.dupont@example.com');
         expect(profil.body).not.toHaveProperty('motDePasse');
+    });
+
+    it('devrait rejeter une inscription sans SIRET avec une erreur exploitable', async () => {
+        const res = await request(app)
+            .post('/api/auth/inscription')
+            .send({
+                nom: 'Martin',
+                prenom: 'Camille',
+                email: 'camille.martin@example.com',
+                motDePasse: 'SecurePassword123!',
+                nomEntreprise: 'Transports Martin',
+                emailProfessionnel: 'camille.martin@example.com',
+                telephoneEntreprise: '0559000000',
+                adresse: { rue: '10 avenue du Béarn', codePostal: '64000', ville: 'Pau', pays: 'France' }
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(Array.isArray(res.body.erreurs)).toBe(true);
+        expect(res.body.erreurs).toEqual(expect.arrayContaining([
+            expect.objectContaining({ path: 'siret', msg: 'Le SIRET doit contenir exactement 14 chiffres.' })
+        ]));
+    });
+
+    it('devrait rejeter un SIRET dont le format est invalide', async () => {
+        const res = await request(app)
+            .post('/api/auth/inscription')
+            .send({
+                nom: 'Martin',
+                prenom: 'Camille',
+                email: 'camille.martin@example.com',
+                motDePasse: 'SecurePassword123!',
+                nomEntreprise: 'Transports Martin',
+                siret: '123',
+                emailProfessionnel: 'camille.martin@example.com',
+                telephoneEntreprise: '0559000000',
+                adresse: { rue: '10 avenue du Béarn', codePostal: '64000', ville: 'Pau', pays: 'France' }
+            });
+
+        expect(res.statusCode).toBe(400);
+        expect(res.body.erreurs).toEqual(expect.arrayContaining([
+            expect.objectContaining({ path: 'siret', msg: 'Le SIRET doit contenir exactement 14 chiffres.' })
+        ]));
     });
 
     it('devrait refuser une connexion avec un mot de passe incorrect', async () => {

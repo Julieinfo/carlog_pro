@@ -6,7 +6,8 @@ const router = express.Router();
 // C'est important pour la securite et pour eviter les erreurs de saisie dans la base.
 const { validateInscription, validateConnexion } = require('../middlewares/validators/authValidator');
 const { protect, authorize } = require('../middlewares/authMiddleware');
-const { getUtilisateurs, creerUtilisateur, desactiverUtilisateur } = require('../controllers/userController');
+const { limiteurConnexion, limiteurInscription } = require('../middlewares/rateLimiters');
+const { getUtilisateurs, creerUtilisateur, modifierUtilisateur, desactiverUtilisateur, reactiverUtilisateur } = require('../controllers/userController');
 
 // Import des fonctions du controleur.
 // Ces fonctions contiennent la logique metier pour l'inscription, la connexion et le profil.
@@ -20,12 +21,12 @@ const { inscription, connexion, getProfil, modifierEtatEntreprise } = require('.
 // Route pour la creation de compte (Entreprise + Admin).
 // validateInscription verifie que tous les champs sont valides avant d'appeler inscription.
 // J'ai mis la validation avant le controleur pour rejeter les requetes invalides rapidement.
-router.post('/inscription', validateInscription, inscription);
+router.post('/inscription', limiteurInscription, validateInscription, inscription);
 
 // Route pour la connexion.
 // validateConnexion verifie le format de l'email et la presence du mot de passe.
 // J'ai choisi de ne pas valider le format du mot de passe ici pour ne pas aider un attaquant.
-router.post('/connexion', validateConnexion, connexion);
+router.post('/connexion', limiteurConnexion, validateConnexion, connexion);
 
 // Route pour recuperer le profil de l'utilisateur connecte.
 // Cette route est protegee par le middleware protect car elle necessite une authentification.
@@ -34,7 +35,9 @@ router.get('/me', protect, getProfil);
 
 router.get('/utilisateurs', protect, authorize('admin', 'fleet_manager'), getUtilisateurs);
 router.post('/utilisateurs', protect, authorize('admin'), creerUtilisateur);
+router.patch('/utilisateurs/:id', protect, authorize('admin'), modifierUtilisateur);
 router.patch('/utilisateurs/:id/desactiver', protect, authorize('admin'), desactiverUtilisateur);
+router.patch('/utilisateurs/:id/reactiver', protect, authorize('admin'), reactiverUtilisateur);
 router.patch('/entreprise', protect, authorize('admin'), modifierEtatEntreprise);
 
 // Export du routeur pour pouvoir l'utiliser dans app.js.

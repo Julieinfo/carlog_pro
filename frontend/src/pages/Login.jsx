@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { api } from '../services/api';
+import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login({ onGoToRegister }) {
-  const [email, setEmail] = useState('julietest@gmail.com');
+  const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
@@ -20,7 +20,7 @@ export default function Login({ onGoToRegister }) {
       const data = res.data || res;
       login(data.user, data.token);
     } catch (err) {
-      setErreur(err.response?.data?.message || 'Identifiants invalides');
+      setErreur(messageErreurApi(err, 'Identifiants invalides'));
     } finally {
       setChargement(false);
     }

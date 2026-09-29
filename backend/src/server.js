@@ -19,6 +19,7 @@ const app = require('./app');
 
 // Import de la fonction de connexion a la base de donnees
 const connectDB = require('./config/db');
+const arreterProprement = require('./utils/arretPropre');
 
 // Definition du port : on utilise la variable d'environnement PORT si elle existe, sinon 5000 par defaut.
 // C'est flexible comme ça : en dev on peut laisser 5000, en prod on peut utiliser le port defini par l'hebergeur.
@@ -29,7 +30,9 @@ const PORT = process.env.PORT || 5000;
 // ce qui provoquerait des erreurs. J'ai utilise .then() pour garantir l'ordre d'execution.
 // J'aurais pu aussi utiliser async/await, mais cette version avec Promise me semble plus lisible ici.
 connectDB().then(() => {
-    app.listen(PORT, '0.0.0.0', () => {
+    const server = app.listen(PORT, '0.0.0.0', () => {
         console.log(`Serveur démarré sur le port ${PORT}`);
     });
+    process.on('SIGTERM', () => arreterProprement(server, 'SIGTERM'));
+    process.on('SIGINT', () => arreterProprement(server, 'SIGINT'));
 });

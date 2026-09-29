@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { api } from '../services/api';
+import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register({ onGoToLogin }) {
@@ -9,6 +9,11 @@ export default function Register({ onGoToLogin }) {
     email: '',
     motDePasse: '',
     nomEntreprise: '',
+    siret: '',
+    telephoneEntreprise: '',
+    adresseRue: '',
+    adresseCodePostal: '',
+    adresseVille: '',
   });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
@@ -24,16 +29,21 @@ export default function Register({ onGoToLogin }) {
     setErreur('');
     setChargement(true);
 
-    // On complète l'objet envoyé au backend avec des données valides par défaut
+    const { nom, prenom, email, motDePasse, nomEntreprise, siret, telephoneEntreprise,
+      adresseRue, adresseCodePostal, adresseVille } = form;
     const payload = {
-      ...form,
-      siret: Math.floor(10000000000000 + Math.random() * 90000000000000).toString(),
-      emailProfessionnel: form.email,
-      telephoneEntreprise: '0102030405',
+      nom,
+      prenom,
+      email,
+      motDePasse,
+      nomEntreprise,
+      siret,
+      emailProfessionnel: email,
+      telephoneEntreprise,
       adresse: {
-        rue: '1 rue de la Paix',
-        codePostal: '75000',
-        ville: 'Paris',
+        rue: adresseRue,
+        codePostal: adresseCodePostal,
+        ville: adresseVille,
         pays: 'France',
       },
     };
@@ -44,8 +54,7 @@ export default function Register({ onGoToLogin }) {
       const data = res.data || res;
       login(data.user, data.token);
     } catch (err) {
-      // Correction de la coquille (err.response au lieu de err.reponse)
-      setErreur(err.response?.data?.message || err.message);
+      setErreur(messageErreurApi(err, 'Impossible de créer le compte.'));
     } finally {
       setChargement(false);
     }
@@ -88,6 +97,48 @@ export default function Register({ onGoToLogin }) {
             <label className="field">
               <span>Nom de l'entreprise</span>
               <input name="nomEntreprise" value={form.nomEntreprise} onChange={handleChange} required autoComplete="organization" />
+            </label>
+            <label className="field">
+              <span>SIRET</span>
+              <input
+                type="text"
+                name="siret"
+                value={form.siret}
+                onChange={handleChange}
+                required
+                pattern="[0-9]{14}"
+                maxLength={14}
+                title="Le SIRET doit contenir exactement 14 chiffres."
+                inputMode="numeric"
+                autoComplete="off"
+              />
+            </label>
+            <label className="field">
+              <span>Téléphone de l'entreprise</span>
+              <input type="tel" name="telephoneEntreprise" value={form.telephoneEntreprise} onChange={handleChange} required autoComplete="tel" />
+            </label>
+            <label className="field">
+              <span>Rue</span>
+              <input name="adresseRue" value={form.adresseRue} onChange={handleChange} required autoComplete="address-line1" />
+            </label>
+            <label className="field">
+              <span>Code postal</span>
+              <input
+                type="text"
+                name="adresseCodePostal"
+                value={form.adresseCodePostal}
+                onChange={handleChange}
+                required
+                pattern="[0-9]{5}"
+                maxLength={5}
+                title="Le code postal doit contenir 5 chiffres."
+                inputMode="numeric"
+                autoComplete="postal-code"
+              />
+            </label>
+            <label className="field">
+              <span>Ville</span>
+              <input name="adresseVille" value={form.adresseVille} onChange={handleChange} required autoComplete="address-level2" />
             </label>
 
             {erreur && <p className="auth-error" role="alert">{erreur}</p>}
