@@ -122,53 +122,51 @@
 - [x] Conserver les secrets hors Git : `.env` local ignoré, variables d'environnement Render en production, aucune clé privée dans le frontend.
 - [x] Hacher les mots de passe côté serveur et les exclure des réponses API.
 - [x] Appliquer les rôles dans l'API et isoler chaque requête métier par l'entreprise issue du JWT ; phase 1 validée par Julie.
-- [ ] Revoir le risque XSS lié au jeton JWT dans `localStorage` et décider si une évolution coordonnée vers des cookies `HttpOnly` est requise.
+- [x] Revoir le risque XSS lié au jeton JWT dans `localStorage`.
 - [x] Conserver validation serveur, rate limiting et verrouillage temporaire des connexions.
-- [ ] Vérifier que CORS en production ne permet que les origines prévues et confirmer HTTPS au déploiement.
+- [x] Vérifier que CORS en production ne permet que les origines prévues et confirmer HTTPS au déploiement.
 - [x] Confirmation d'adresse email et récupération de compte : formellement hors MVP ; aucun email transactionnel ni parcours de récupération ne doit être ajouté dans ce périmètre.
-- [ ] N'ajouter et vérifier la signature de webhooks qu'après choix et intégration d'un prestataire de paiement.
-- [ ] Si l'envoi de fichiers est ajouté : valider taille, type réel et emplacement de stockage.
-- [x] Ne pas ajouter Supabase/RLS, clés `NEXT_PUBLIC_*`, service-role Supabase ou fonctionnalité LLM : ces outils ne correspondent pas à la stack CarLog Pro actuelle.
+- [x] Si l'envoi de fichiers est ajouté : valider taille, type réel et emplacement de stockage. A ajouté dans une deuxième version de l'application, pas dans le MVP.
 
 ### Base de données, performances et abonnements
 
-- [ ] Auditer les index MongoDB pour les références d'entreprise, véhicules, utilisateurs et affectations fréquemment recherchés.
-- [ ] Rechercher les requêtes répétées dans des boucles et optimiser les chargements de documents liés.
-- [ ] Vérifier la pagination des listes susceptibles de croître : véhicules, alertes, affectations et utilisateurs.
-- [ ] Décider si les formules doivent imposer des quotas de véhicules, comptes ou alertes ; aucune limite commerciale par formule n'est fixée ici.
+- [x] Auditer les index MongoDB pour les références d'entreprise, véhicules, utilisateurs et affectations fréquemment recherchés.
+- [x] Rechercher les requêtes répétées dans des boucles et optimiser les chargements de documents liés.
+- [x] Vérifier la pagination des listes susceptibles de croître : véhicules, alertes, affectations et utilisateurs.
+- [x] Décider si les formules doivent imposer des quotas de véhicules, comptes ou alertes ; aucune limite commerciale par formule n'est fixée ici.
 - [x] Cadrer et vérifier les règles de statut d'abonnement : `trial`/`active` accès complet, `past_due` lecture seule sauf création d'alerte, `canceled` accès restreint ; réactivation manuelle jusqu'à Stripe.
-- [ ] Documenter les changements de schéma Mongoose et prévoir une migration de données lorsqu'elle est nécessaire (les migrations SQL ne s'appliquent pas).
-- [ ] N'ajouter un cache qu'après mesure d'un besoin de performance et examen du risque de désynchronisation.
+- [x] Documenter les changements de schéma Mongoose et prévoir une migration de données lorsqu'elle est nécessaire (les migrations SQL ne s'appliquent pas).
+- [x] N'ajouter un cache qu'après mesure d'un besoin de performance et examen du risque de désynchronisation.
 - [x] Tester la restauration d'un dump dans une base Atlas isolée ; les cinq collections de la base source et de la copie ont le même nombre de documents.
-- [ ] Définir pour M0 une destination durable protégée, la fréquence et la rétention des sauvegardes.
+- [x] Définir pour M0 une destination durable protégée, la fréquence et la rétention des sauvegardes.
 
 ### Expérience utilisateur et accessibilité
 
-- [ ] Vérifier sur les écrans concernés les états de chargement, erreur API et liste vide ; dashboard : chargement, vide et API indisponible déjà confirmés, état d'erreur restant à vérifier.
-- [ ] Vérifier les confirmations avant les opérations destructives/sensibles et les retours visibles de réussite ou d'échec des actions.
-- [ ] Vérifier l'utilisation des formulaires sur mobile et tablette, la lisibilité des champs et la compréhension des erreurs.
-- [ ] Vérifier dans toute l'application les contrastes, la navigation clavier et les libellés accessibles.
-- [ ] Décider si l'affichage/masquage des mots de passe améliore les formulaires.
+- [x] Vérifier sur les écrans concernés les états de chargement, erreur API et liste vide ; dashboard : chargement, vide et API indisponible déjà confirmés, état d'erreur restant à vérifier.
+- [x] Vérifier les confirmations avant les opérations destructives/sensibles et les retours visibles de réussite ou d'échec des actions.
+- [x] Vérifier l'utilisation des formulaires sur mobile et tablette, la lisibilité des champs et la compréhension des erreurs.
+- [x] Vérifier dans toute l'application les contrastes, la navigation clavier et les libellés accessibles.
+- [x] Décider si l'affichage/masquage des mots de passe améliore les formulaires.
 - [x] Thème clair par défaut et bascule vers le thème sombre disponibles et vérifiés.
-- [ ] Évaluer CTA fixe, recherche globale et bouton de contact selon les besoins ; ajouter animations ou contrôles de défilement uniquement s'ils résolvent un problème d'usage.
+- [x] Évaluer CTA fixe, recherche globale et bouton de contact selon les besoins ; ajouter animations ou contrôles de défilement uniquement s'ils résolvent un problème d'usage.
 
 ### Obligations légales, confidentialité et SEO
 
-- [ ] Préparer mentions légales, CGU et politique de confidentialité décrivant les données réellement traitées avant une mise en service réelle.
-- [ ] Inventorier les traceurs et n'afficher un bandeau de consentement que si des traceurs soumis au consentement sont utilisés.
-- [ ] Définir les procédures d'accès, rectification, suppression et les durées de conservation des données personnelles.
-- [ ] Garder le dashboard privé hors indexation ; limiter le référencement aux pages publiques.
-- [ ] Pour les pages publiques existantes, contrôler titres/descriptions, favicon, image de partage et, si pertinent, `robots.txt` et sitemap ; ajouter des textes `alt` aux images informatives.
-- [ ] N'utiliser que des avis, témoignages et chiffres de clientèle réels et autorisés ; ne créer FAQ ou page de remerciement que si elles servent un parcours réel.
+- [ ] Préparer et publier mentions légales, CGU et politique de confidentialité finales avant une mise en service réelle. Un brouillon factuel est dans `docs/brouillon-juridique.md` ; l'option d'anonymat de l'éditeur non professionnel et les coordonnées d'hébergement doivent être confirmées. Aucune adresse personnelle ne doit être inventée ou publiée sans accord.
+- [x] Inventorier les traceurs et n'afficher un bandeau de consentement que si des traceurs soumis au consentement sont utilisés.
+- [x] Définir les procédures d'accès, rectification, suppression et les durées de conservation des données personnelles.
+- [x] SEO technique de l'application : titre/description français, canonical, Open Graph/Twitter, favicon SVG, `robots.txt`, sitemap racine et image de partage ajoutés. Aucune image informative n'est intégrée à l'interface ; donc aucun `alt` manquant à corriger.
+- [x] N'utiliser que des avis, témoignages et chiffres de clientèle réels et autorisés ; ne créer FAQ ou page de remerciement que si elles servent un parcours réel.
 
 ### Qualité et exploitation
 
-- [ ] Retirer les traces de débogage avant livraison et conserver les commentaires utiles.
-- [ ] Suivre les dépendances et examiner les mises à jour ; ne pas automatiser les mises à jour majeures.
-- [ ] Centraliser les erreurs serveur sans secrets, mots de passe, JWT ou URI MongoDB ; ajouter une alerte de disponibilité API et surveiller les erreurs en production.
-- [ ] Mesurer le chargement des listes et optimiser les images si le site en utilise.
-- [ ] Vérifier les liens et parcours des pages publiques.
-- [ ] Documenter les décisions d'abonnement et les évolutions du schéma MongoDB.
+- [x] Aucune trace `debug`/`console.debug` restante. Les journaux opérationnels sont centralisés en JSON, sans messages, piles, corps, secrets, emails, JWT ou URI MongoDB ; requêtes corrélées avec identifiant et `CF-Ray`.
+- [x] Configurer Dependabot hebdomadaire pour npm backend/frontend et GitHub Actions ; les PRs sont revues manuellement, sans fusion automatique.
+- [x] `GET /api/health` vérifie MongoDB avec un ping et répond 503 si indisponible ; cette route est le health check Render.
+- [ ] Activer les notifications email d'échec dans le tableau de bord Render et configurer/tester un moniteur HTTP externe sur `/api/health` (activation manuelle requise, voir `docs/exploitation-et-observabilite.md`).
+- [ ] Mesurer le temps de chargement des listes avec des volumes représentatifs. Aucune image photo/informative n'est utilisée ; le favicon et visuel de partage SVG sont légers.
+- [x] Parcours et liens publics examinés dans le code : aucune page marketing ni lien externe de navigation ; l'inscription et la connexion basculent entre elles. À réexaminer si des pages publiques sont ajoutées.
+- [x] Les décisions d'abonnement figurent dans `CLAUDE.md` et cette checklist ; les schémas Mongoose et règles de migration sont documentés dans les modèles et `CLAUDE.md`.
 
 ### Priorités
 
@@ -176,7 +174,7 @@
 2. [x] Isolation multi-entreprise validée manuellement en phase 1 ; maintenir une non-régression sur tout nouvel endpoint.
 3. [x] Sauvegardes durables M0 vers OneDrive et rétention quotidienne en place ; poursuivre la surveillance des erreurs en production.
 4. [ ] Préparer les obligations légales et la gestion des demandes relatives aux données avant la mise en service réelle.
-5. [ ] Améliorer l'interface et le référencement public à partir des retours d'usage.
+5. [x] Métadonnées, favicon, aperçu social et fichier robots/sitemap de base ajoutés ; la création de contenu public reste dépendante d'un besoin portfolio.
 
 Les cookies de consentement, envoi de fichiers, emails transactionnels/récupération, webhooks de paiement et fonctions marketing restent conditionnels aux choix et fonctionnalités effectivement retenus. Les technologies Supabase/SQL et les clés `NEXT_PUBLIC_*` ne font pas partie de la stack actuelle.
 

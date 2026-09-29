@@ -41,7 +41,7 @@ exports.getAffectations = async (req, res) => {
     } catch (err) {
         // En cas d'erreur, on renvoie un 500 avec le message d'erreur.
         // En prod, on devrait logger l'erreur et renvoyer un message plus genérique pour ne pas exposer les details techniques.
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -102,7 +102,7 @@ exports.creerAffectation = async (req, res) => {
     } catch (err) {
         if (err.code === 11000) return res.status(409).json({ message: 'Ce véhicule ou ce conducteur possède déjà une affectation en cours.' });
         if (err.status) return res.status(err.status).json({ message: err.message });
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     } finally {
         await session.endSession();
     }
@@ -140,7 +140,7 @@ exports.getAffectationById = async (req, res) => {
 
         res.status(200).json(affectation);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -259,7 +259,7 @@ exports.modifierAffectation = async (req, res) => {
     } catch (err) {
         if (err.code === 11000) return res.status(409).json({ message: 'Ce véhicule ou ce conducteur possède déjà une affectation en cours.' });
         if (err.status) return res.status(err.status).json({ message: err.message });
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     } finally {
         await session.endSession();
     }
@@ -326,7 +326,7 @@ exports.terminerAffectation = async (req, res) => {
         res.status(200).json({ message: 'Affectation clôturée avec succès et archivée dans l\'historique.', affectation });
     } catch (err) {
         if (err.status) return res.status(err.status).json({ message: err.message });
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     } finally {
         await session.endSession();
     }
@@ -371,7 +371,7 @@ exports.supprimerAffectation = async (req, res) => {
         res.status(200).json({ message: 'Affectation supprimée avec succès.' });
     } catch (err) {
         if (err.status) return res.status(err.status).json({ message: err.message });
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     } finally {
         await session.endSession();
     }

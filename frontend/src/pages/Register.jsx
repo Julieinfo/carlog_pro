@@ -76,6 +76,10 @@ export default function Register({ onGoToLogin, themeToggle }) {
             </div>
           </div>
 
+          <p className="auth-demo-note" role="note">
+            Démonstration portfolio : utilisez uniquement des données fictives. N’y saisissez pas de données personnelles ou de flotte réelles.
+          </p>
+
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="auth-fields-row">
               <label className="field">

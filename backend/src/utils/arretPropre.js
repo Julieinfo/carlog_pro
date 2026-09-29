@@ -1,11 +1,12 @@
 const mongoose = require('mongoose');
+const { ecrire } = require('./journal');
 
 const arretsParServeur = new WeakMap();
 
 function arreterProprement(server, signal) {
     if (arretsParServeur.has(server)) return arretsParServeur.get(server);
 
-    console.log(`Signal ${signal} reçu, arrêt du serveur.`);
+    ecrire('info', 'server_shutdown_started', { signal });
 
     let terminer;
     const arret = new Promise((resolve) => {
@@ -23,7 +24,7 @@ function arreterProprement(server, signal) {
     };
 
     const minuteur = setTimeout(() => {
-        console.error('Délai d’arrêt dépassé.');
+        ecrire('error', 'server_shutdown_timeout');
         finir(1);
     }, 10000);
     minuteur.unref();
@@ -48,3 +49,4 @@ function arreterProprement(server, signal) {
 }
 
 module.exports = arreterProprement;
+const { ecrire } = require('./journal');

@@ -1,6 +1,7 @@
 // Chargement des variables d'environnement : indispensable pour acceder aux secrets (MONGO_URI, JWT_SECRET, etc.)
 // Je le fais au tout debut pour que toutes les dependances puissent utiliser process.env
 require('dotenv').config();
+const { ecrire } = require('./utils/journal');
 
 const variablesObligatoires = ['MONGO_URI', 'JWT_SECRET'];
 if (process.env.NODE_ENV === 'production') {
@@ -10,7 +11,7 @@ if (process.env.NODE_ENV === 'production') {
 const variablesManquantes = variablesObligatoires.filter((nom) => !process.env[nom]);
 if (variablesManquantes.length > 0) {
     // On affiche uniquement les noms manquants, jamais leurs valeurs (qui doivent rester dans les Secrets Replit).
-    console.error(`Variables d'environnement manquantes : ${variablesManquantes.join(', ')}`);
+    ecrire('error', 'environment_configuration_missing', { variables: variablesManquantes });
     process.exit(1);
 }
 
@@ -31,7 +32,7 @@ const PORT = process.env.PORT || 5000;
 // J'aurais pu aussi utiliser async/await, mais cette version avec Promise me semble plus lisible ici.
 connectDB().then(() => {
     const server = app.listen(PORT, '0.0.0.0', () => {
-        console.log(`Serveur démarré sur le port ${PORT}`);
+        ecrire('info', 'server_started', { port: Number(PORT) });
     });
     process.on('SIGTERM', () => arreterProprement(server, 'SIGTERM'));
     process.on('SIGINT', () => arreterProprement(server, 'SIGINT'));

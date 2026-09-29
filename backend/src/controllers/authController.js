@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Entreprise = require('../models/Entreprise');
 const repondreErreur = require('../utils/reponseErreur');
+const { ecrire, contexteRequete } = require('../utils/journal');
 const { estVerrouille, enregistrerEchec, reinitialiser } = require('../utils/verrouillageConnexion');
 
 /**
@@ -109,6 +110,13 @@ exports.inscription = async (req, res) => {
         if (err.code === 11000) {
             return res.status(400).json({ message: 'Un compte ou une entreprise avec ces informations existe déjà.' });
         }
+        if (process.env.NODE_ENV !== 'test') {
+            ecrire('error', 'registration_failed', {
+                ...contexteRequete(req),
+                status: 500,
+                errorName: err.name || 'Error'
+            });
+        }
         const message = process.env.NODE_ENV === 'production' ? 'Erreur lors de la création du compte.' : err.message;
         res.status(500).json({ message });
     } finally {
@@ -166,7 +174,7 @@ exports.connexion = async (req, res) => {
         },
         });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -192,7 +200,7 @@ exports.getProfil = async (req, res) => {
             abonnement: req.entreprise?.statutAbonnement ?? null
         });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -204,6 +212,6 @@ exports.getEntreprise = async (req, res) => {
         if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
         res.status(200).json(entreprise);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

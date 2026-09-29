@@ -51,7 +51,7 @@ exports.creerAlerte = async (req, res) => {
 
         res.status(201).json(nouvelleAlerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -95,7 +95,7 @@ exports.getAlertes = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -141,7 +141,7 @@ exports.getAlertesByVehicule = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -189,7 +189,7 @@ exports.getAlerteById = async (req, res) => {
 
         res.status(200).json(alerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -254,7 +254,7 @@ exports.modifierAlerte = async (req, res) => {
 
         res.status(200).json(alerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -288,6 +288,6 @@ exports.supprimerAlerte = async (req, res) => {
 
         res.status(200).json({ message: 'Alerte supprimée avec succès.' });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

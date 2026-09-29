@@ -4,6 +4,9 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const { randomUUID } = require('node:crypto');
+const { ecrire, contexteRequete } = require('./utils/journal');
+const mongoose = require('mongoose');
 require('dotenv').config();
 const authRoutes = require('./routes/authRoutes');
 const affectationRoutes = require('./routes/affectationRoutes');
@@ -25,6 +28,12 @@ const { swaggerUi, specs } = require('./config/swagger');
 const app = express();
 
 if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
+
+app.use((req, res, next) => {
+    req.id = randomUUID();
+    res.setHeader('X-Request-Id', req.id);
+    next();
+});
 
 app.use(helmet());
 // La règle Semgrep ci-dessus est ignorée volontairement car notre API utilise des JWT
@@ -77,8 +86,20 @@ app.use('/api-docs', helmet({
     }
 }), swaggerUi.serve, swaggerUi.setup(specs));
 
-app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok' });
+app.get('/api/health', async (req, res) => {
+    const base = mongoose.connection.db;
+    if (mongoose.connection.readyState !== 1 || !base) {
+        ecrire('error', 'health_check_failed', { ...contexteRequete(req), reason: 'database_disconnected' });
+        return res.status(503).json({ status: 'unavailable' });
+    }
+
+    try {
+        await base.admin().ping();
+        res.status(200).json({ status: 'ok' });
+    } catch {
+        ecrire('error', 'health_check_failed', { ...contexteRequete(req), reason: 'database_unreachable' });
+        return res.status(503).json({ status: 'unavailable' });
+    }
 });
 
 // Route de sante (health check) : permet de verifier rapidement que l'API est en ligne.
@@ -94,7 +115,13 @@ app.use((error, req, res, next) => {
     const message = process.env.NODE_ENV === 'production'
         ? 'Une erreur interne est survenue.'
         : error.message;
-    if (process.env.NODE_ENV !== 'test') console.error(`Erreur API ${status}: ${error.name || 'Erreur'}`);
+    if (process.env.NODE_ENV !== 'test') {
+        ecrire('error', 'unhandled_api_error', {
+            ...contexteRequete(req),
+            status,
+            errorName: error.name || 'Error'
+        });
+    }
     res.status(status).json({ message });
 });
 

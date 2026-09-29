@@ -16,7 +16,7 @@ exports.getUtilisateurs = async (req, res) => {
             .sort({ nom: 1, prenom: 1 });
         res.status(200).json(utilisateurs);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -50,7 +50,7 @@ exports.creerUtilisateur = async (req, res) => {
 
         res.status(201).json(sansMotDePasse(utilisateur));
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -79,7 +79,7 @@ exports.desactiverUtilisateur = async (req, res) => {
         }
         res.status(200).json(sansMotDePasse(utilisateurDesactive));
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -131,7 +131,7 @@ exports.modifierUtilisateur = async (req, res) => {
         return res.status(200).json(sansMotDePasse(utilisateurModifie));
     } catch (err) {
         if (err.code === 11000) return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -148,6 +148,6 @@ exports.reactiverUtilisateur = async (req, res) => {
         if (!utilisateur) return res.status(404).json({ message: 'Utilisateur introuvable ou accès refusé.' });
         return res.status(200).json(sansMotDePasse(utilisateur));
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

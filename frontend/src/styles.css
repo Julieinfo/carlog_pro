@@ -199,6 +199,7 @@ body {
 .auth-container { display: flex; justify-content: center; padding-top: 72px; }
 .auth-card { width: min(100%, 540px); }
 .auth-card .section-header h1 { margin: 0; font-size: 1.6rem; }
+.auth-demo-note { background: var(--bg-card-hover); border-left: 3px solid var(--primary-red); color: var(--text-muted); font-size: .9rem; margin: 0 0 18px; padding: 12px 14px; }
 .auth-form { display: grid; gap: 18px; }
 .auth-fields-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .auth-form input:focus { outline: none; border-color: var(--primary-red); box-shadow: 0 0 0 3px rgba(229, 9, 20, .16); }
