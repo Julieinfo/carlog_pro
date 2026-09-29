@@ -49,7 +49,7 @@ exports.creerVehicule = async (req, res) => {
 
         res.status(201).json(nouveauVehicule);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -150,7 +150,7 @@ exports.getVehicules = async (req, res) => {
         });
 
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -184,7 +184,7 @@ exports.getVehiculeById = async (req, res) => {
 
         res.status(200).json(vehicule);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -247,7 +247,7 @@ exports.modifierVehicule = async (req, res) => {
 
         res.status(200).json(vehicule);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -285,6 +285,6 @@ exports.supprimerVehicule = async (req, res) => {
 
         res.status(200).json({ message: 'Véhicule archivé avec succès.' });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

@@ -48,7 +48,7 @@ exports.validateCreerVehicule = [
     // Le PTAC est obligatoire et doit etre positif.
     body('ptac')
         .notEmpty().withMessage('Le PTAC est obligatoire.')
-        .isInt({ min: 0 }).withMessage('Le PTAC doit être un nombre positif.'),
+        .isInt({ min: 1 }).withMessage('Le PTAC doit être un nombre entier supérieur à 0.'),
 
     // L'annee est optionnelle mais si fournie, doit etre entre 1900 et l'annee courante + 1.
     body('annee')
@@ -99,7 +99,7 @@ exports.validateModifierVehicule = [
 
     body('ptac')
         .optional()
-        .isInt({ min: 0 }).withMessage('Le PTAC doit être un nombre positif.'),
+        .isInt({ min: 1 }).withMessage('Le PTAC doit être un nombre entier supérieur à 0.'),
 
     body('annee')
         .optional()

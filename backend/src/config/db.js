@@ -1,6 +1,7 @@
 // Mongoose est un ODM (Object Data Modeling) pour MongoDB.
 // Il facilite l'interaction avec la base en offrant des schemas et des modeles typees.
 const mongoose = require('mongoose');
+const { ecrire } = require('../utils/journal');
 
 /**
  * Fonction de connexion a la base de donnees MongoDB.
@@ -24,11 +25,13 @@ const connectDB = async () => {
     }
 
     // Mongoose gere automatiquement le pool de connexions.
-    const conn = await mongoose.connect(uri);
-    console.log(`MongoDB connecté (${isTest ? 'test' : 'principal'}) : ${conn.connection.host}`);
+    await mongoose.connect(uri);
+    ecrire('info', 'database_connected', { environment: isTest ? 'test' : 'application' });
   } catch (error) {
     // Les erreurs de connexion peuvent inclure l’URI MongoDB et ses identifiants.
-    console.error(`Erreur MongoDB : ${error.name || 'Erreur de connexion'}`);
+    if (process.env.NODE_ENV !== 'test') {
+      ecrire('error', 'database_connection_failed', { errorName: error.name || 'Error' });
+    }
     // CORRECTION : process.exit(1) tuerait le process Jest lui-même en test
     // (les tests ne pourraient jamais s'exécuter ni afficher d'échec propre).
     // En test, on relance l'erreur pour que Jest l'affiche normalement.

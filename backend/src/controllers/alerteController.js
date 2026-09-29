@@ -1,6 +1,7 @@
 // Import du modele Mongoose pour les alertes.
 // Les alertes servent a signaler des problemes ou des evenements sur les vehicules.
 const Alerte = require('../models/Alerte');
+const Affectation = require('../models/Affectation');
 const Vehicule = require('../models/Vehicule');
 const User = require('../models/User');
 const repondreErreur = require('../utils/reponseErreur');
@@ -50,7 +51,7 @@ exports.creerAlerte = async (req, res) => {
 
         res.status(201).json(nouvelleAlerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -76,6 +77,16 @@ exports.getAlertes = async (req, res) => {
         if (req.query.statut) filtre.statut = req.query.statut;
         if (req.query.niveauUrgence) filtre.niveauUrgence = req.query.niveauUrgence;
         if (req.user.role === 'mecanicien') filtre.typeAlerte = 'maintenance';
+        if (req.user.role === 'conducteur') {
+            const affectations = await Affectation.find({
+                entreprise: entrepriseId,
+                conducteur: req.user._id,
+                statut: 'en_cours'
+            }).select('vehicule');
+            filtre.vehicule = {
+                $in: affectations.map((affectation) => affectation.vehicule).filter(Boolean)
+            };
+        }
 
         const alertes = await Alerte.find(filtre)
         .populate('vehicule', 'marque modele immatriculation')
@@ -84,7 +95,7 @@ exports.getAlertes = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -104,6 +115,20 @@ exports.getAlertesByVehicule = async (req, res) => {
         const { vehiculeId } = req.params;
         const entrepriseId = req.user.entreprise;
 
+        if (req.user.role === 'conducteur') {
+            const affectations = await Affectation.find({
+                entreprise: entrepriseId,
+                conducteur: req.user._id,
+                statut: 'en_cours'
+            }).select('vehicule');
+            const vehiculeAffecte = affectations.some((affectation) =>
+                String(affectation.vehicule) === String(vehiculeId)
+            );
+            if (!vehiculeAffecte) {
+                return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
+            }
+        }
+
         // Securite multi-tenant : on s'assure que le vehicule appartient a la meme entreprise.
         // C'est crucial pour eviter qu'une entreprise puisse voir l'historique des vehicules d'une autre.
         // J'utilise un filtre combine (entreprise + vehicule) pour garantir l'isolation.
@@ -116,7 +141,7 @@ exports.getAlertesByVehicule = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -148,9 +173,23 @@ exports.getAlerteById = async (req, res) => {
         return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
         }
 
+        if (req.user.role === 'conducteur') {
+            const affectations = await Affectation.find({
+                entreprise: entrepriseId,
+                conducteur: req.user._id,
+                statut: 'en_cours'
+            }).select('vehicule');
+            const vehiculeAffecte = alerte.vehicule && affectations.some((affectation) =>
+                String(affectation.vehicule) === String(alerte.vehicule._id || alerte.vehicule)
+            );
+            if (!vehiculeAffecte) {
+                return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
+            }
+        }
+
         res.status(200).json(alerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -215,7 +254,7 @@ exports.modifierAlerte = async (req, res) => {
 
         res.status(200).json(alerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -249,6 +288,6 @@ exports.supprimerAlerte = async (req, res) => {
 
         res.status(200).json({ message: 'Alerte supprimée avec succès.' });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

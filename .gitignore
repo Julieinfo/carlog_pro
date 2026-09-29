@@ -3,9 +3,13 @@ node_modules/
 backend/node_modules/
 
 # Environnement et secrets
-.env .env.test
+.env
+.env.test
 backend/.env
 backend/.env.test
+
+# Sauvegardes locales synchronisées par OneDrive (jamais versionnées par Git)
+/backups/
 
 # Fichiers système
 .DS_Store

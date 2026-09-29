@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { api } from '../services/api';
+import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
-export default function Login({ onGoToRegister }) {
-  const [email, setEmail] = useState('julietest@gmail.com');
+export default function Login({ onGoToRegister, themeToggle }) {
+  const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
@@ -20,7 +20,7 @@ export default function Login({ onGoToRegister }) {
       const data = res.data || res;
       login(data.user, data.token);
     } catch (err) {
-      setErreur(err.response?.data?.message || 'Identifiants invalides');
+      setErreur(messageErreurApi(err, 'Identifiants invalides'));
     } finally {
       setChargement(false);
     }
@@ -30,6 +30,7 @@ export default function Login({ onGoToRegister }) {
     <div className="auth-shell">
       <header className="navbar">
         <div className="logo">CarLog <span>Pro</span></div>
+        {themeToggle}
       </header>
 
       <main className="dashboard-container auth-container">
@@ -40,6 +41,10 @@ export default function Login({ onGoToRegister }) {
               <h1>Connexion</h1>
             </div>
           </div>
+
+          <p className="auth-demo-note" role="note">
+            Démonstration portfolio : utilisez uniquement des données fictives. N’y saisissez pas de données personnelles ou de flotte réelles.
+          </p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <label className="field">
