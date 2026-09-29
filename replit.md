@@ -34,11 +34,11 @@ Les affectations actives utilisent une transaction MongoDB, une mise a jour du s
 Depuis la racine du projet :
 
 ```bash
-npm --prefix backend start
+npm --prefix backend run dev
 npm --prefix frontend run dev -- --host 0.0.0.0
 ```
 
-Le workflow `.replit` lance les deux services. Pour une installation propre :
+Le workflow `.replit` lance les deux services (`run dev` pour l'API en developpement avec rechargement automatique ; `start` sans nodemon dans la section `[deployment]`). Pour une installation propre :
 
 ```bash
 cd frontend

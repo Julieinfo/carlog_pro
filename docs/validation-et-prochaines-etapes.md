@@ -1,6 +1,6 @@
 # CarLog Pro — validation et prochaines étapes
 
-État observé le 27 septembre 2026. Cette checklist distingue les vérifications automatisées déjà observées des parcours manuels encore à valider. Une case non cochée signifie « preuve de validation non trouvée », pas nécessairement « fonctionnalité absente ».
+État observé le 27 septembre 2026, phase 7 mise à jour le 29 septembre 2026. Cette checklist distingue les vérifications automatisées déjà observées des parcours manuels encore à valider. Une case non cochée signifie « preuve de validation non trouvée », pas nécessairement « fonctionnalité absente ».
 
 ## État synthétique
 
@@ -13,15 +13,16 @@
 | 4 — Alertes/affectations | Fonctions principales présentes ; cohérence des statuts et alertes conducteur renforcées ; scénarios unitaires ajoutés. | À compléter : parcours complet réel, tous les rôles et acceptation de phase. Le filtre d'alertes par véhicule n'est pas disponible dans l'écran actuel. |
 | 5 — Utilisateurs | L'admin peut consulter, créer et désactiver des comptes. | Partiel : modification utilisateur absente ; rôles encore affichés comme codes techniques. |
 | 6 — Dashboard | KPI et répartition de flotte calculés depuis l'API avec contrôle de rôle. | À compléter : rapprochement des chiffres avec les listes et plusieurs entreprises. |
-| 7 — Production | Protections HTTP, JWT, limitation auth, validation, transactions et isolation présentes. | À compléter : sauvegarde/restauration, CI et vérifications de production. Aucun Dockerfile ni workflow GitHub Actions n'a été trouvé. |
+| 7 — Production | Protections HTTP, JWT, limitation auth, validation, transactions et isolation présentes et vérifiées en mode production (29/09). Erreurs 4xx/404 API rendues génériques et en JSON ; `npm start` sans nodemon ; `.env.example`, `check:env`, `render.yaml`, `vercel.json`, workflows CI et sauvegarde ajoutés. | À compléter : première exécution verte de la CI sur GitHub, choix de la destination de sauvegarde et première sauvegarde, déploiement puis vérification HTTPS, démarrage/arrêt réels avec MongoDB. Détails : `docs/deploiement.md`, `docs/sauvegarde.md`. |
 | 8 — Livraison | La suite Jest complète et le build frontend ont réussi lors des dernières vérifications. | Pas prêt à publier : E2E, vérifications manuelles, accessibilité/mobile, guide de déploiement et acceptation explicite restent à faire. |
 
 ## Preuves automatisées déjà observées
 
-- [x] Suite backend complète : `npm test` — 59 tests, 11 suites réussis lors de la dernière exécution.
-- [x] Build frontend : `npm run build` réussi lors de la dernière vérification.
-- [x] Tests couvrant auth/JWT, autorisations, isolation de certains contrôleurs, affectations concurrentes, PTAC et règles Phase 4.
-- [x] `MONGO_URI_TEST` est configurée séparément de `MONGO_URI` dans l'environnement local vérifié ; ne jamais imprimer leurs valeurs.
+- [x] Suite backend complète : `npm test` — 59 tests, 11 suites réussis lors de la dernière exécution avec base de test (27/09).
+- [x] Suites unitaires (sans MongoDB) : 15 suites, 81 tests réussis le 29/09 dans l'environnement de préparation, dont la nouvelle suite `erreursProduction.unit.test.js` (8 tests). Les 2 suites d'intégration (`auth.test.js`, `affectationConcurrency.test.js`, 8 tests) n'ont pas pu s'exécuter : aucun MongoDB accessible depuis cet environnement. Total actuel : 17 suites, 89 tests.
+- [x] Build frontend : `npm run build` réussi le 29/09 ; bundle `dist/` analysé : aucune occurrence de `mongodb`, `MONGO_URI`, `JWT_SECRET`, d'URI Atlas ni de JWT.
+- [x] Tests couvrant auth/JWT, autorisations, isolation de certains contrôleurs, affectations concurrentes, PTAC, règles Phase 4, arrêt propre, limiteurs, erreurs de production et CORS.
+- [x] `MONGO_URI_TEST` est configurée séparément de `MONGO_URI` dans l'environnement local vérifié ; ne jamais imprimer leurs valeurs. `npm run check:env` refuse désormais une `MONGO_URI_TEST` identique à `MONGO_URI`.
 - [ ] Tests automatisés frontend ou E2E : aucune stack frontend/E2E présente actuellement.
 
 ## Checklist manuelle, dans l'ordre des dépendances
@@ -82,12 +83,29 @@
 
 ### Phase 7 — Préparation production
 
-- [ ] Vérifier séparément configurations dev/test/prod et l'absence de secrets dans Git, logs et bundle frontend.
-- [ ] Retirer `MONGO_URI` et `JWT_SECRET` de `frontend/.env` s'ils y sont encore ; conserver ces secrets dans l'environnement backend.
-- [ ] Vérifier rate limiting, CORS, taille JSON, erreurs génériques, démarrage et arrêt backend.
-- [ ] Définir une sauvegarde et une rétention ; restaurer une sauvegarde de test et consigner le résultat.
-- [ ] Ajouter/valider une CI qui lance tests backend et build frontend avant livraison.
-- [ ] Préparer le déploiement Render/Vercel ou Replit, puis vérifier HTTPS et variables sans afficher leurs valeurs.
+Vérifications du 29 septembre 2026, réalisées dans un environnement sans MongoDB ni accès aux dashboards Render/Vercel/Atlas. Les valeurs de secrets n'ont été ni lues ni affichées.
+
+- [x] **Configurations dev/test/prod séparées.** `db.js` choisit `MONGO_URI_TEST` quand `NODE_ENV=test`, `MONGO_URI` sinon ; `server.js` exige `MONGO_URI` et `JWT_SECRET`, plus `FRONTEND_URL` en production, et s'arrête (code 1) en listant uniquement les noms manquants — vérifié en lançant le serveur sans variables, sans `FRONTEND_URL`, puis avec un Mongo injoignable (le journal ne contient que `Erreur MongoDB : MongooseServerSelectionError`, jamais l'URI). Modèles `backend/.env.example` et `frontend/.env.example` ajoutés ; `.gitignore` racine étendu à `.env.*` (`.env.local`, `.env.production`… n'étaient pas ignorés) en conservant `.env.example`.
+- [x] **Aucun secret dans Git.** Historique complet récupéré (87 commits, 12 branches distantes) : aucun fichier `.env*` n'a jamais été commité ; le scan de tous les blobs (URI Mongo avec identifiants, `JWT_SECRET=`, clés privées, jetons) ne remonte que trois fixtures de tests unitaires à hôtes factices. Le job `hygiene` de la CI refuse désormais tout `.env` suivi.
+- [x] **Aucun secret dans le bundle frontend.** `npm run build` puis analyse de `dist/` : zéro occurrence. Contre-épreuve : un `frontend/.env` temporaire contenant `MONGO_URI`/`JWT_SECRET` factices n'a rien injecté dans le bundle (Vite n'expose que `VITE_*`) ; fichier supprimé ensuite. La CI rejoue ce contrôle à chaque build.
+- [x] **Secrets réservés au backend dans le dépôt.** Le code frontend ne lit que `import.meta.env.VITE_API_URL` ; `frontend/.env` n'est ni présent dans ce checkout, ni suivi, ni dans l'historique.
+- [ ] **Poste local de Julie :** ouvrir `frontend/.env` s'il existe et supprimer toute ligne `MONGO_URI` ou `JWT_SECRET` — non vérifiable depuis le dépôt. Prendre `frontend/.env.example` comme référence.
+- [x] **Rate limiting.** Vérifié en mode production : 11ᵉ tentative de connexion ou d'inscription depuis la même IP → 429 `Trop de tentatives. Réessayez plus tard.` (aucun seuil chiffré), en-têtes `RateLimit-*` standard, anciens `X-RateLimit-*` absents ; `trust proxy` à 1 en production. Verrouillage par email après 5 échecs couvert par tests unitaires.
+- [x] **CORS.** En production, seule `FRONTEND_URL` est acceptée (préflight OK) ; `localhost:5173` et une origine inconnue ne reçoivent aucun en-tête CORS. Correctif : barre oblique finale de `FRONTEND_URL` tolérée (test ajouté).
+- [x] **Taille JSON.** Corps de 101 kb → 413 ; 90 kb accepté.
+- [x] **Erreurs génériques en production.** Écarts corrigés dans `app.js` : les erreurs du parseur renvoyaient `Une erreur interne est survenue.` sur des 4xx → désormais `Corps de requête trop volumineux.` (413) et `Corps de requête JSON invalide.` (400), sans détail interne ; route `/api/*` inconnue → 404 JSON `Ressource introuvable.` au lieu de la page HTML Express ; 5xx toujours générique ; `/api-docs` non affecté. Hors production, `error.message` est conservé. 8 tests ajoutés (`erreursProduction.unit.test.js`).
+- [x] **En-têtes Helmet en production** : HSTS (`max-age=31536000; includeSubDomains`), `nosniff`, `X-Frame-Options`, CSP, Referrer-Policy, CORP présents ; `X-Powered-By` absent.
+- [x] **Démarrage en production.** Écart corrigé : `npm start` lançait `nodemon` (devDependency) ; simulation d'une installation Render (`NODE_ENV=production npm ci`) confirmée sans nodemon ni jest → le nouveau `start` (`node src/server.js`) charge l'application et n'échoue que sur la connexion Mongo factice. `npm run dev` conserve nodemon ; `.replit`, README et replit.md mis à jour.
+- [x] **Arrêt propre** : 4 tests unitaires `arretPropre.unit.test.js` passent (SIGTERM/SIGINT, ordre HTTP puis Mongo, double signal, délai 10 s).
+- [ ] **Démarrage et arrêt réels avec MongoDB** (serveur connecté, `SIGTERM` envoyé, fermeture observée dans les journaux) : non exécutables ici, à rejouer en local avec `backend/.env`.
+- [x] **Politique de sauvegarde définie** : `docs/sauvegarde.md` (mongodump quotidien chiffré AES-256, 30 quotidiennes + 12 mensuelles, utilisateur Atlas dédié en lecture seule, exercice de restauration trimestriel). Workflow `.github/workflows/sauvegarde.yml` préparé et **inerte** tant que les secrets n'existent pas ; aucun export n'a été effectué.
+- [ ] **Décision de destination** (option A bucket privé R2/B2 recommandée, B Render Cron, C manuel, D Atlas Flex) puis première sauvegarde manuelle et contrôle dans le bucket.
+- [ ] **Trace de la restauration en base isolée** : indiquée comme réussie par Julie mais absente du dépôt ; reporter date, base cible et résultat dans `docs/sauvegarde.md` §6. Non rejouée (consigne).
+- [x] **CI ajoutée** : `.github/workflows/ci.yml` — tests backend avec MongoDB 8 éphémère en replica set (Docker, aucun secret de dépôt, `JWT_SECRET` généré et masqué), `check:env`, build frontend + scan du bundle, job `hygiene`. Syntaxe YAML et scripts shell validés ; étapes hors Docker rejouées localement. Reprend le `ci.yml` de la PR #11 (fusion du 29/09 dont le job backend avait échoué, faute de base de test, avant remise de `main` à `7a015c8`).
+- [ ] **Première exécution verte de la CI sur GitHub** : non observée (aucun push effectué dans cette session).
+- [x] **Déploiement préparé** pour Render + Vercel (fournisseurs de `CLAUDE.md`) : `render.yaml` (Blueprint, secrets hors fichier, health check, déploiement conditionné aux checks), `frontend/vercel.json` (Vite + en-têtes de sécurité), `docs/deploiement.md` (variables par service, ordre de mise en service, commandes de vérification), `npm run check:env`.
+- [ ] **HTTPS et variables en production** : vérifiables seulement après le premier déploiement (commandes prêtes dans `docs/deploiement.md` §4). Aucun déploiement ni modification de service externe n'a été réalisé.
+- [ ] **Décisions en attente** (détail `docs/deploiement.md` §6) : exposition publique de `/api-docs` en production, plan Render gratuit (mise en veille), prévisualisations Vercel bloquées par CORS, GitHub Pages actif sur `main`.
 
 ### Phase 8 — Qualité et livraison
 
@@ -104,7 +122,7 @@
 3. **Clore la phase 4** : parcours alertes/affectations réel pour tous les profils concernés ; traiter le filtre véhicule si retenu ; confirmer les statuts et conflits en base.
 4. **Compléter la phase 5** : décider si l'édition/réactivation de comptes entre dans le MVP, améliorer les libellés de rôle et couvrir les parcours utilisateur.
 5. **Valider la phase 6** : comparer les KPI réels à la base et aux listes pour plusieurs entreprises/rôles.
-6. **Préparer la phase 7** : secrets/environnements, sauvegarde-restauration, CI et hébergement.
+6. **Terminer la phase 7** : choisir la destination de sauvegarde et lancer la première sauvegarde, pousser la CI et obtenir un premier run vert, déployer Render/Vercel puis exécuter les vérifications HTTPS/variables ; trancher les décisions listées dans `docs/deploiement.md` §6.
 7. **Exécuter la phase 8** : E2E, accessibilité, responsive, documentation, tests/build propres et feu vert de publication.
 
 Stripe, paiements, emails, PWA, application mobile native, géolocalisation active, exports comptables avancés et maintenance prédictive restent hors de cet ordre MVP, sauf décision produit explicite.

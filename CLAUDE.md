@@ -161,6 +161,7 @@ Une feature est finie quand :
 - [2026-09] · Phase 5 — statut reporté pour ce jalon selon la demande de Julie : modification et réactivation ne sont pas comptabilisées comme livrées. Leur implémentation existe toutefois déjà dans le code courant ; ne pas supprimer ces fonctions sans demande explicite.
 - [2026-09] · Formulaire utilisateurs — désactivation de l’autocomplétion sur la création de compte et indication explicite d’un nouveau mot de passe pour éviter le préremplissage des identifiants enregistrés par le navigateur.
 - [2026-09] · Phase 7 démarrée — motifs `.env`/`.env.test` séparés dans le `.gitignore` racine ; aucun fichier `.env` n’est suivi ou présent dans l’historique Git vérifié. Arrêt propre sur `SIGTERM`/`SIGINT` ajouté avec fermeture HTTP puis MongoDB, délai de sécurité de 10 s et tests unitaires.
+- [2026-09-29] · Phase 7 — préparation production. Vérifié : aucun secret dans l’historique complet (87 commits, 12 branches), dans les journaux de démarrage ni dans le bundle Vite ; rate limiting, CORS, limite JSON 100 kb, Helmet et garde-fou des variables testés en mode production. Corrigé : erreurs 4xx du parseur et 404 `/api` désormais en JSON générique (8 tests) ; `FRONTEND_URL` tolère une barre finale ; `npm start` = `node` (nodemon → `npm run dev`, car absent en prod). Ajouté : `.env.example` backend/frontend, `.gitignore` `.env.*`, `npm run check:env`, CI GitHub Actions autonome (MongoDB éphémère, sans secret), `render.yaml`, `frontend/vercel.json`, `docs/deploiement.md`, `docs/sauvegarde.md` + workflow de sauvegarde inerte. Non fait (bloqué ou décision de Julie) : suites d’intégration et démarrage/arrêt réels sans MongoDB accessible, premier run CI (rien poussé), destination de sauvegarde et première sauvegarde, déploiement et vérification HTTPS, `/api-docs` public, GitHub Pages actif sur `main`. Aucun commit créé.
 
 ## 11 · Pièges connus
 
@@ -172,6 +173,9 @@ Une feature est finie quand :
 | Les variables d'environnement sont vides en local | `.env` / `.env.test` non chargés ou mal nommés | Vérifier `dotenv.config()` et le `NODE_ENV` utilisé |
 | Double hash du mot de passe | Hook `pre('save')` déclenché même sans modification du mot de passe | Toujours vérifier `isModified('motDePasse')` avant de hasher |
 | Erreur 500 avec message Mongo brut affiché à l'utilisateur | `err.message` renvoyé tel quel au lieu d'un message générique | Logger l'erreur serveur, renvoyer un message générique en prod |
+| L'API ne démarre pas sur Render (`nodemon: not found`) | `npm start` lançait `nodemon`, une devDependency non installée quand `NODE_ENV=production` | `start` = `node src/server.js` ; `npm run dev` pour le rechargement local |
+| CORS refuse le frontend en prod alors que `FRONTEND_URL` « a l'air » bonne | Barre oblique finale ou chemin dans `FRONTEND_URL` : la comparaison d'origine est exacte | Saisir l'origine seule (`https://hote`) ; `npm run check:env` le signale, `app.js` retire la barre finale |
+| Le job CI backend échoue sur les suites d'intégration | `MONGO_URI_TEST` absent des secrets GitHub, ou Atlas non joignable depuis les runners | La CI démarre son propre MongoDB (replica set Docker) : aucun secret ni accès Atlas requis |
 
 - [ajoute les tiens ici]
 
