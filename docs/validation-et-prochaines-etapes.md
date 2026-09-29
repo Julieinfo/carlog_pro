@@ -184,3 +184,5 @@ Les cookies de consentement, envoi de fichiers, emails transactionnels/récupér
 7. **Exécuter la phase 8** : E2E, accessibilité, responsive, documentation, tests/build propres et feu vert de publication.
 
 Confirmation d'adresse email et récupération de compte sont formellement hors MVP. Stripe, paiements, autres emails transactionnels, PWA, application mobile native, géolocalisation active, exports comptables avancés et maintenance prédictive restent hors de cet ordre MVP, sauf décision produit explicite.
+
+
