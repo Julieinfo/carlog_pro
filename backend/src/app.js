@@ -36,8 +36,10 @@ app.use(helmet());
 // CORRECTION SÉCURITÉ : Ajout d'une configuration restrictive pour autoriser uniquement les origines autorisées.
 // Avant : app.use(cors()) autorisait TOUTES les origines, ce qui est dangereux (risque d'attaques CSRF).
 // Maintenant : On autorise explicitement localhost en dev et l'URL de prod en environnement de production.
+// En production, FRONTEND_URL doit être l'origine exacte (schéma + hôte). Une barre oblique finale
+// saisie par erreur dans le dashboard Render ferait échouer la comparaison CORS : on la retire.
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL].filter(Boolean)
+    ? [process.env.FRONTEND_URL].filter(Boolean).map((origine) => origine.trim().replace(/\/+$/, ''))
     : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
 app.use(cors({
     origin: allowedOrigins,
@@ -88,12 +90,31 @@ app.get('/', (req, res) => {
     res.json({ message: "Bienvenue sur l'API de CarLog Pro !" });
 });
 
+// Route API inconnue : réponse JSON conforme aux conventions (section 6 de CLAUDE.md) au lieu de la page
+// HTML « Cannot GET » d'Express. Placé après toutes les routes /api ; /api-docs n'est pas concerné.
+app.use('/api', (req, res) => {
+    res.status(404).json({ message: 'Ressource introuvable.' });
+});
+
+// Messages renvoyés en production pour les erreurs imputables au client (body-parser).
+// On ne renvoie jamais error.message brut : il contient des détails du parseur en anglais.
+const MESSAGES_ERREUR_CLIENT = {
+    'entity.too.large': 'Corps de requête trop volumineux.',
+    'entity.parse.failed': 'Corps de requête JSON invalide.'
+};
+
 // Les controleurs gerent leurs erreurs metier ; ce filet couvre les erreurs inattendues.
+// En production : une 4xx reçoit un message clair (sans détail interne), une 5xx un message générique.
 app.use((error, req, res, next) => {
     const status = error.status || error.statusCode || 500;
-    const message = process.env.NODE_ENV === 'production'
-        ? 'Une erreur interne est survenue.'
-        : error.message;
+    let message;
+    if (process.env.NODE_ENV === 'production') {
+        message = status >= 500
+            ? 'Une erreur interne est survenue.'
+            : MESSAGES_ERREUR_CLIENT[error.type] || 'Requête invalide.';
+    } else {
+        message = error.message;
+    }
     if (process.env.NODE_ENV !== 'test') console.error(`Erreur API ${status}: ${error.name || 'Erreur'}`);
     res.status(status).json({ message });
 });
