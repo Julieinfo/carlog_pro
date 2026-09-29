@@ -8,6 +8,9 @@ backend/node_modules/
 backend/.env
 backend/.env.test
 
+# Sauvegardes locales synchronisées par OneDrive (jamais versionnées par Git)
+/backups/
+
 # Fichiers système
 .DS_Store
 Thumbs.db

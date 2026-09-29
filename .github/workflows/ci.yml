@@ -1,6 +1,7 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main, dev, "feature/**"]
   pull_request:
@@ -17,13 +18,23 @@ jobs:
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
+    services:
+      mongodb:
+        image: mongo:8.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand(\"ping\").ok' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
     env:
       NODE_ENV: test
-      MONGO_URI_TEST: ${{ secrets.MONGO_URI_TEST }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      MONGO_URI_TEST: mongodb://127.0.0.1:27017/carlog_pro_ci
+      JWT_SECRET: ci-${{ github.run_id }}-${{ github.run_attempt }}-test-only
     steps:
       - name: Checkout
         uses: actions/checkout@v4
