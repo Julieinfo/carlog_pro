@@ -1,6 +1,6 @@
 # CarLog Pro — validation et prochaines étapes
 
-État observé le 28 septembre 2026. Cette checklist distingue les vérifications automatisées déjà observées des parcours manuels encore à valider. Une case non cochée signifie « preuve de validation non trouvée », pas nécessairement « fonctionnalité absente ».
+État observé le 29 septembre 2026. Cette checklist distingue les vérifications automatisées déjà observées des parcours manuels encore à valider. Une case non cochée signifie « preuve de validation non trouvée », pas nécessairement « fonctionnalité absente ».
 
 ## État synthétique
 
@@ -13,7 +13,7 @@
 | 4 — Alertes/affectations | Fonctions principales présentes ; cohérence des statuts et alertes conducteur renforcées ; scénarios unitaires ajoutés. | **Validée : Julie confirme que tous les parcours et vérifications de la phase 4 ont été réalisés.** |
 | 5 — Utilisateurs | Consultation, création, modification, désactivation et réactivation sont implémentées ; les rôles sont libellés en français. | **Validée : Julie confirme que tous les parcours et vérifications de la phase 5 ont été réalisés.** |
 | 6 — Dashboard | KPI et répartition de flotte calculés depuis l'API avec contrôle de rôle. | **Validée : Julie confirme que tous les contrôles de la phase 6 ont été réalisés.** |
-| 7 — Production | Protections HTTP, JWT, limitation auth, validation, transactions et isolation présentes. Configurations Render/Vercel et CI autonome ajoutées. | À compléter : destination durable des sauvegardes, exécution distante de la CI et vérifications dans les comptes de production. Aucun déploiement n'a été lancé. |
+| 7 — Production | Protections HTTP, JWT, limitation auth, validation, transactions et isolation présentes. API Render et frontend Vercel déployés ; CI et sauvegardes M0 vers OneDrive configurées. | **Terminée selon la confirmation de Julie : sauvegardes et restauration, CI, configuration de production et parcours frontend → API vérifiés.** |
 | 8 — Livraison | La suite Jest complète et le build frontend ont réussi lors des dernières vérifications. | Pas prêt à publier : E2E, vérifications manuelles, accessibilité/mobile, guide de déploiement et acceptation explicite restent à faire. |
 
 ## Preuves automatisées déjà observées
@@ -98,12 +98,12 @@
 - [x] Décision de Julie : conserver Atlas M0 gratuit et utiliser OneDrive pour les exports `mongodump` ; fréquence quotidienne à 20 h, rétention des 7 dernières archives et jusqu'à 4 archives du dimanche.
 - [x] Préparer `scripts/backup-atlas-m0.ps1` et `scripts/register-atlas-backup-task.ps1` ; le dossier de destination `backups/` est ignoré par Git et synchronisé avec le projet OneDrive.
 - [x] Installer MongoDB Database Tools 100.19.0 dans le profil utilisateur, créer une première archive le 29/09/2026 dans `backups/atlas-m0` et relire intégralement le flux gzip ; enregistrer la tâche Windows `CarLogProAtlasBackup` à 20 h chaque jour (session Windows ouverte, exécution rattrapée après indisponibilité). Le processus OneDrive était lancé au contrôle.
-- [ ] Vérifier dans OneDrive que l'archive a fini de se synchroniser et qu'il reste assez de quota pour la rétention ; tester une restauration depuis l'archive. Les archives ne sont pas chiffrées côté client et restent réservées aux données de démonstration.
+- [x] Julie confirme la synchronisation OneDrive et le test de restauration d'une archive ; le 29/09/2026, trois archives apparaissent avec coches vertes dans l'Explorateur, et la tâche Windows indique `0x0` après exécution. Les archives ne sont pas chiffrées côté client et restent réservées aux données de démonstration.
 - [x] Restaurer un dump de la base dédiée `carlog_pro_test` dans `carlog_pro_restore_check_20260928` ; les 5 collections ont le même nombre de documents après restauration. La copie de vérification est isolée de la source.
 - [x] Ajouter une CI GitHub Actions autonome dans `.github/workflows/ci.yml` : MongoDB éphémère pour la suite backend, puis build frontend ; aucun secret Atlas/GitHub requis.
-- [ ] Confirmer une exécution verte de la CI sur GitHub après synchronisation de cette branche (aucun push effectué).
+- [x] Julie confirme l'exécution réussie de la CI GitHub.
 - [x] Préparer les configurations de déploiement selon la cible documentée : `render.yaml` pour l'API Render et `frontend/vercel.json` pour le frontend Vercel ; le guide des paramètres est dans `docs/deploiement-production.md`. Replit reste configuré pour Preview/dev.
-- [ ] Créer/configurer les services Render et Vercel, saisir les variables dans leurs tableaux de bord, vérifier le HTTPS réel et le parcours frontend → API. Aucune ressource externe n'a été créée ou modifiée.
+- [x] Julie confirme le déploiement Render/Vercel, la configuration des variables de production et le parcours frontend → API en HTTPS ; le rejet CORS a été résolu en définissant `NODE_ENV=production` côté Render.
 
 ### Phase 8 — Qualité et livraison
 
@@ -172,7 +172,7 @@
 
 1. [x] Politique des statuts d'abonnement cadrée et implémentée ; plafonds par formule encore conditionnels à une décision commerciale.
 2. [x] Isolation multi-entreprise validée manuellement en phase 1 ; maintenir une non-régression sur tout nouvel endpoint.
-3. [ ] Définir les sauvegardes durables M0 et la rétention, puis mettre en place la surveillance des erreurs en production.
+3. [x] Sauvegardes durables M0 vers OneDrive et rétention quotidienne en place ; poursuivre la surveillance des erreurs en production.
 4. [ ] Préparer les obligations légales et la gestion des demandes relatives aux données avant la mise en service réelle.
 5. [ ] Améliorer l'interface et le référencement public à partir des retours d'usage.
 
