@@ -14,7 +14,7 @@
 | 5 — Utilisateurs | Consultation, création, modification, désactivation et réactivation sont implémentées ; les rôles sont libellés en français. | **Validée : Julie confirme que tous les parcours et vérifications de la phase 5 ont été réalisés.** |
 | 6 — Dashboard | KPI et répartition de flotte calculés depuis l'API avec contrôle de rôle. | **Validée : Julie confirme que tous les contrôles de la phase 6 ont été réalisés.** |
 | 7 — Production | Protections HTTP, JWT, limitation auth, validation, transactions et isolation présentes. API Render et frontend Vercel déployés ; CI et sauvegardes M0 vers OneDrive configurées. | **Terminée selon la confirmation de Julie : sauvegardes et restauration, CI, configuration de production et parcours frontend → API vérifiés.** |
-| 8 — Livraison | La suite Jest complète et le build frontend ont réussi lors des dernières vérifications. | Pas prêt à publier : E2E, vérifications manuelles, accessibilité/mobile, guide de déploiement et acceptation explicite restent à faire. |
+| 8 — Livraison | Tests/build, parcours E2E, contrôles d'accessibilité et responsive, documentation et préparation de publication réalisés selon Julie. | **Terminée et acceptée par Julie le 29 septembre 2026.** |
 
 ## Preuves automatisées déjà observées
 
@@ -22,7 +22,7 @@
 - [x] Build frontend : `npm run build` réussi lors de la dernière vérification.
 - [x] Tests couvrant auth/JWT, autorisations, isolation de certains contrôleurs, affectations concurrentes, PTAC et règles Phase 4.
 - [x] `MONGO_URI_TEST` est configurée séparément de `MONGO_URI` dans l'environnement local vérifié ; ne jamais imprimer leurs valeurs.
-- [ ] Tests automatisés frontend ou E2E : aucune stack frontend/E2E présente actuellement.
+- [x] Contrôles frontend/E2E de la phase 8 réalisés et validés par Julie.
 
 ## Checklist manuelle, dans l'ordre des dépendances
 
@@ -107,11 +107,13 @@
 
 ### Phase 8 — Qualité et livraison
 
-- [ ] Exécuter `npm test` et `npm run build` depuis un checkout propre.
-- [ ] Rejouer les parcours complets inscription → connexion → véhicule → alerte → affectation → clôture → statistiques → utilisateur.
-- [ ] Tester deux entreprises, les cinq rôles, erreurs réseau/API et les vues desktop/tablette/mobile.
-- [ ] Contrôler labels, navigation clavier, erreurs lisibles et contrastes ; résoudre l'incohérence de thème validée en Phase 0.
-- [ ] Mettre à jour les consignes de lancement/déploiement, revoir les dépendances/secrets et obtenir une validation explicite avant publication.
+- [x] Exécuter `npm test` et `npm run build` depuis un checkout propre (phase 8 déclarée terminée par Julie).
+- [x] Rejouer les parcours complets inscription → connexion → véhicule → alerte → affectation → clôture → statistiques → utilisateur (phase 8 déclarée terminée par Julie).
+- [x] Tester deux entreprises, les cinq rôles, erreurs réseau/API et les vues desktop/tablette/mobile (phase 8 déclarée terminée par Julie).
+- [x] Contrôler labels, navigation clavier, erreurs lisibles et contrastes ; résoudre l'incohérence de thème validée en Phase 0 (phase 8 déclarée terminée par Julie).
+- [x] Mettre à jour les consignes de lancement/déploiement, revoir les dépendances/secrets et obtenir une validation explicite avant publication (phase 8 déclarée terminée par Julie).
+
+**Acceptation :** Julie confirme que tous les contrôles et livrables de la phase 8 ont été réalisés. La phase 8 est donc clôturée le 29 septembre 2026. Les recommandations complémentaires ci-dessous restent un backlog d'amélioration/exploitation et ne bloquent pas cette acceptation.
 
 ## Recommandations complémentaires adaptées à CarLog Pro
 
@@ -180,13 +182,7 @@ Les cookies de consentement, envoi de fichiers, emails transactionnels/récupér
 
 ## Ordre de travail recommandé
 
-1. **Terminer et accepter les phases 0–1** : confirmer Preview/environnement, résoudre le point de design, puis valider la sécurité avec deux entreprises et les cinq rôles.
-2. **Accepter les phases 2–3** : essais réels de session dans Preview et parcours véhicule complet ; décider du niveau d'information de maintenance.
-3. **Clore la phase 4** : parcours alertes/affectations réel pour tous les profils concernés ; traiter le filtre véhicule si retenu ; confirmer les statuts et conflits en base.
-4. **Phase 5 validée** : parcours de création, consultation, modification, désactivation et réactivation confirmés par Julie.
-5. **Valider la phase 6** : comparer les KPI réels à la base et aux listes pour plusieurs entreprises/rôles.
-6. **Préparer la phase 7** : secrets/environnements, sauvegarde-restauration, CI et hébergement.
-7. **Exécuter la phase 8** : E2E, accessibilité, responsive, documentation, tests/build propres et feu vert de publication.
+Les phases 0 à 8 sont terminées et acceptées selon les confirmations de Julie. Il n'y a plus d'étape MVP ouverte dans cette séquence. Les recommandations complémentaires précédentes constituent un backlog post-MVP et ne remettent pas en cause cette acceptation.
 
 Confirmation d'adresse email et récupération de compte sont formellement hors MVP. Stripe, paiements, autres emails transactionnels, PWA, application mobile native, géolocalisation active, exports comptables avancés et maintenance prédictive restent hors de cet ordre MVP, sauf décision produit explicite.
 

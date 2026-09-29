@@ -175,6 +175,7 @@ Une feature est finie quand :
 - [2026-09] · Phase 2 officiellement validée — Julie confirme que les parcours d'inscription avec données entreprise, erreurs de connexion/API, restauration et expiration de session, déconnexion et protection du dashboard ont tous été réalisés dans Preview.
 - [2026-09] · Phase 3 officiellement validée — Julie confirme que les parcours véhicules, validations, statuts, filtres/pagination, archivage, persistance, droits par rôle et vérification des informations de maintenance ont tous été réalisés.
 - [2026-09] · Phase 4 officiellement validée — Julie confirme que les parcours alertes/affectations, conflits, synchronisation des statuts véhicule, suppression, filtrage conducteur, permissions des rôles et périmètre des filtres ont tous été réalisés.
+- [2026-09-29] · Phase 8 officiellement terminée — Julie confirme que tous les contrôles de qualité et livrables de la phase (tests/build, parcours E2E, multi-entreprise et rôles, erreurs réseau/API, responsive, accessibilité, documentation et préparation de publication) ont été réalisés. La checklist de recette et le résumé du README sont synchronisés ; le backlog de recommandations post-MVP reste distinct.
 
 ## 11 · Pièges connus
 

@@ -2,7 +2,7 @@
 
 Application web de gestion de flotte pour petites entreprises. Le MVP permet de gérer les véhicules, les alertes, les affectations et les utilisateurs d'une entreprise avec authentification et isolation multi-tenant.
 
-> Projet de formation en cours. Les phases de validation manuelle et la préparation à la production ne sont pas toutes terminées.
+> Projet de formation et portfolio. Les phases 0 à 8 sont déclarées terminées ; les recommandations d'amélioration et obligations préalables à une mise en service commerciale restent suivies séparément.
 
 ## Fonctionnalités disponibles
 
@@ -59,7 +59,7 @@ La CI GitHub Actions reprend ces deux contrôles avec une instance MongoDB éph�
 
 ## État du projet
 
-Le backend MVP et l'interface web sont largement implémentés. Les phases 0 à 6 sont validées. La phase 7 dispose d'une CI locale autonome et de configurations de préparation Render/Vercel ; la stratégie de sauvegarde durable, l'exécution distante de la CI et la vérification des services de production restent à finaliser. Voir [le guide de déploiement](docs/deploiement-production.md).
+Le MVP est implémenté et les phases 0 à 8 sont terminées selon les validations de Julie. La phase 7 couvre la CI GitHub, le déploiement Render/Vercel et les sauvegardes Atlas M0 vers OneDrive ; la phase 8 couvre les vérifications de qualité et la livraison. Les améliorations continues et obligations liées à une éventuelle mise en service commerciale restent dans le backlog. Voir [le guide de déploiement](docs/deploiement-production.md) et la [checklist de validation](docs/validation-et-prochaines-etapes.md).
 
 La checklist de validation et l'ordre de travail restant sont dans [`docs/validation-et-prochaines-etapes.md`](docs/validation-et-prochaines-etapes.md). Le dossier PDF conserve son contenu initial ; une copie actualisée avec une synthèse des statuts est jointe sous `docs/CarLog_projet_maj_2026-09.pdf`.
 
