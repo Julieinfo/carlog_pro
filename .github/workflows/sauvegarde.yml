@@ -1,0 +1,104 @@
+# Sauvegarde logique quotidienne de la base MongoDB Atlas (cluster M0, sans sauvegarde native).
+# Stratégie détaillée, choix de destination et procédure de restauration : docs/sauvegarde.md
+#
+# CE WORKFLOW NE FAIT RIEN tant que les six secrets ci-dessous ne sont pas définis dans
+# Settings > Secrets and variables > Actions. Les définir vaut autorisation d'exporter la base
+# vers le stockage choisi. Aucune valeur n'est jamais affichée dans les journaux (GitHub masque les
+# secrets, mongodump et aws s3 sont lancés en mode silencieux).
+#
+#   MONGO_URI_SAUVEGARDE          URI Atlas d'un utilisateur DÉDIÉ en lecture seule, incluant le nom de la base
+#   SAUVEGARDE_PASSPHRASE         phrase de passe longue (chiffrement AES-256 des archives, conservée hors GitHub)
+#   SAUVEGARDE_S3_BUCKET          nom du bucket privé (Cloudflare R2, Backblaze B2 ou AWS S3)
+#   SAUVEGARDE_S3_ENDPOINT        URL S3 du fournisseur (R2/B2) ; laisser vide pour AWS S3
+#   SAUVEGARDE_S3_ACCESS_KEY_ID   clé d'accès limitée à ce bucket (écriture seule si le fournisseur le permet)
+#   SAUVEGARDE_S3_SECRET_ACCESS_KEY
+#   SAUVEGARDE_S3_REGION          (facultatif) région ; `auto` pour R2, ex. eu-central-003 pour B2
+name: Sauvegarde MongoDB
+
+on:
+  schedule:
+    - cron: "17 3 * * *" # tous les jours à 03:17 UTC (heure creuse en France)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sauvegarde-mongodb
+  cancel-in-progress: false
+
+jobs:
+  sauvegarde:
+    name: Exporter, chiffrer et téléverser
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      MONGO_URI_SAUVEGARDE: ${{ secrets.MONGO_URI_SAUVEGARDE }}
+      SAUVEGARDE_PASSPHRASE: ${{ secrets.SAUVEGARDE_PASSPHRASE }}
+      S3_BUCKET: ${{ secrets.SAUVEGARDE_S3_BUCKET }}
+      S3_ENDPOINT: ${{ secrets.SAUVEGARDE_S3_ENDPOINT }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.SAUVEGARDE_S3_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.SAUVEGARDE_S3_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ secrets.SAUVEGARDE_S3_REGION || 'auto' }}
+    steps:
+      - name: Vérifier la configuration (noms seulement, jamais les valeurs)
+        id: config
+        run: |
+          set -euo pipefail
+          manquants=""
+          for nom in MONGO_URI_SAUVEGARDE SAUVEGARDE_PASSPHRASE S3_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if [ -z "${!nom:-}" ]; then manquants="$manquants $nom"; fi
+          done
+          if [ -n "$manquants" ]; then
+            echo "Sauvegarde non configurée : secrets manquants ->$manquants"
+            echo "Rien n'a été exporté. Voir docs/sauvegarde.md pour activer la sauvegarde."
+            echo "configuree=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Configuration complète."
+            echo "configuree=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Installer MongoDB Database Tools (mongodump)
+        if: steps.config.outputs.configuree == 'true'
+        run: |
+          set -euo pipefail
+          curl -fsSL https://pgp.mongodb.com/server-8.0.asc | sudo gpg --dearmor -o /usr/share/keyrings/mongodb-server-8.0.gpg
+          echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-8.0.gpg ] https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse" \
+            | sudo tee /etc/apt/sources.list.d/mongodb-org-8.0.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mongodb-database-tools
+          mongodump --version | head -1
+
+      - name: Exporter et chiffrer
+        if: steps.config.outputs.configuree == 'true'
+        run: |
+          set -euo pipefail
+          horodatage="$(date -u +%Y-%m-%dT%H%M%SZ)"
+          fichier="carlog-pro-${horodatage}.archive.gz"
+          mongodump --uri="$MONGO_URI_SAUVEGARDE" --archive="$fichier" --gzip --quiet
+          gzip -t "$fichier"
+          gpg --batch --yes --symmetric --cipher-algo AES256 --pinentry-mode loopback \
+            --passphrase-fd 3 --output "${fichier}.gpg" "$fichier" 3<<<"$SAUVEGARDE_PASSPHRASE"
+          rm -f "$fichier"
+          # Contrôle : l'archive chiffrée se déchiffre et reste un gzip valide.
+          gpg --batch --quiet --decrypt --pinentry-mode loopback --passphrase-fd 3 "${fichier}.gpg" 3<<<"$SAUVEGARDE_PASSPHRASE" | gzip -t
+          echo "FICHIER=${fichier}.gpg" >> "$GITHUB_ENV"
+          echo "Archive chiffrée prête ($(stat -c %s "${fichier}.gpg") octets)."
+
+      - name: Téléverser vers le stockage privé
+        if: steps.config.outputs.configuree == 'true'
+        run: |
+          set -euo pipefail
+          options=(--only-show-errors)
+          if [ -n "${S3_ENDPOINT:-}" ]; then options+=(--endpoint-url "$S3_ENDPOINT"); fi
+          aws s3 cp "$FICHIER" "s3://${S3_BUCKET}/quotidien/${FICHIER}" "${options[@]}"
+          # Le 1er du mois : copie supplémentaire conservée plus longtemps (règle de cycle de vie côté bucket).
+          if [ "$(date -u +%d)" = "01" ]; then
+            aws s3 cp "$FICHIER" "s3://${S3_BUCKET}/mensuel/${FICHIER}" "${options[@]}"
+          fi
+          rm -f "$FICHIER"
+          echo "Téléversement terminé : quotidien/${FICHIER}"
+
+      - name: Nettoyage
+        if: always()
+        run: rm -f ./*.archive.gz ./*.archive.gz.gpg

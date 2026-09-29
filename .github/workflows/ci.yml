@@ -1,0 +1,143 @@
+# CI CarLog Pro — tests backend (Jest + Supertest) et build frontend (Vite) avant toute livraison.
+#
+# Le job backend démarre un MongoDB 8 éphémère (même version majeure qu'Atlas) dans le runner, configuré en replica set à un nœud :
+# les suites d'intégration (inscription avec transaction, index uniques d'affectations) en ont besoin.
+# Aucun secret de dépôt n'est nécessaire : la base est jetable et le JWT_SECRET est généré à la volée.
+# Les bases Atlas de dev/test/prod ne sont donc jamais exposées aux runners GitHub.
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, dev]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      NODE_ENV: test
+      MONGO_URI_TEST: mongodb://127.0.0.1:27017/carlog_ci?replicaSet=rs0
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Démarrer MongoDB (replica set à un nœud, base jetable)
+        working-directory: .
+        run: |
+          set -euo pipefail
+          docker run -d --name mongo-ci -p 27017:27017 mongo:8 --replSet rs0 --bind_ip_all
+          for i in $(seq 1 30); do
+            if docker exec mongo-ci mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          docker exec mongo-ci mongosh --quiet --eval \
+            'rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "127.0.0.1:27017" }] })'
+          for i in $(seq 1 30); do
+            if [ "$(docker exec mongo-ci mongosh --quiet --eval 'db.hello().isWritablePrimary')" = "true" ]; then
+              echo "Replica set prêt."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Le replica set MongoDB n'est pas devenu primaire à temps." >&2
+          docker logs mongo-ci | tail -50 >&2
+          exit 1
+
+      - name: Générer un JWT_SECRET jetable pour cette exécution
+        run: |
+          set -euo pipefail
+          secret="$(openssl rand -hex 48)"
+          echo "::add-mask::${secret}"
+          echo "JWT_SECRET=${secret}" >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Vérifier les variables attendues (sans afficher leurs valeurs)
+        run: npm run check:env
+
+      - name: Run tests
+        run: npm test -- --runInBand --forceExit
+
+      - name: Arrêter MongoDB
+        if: always()
+        working-directory: .
+        run: docker rm -f mongo-ci >/dev/null 2>&1 || true
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Vérifier l'absence de secrets dans le bundle
+        run: |
+          set -euo pipefail
+          if grep -rEIq 'mongodb(\+srv)?://|JWT_SECRET|MONGO_URI' dist/; then
+            echo "Un motif de secret backend a été trouvé dans le bundle frontend." >&2
+            exit 1
+          fi
+          echo "Bundle sans motif de secret backend."
+
+  hygiene:
+    name: Fichiers d'environnement absents du dépôt
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Refuser tout fichier .env suivi (hors .env.example)
+        run: |
+          set -euo pipefail
+          suivis="$(git ls-files | grep -E '(^|/)\.env(\..*)?$' | grep -v '\.env\.example$' || true)"
+          if [ -n "$suivis" ]; then
+            echo "Fichiers d'environnement suivis par Git :" >&2
+            echo "$suivis" >&2
+            exit 1
+          fi
+          echo "Aucun fichier .env suivi."
