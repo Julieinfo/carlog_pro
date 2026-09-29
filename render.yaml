@@ -1,0 +1,36 @@
+# Blueprint Render — API CarLog Pro (backend Express).
+# Doc : https://render.com/docs/blueprint-spec
+#
+# Ce fichier décrit le service ; il ne déploie rien tant qu'il n'est pas importé dans le dashboard Render
+# (New > Blueprint > ce dépôt). Les valeurs secrètes ne sont JAMAIS écrites ici :
+#   - `sync: false`        -> à saisir une fois dans le dashboard Render (MONGO_URI, FRONTEND_URL) ;
+#   - `generateValue: true` -> Render génère une valeur aléatoire forte à la création (JWT_SECRET),
+#                              que personne n'a besoin de connaître ni de copier.
+# Le frontend est hébergé séparément sur Vercel (voir frontend/vercel.json et docs/deploiement.md).
+
+services:
+  - type: web
+    name: carlog-pro-api
+    runtime: node
+    region: frankfurt
+    plan: free
+    branch: main
+    rootDir: backend
+    buildCommand: npm ci
+    # `npm start` exécute `node src/server.js` (pas nodemon : les devDependencies ne sont pas installées
+    # quand NODE_ENV=production). Commande explicite pour ne pas dépendre du package.json.
+    startCommand: node src/server.js
+    healthCheckPath: /api/health
+    # Déploiement automatique uniquement si les checks GitHub (workflow CI) sont verts.
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
