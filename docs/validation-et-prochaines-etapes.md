@@ -13,7 +13,7 @@
 | 4 — Alertes/affectations | Fonctions principales présentes ; cohérence des statuts et alertes conducteur renforcées ; scénarios unitaires ajoutés. | **Validée : Julie confirme que tous les parcours et vérifications de la phase 4 ont été réalisés.** |
 | 5 — Utilisateurs | Consultation, création, modification, désactivation et réactivation sont implémentées ; les rôles sont libellés en français. | **Validée : Julie confirme que tous les parcours et vérifications de la phase 5 ont été réalisés.** |
 | 6 — Dashboard | KPI et répartition de flotte calculés depuis l'API avec contrôle de rôle. | **Validée : Julie confirme que tous les contrôles de la phase 6 ont été réalisés.** |
-| 7 — Production | Protections HTTP, JWT, limitation auth, validation, transactions et isolation présentes. | À compléter : sauvegarde/restauration, CI et vérifications de production. Aucun Dockerfile ni workflow GitHub Actions n'a été trouvé. |
+| 7 — Production | Protections HTTP, JWT, limitation auth, validation, transactions et isolation présentes. | À compléter : sauvegarde durable, exécution distante de la CI et vérifications de production. La CI GitHub Actions est ajoutée ; aucun Dockerfile ni déploiement de production n'a été trouvé. |
 | 8 — Livraison | La suite Jest complète et le build frontend ont réussi lors des dernières vérifications. | Pas prêt à publier : E2E, vérifications manuelles, accessibilité/mobile, guide de déploiement et acceptation explicite restent à faire. |
 
 ## Preuves automatisées déjà observées
@@ -92,13 +92,13 @@
 
 ### Phase 7 — Préparation production
 
-- [ ] Vérifier séparément configurations dev/test/prod et l'absence de secrets dans Git, logs et bundle frontend.
-- [ ] Retirer `MONGO_URI` et `JWT_SECRET` de `frontend/.env` s'ils y sont encore ; conserver ces secrets dans l'environnement backend.
-- [ ] Vérifier rate limiting, CORS, taille JSON, erreurs génériques, démarrage et arrêt backend.
-- [ ] Définir la destination protégée, la fréquence et la rétention des sauvegardes durables ; les sauvegardes Cloud Atlas natives ne sont pas disponibles sur le cluster Free/M0 courant.
+- [x] Vérifier séparément les noms de variables des configurations locales dev/test et des variables de production documentées : `backend/.env` contient `MONGO_URI`/`JWT_SECRET`, `backend/.env.test` contient `MONGO_URI_TEST`/`JWT_SECRET`, et `frontend/.env` ne contient aucun secret backend. Les trois fichiers sont ignorés par Git ; aucun fichier de log n'est présent dans le dépôt et aucun indicateur de secret n'a été trouvé dans le bundle `frontend/dist` ni dans l'historique Git inspecté (29 septembre 2026).
+- [x] Confirmer que `MONGO_URI` et `JWT_SECRET` ne sont pas configurés dans `frontend/.env` ; les secrets nécessaires restent réservés au backend. Les valeurs n'ont pas été affichées.
+- [x] Vérifier dans le code le rate limiting de connexion/inscription, CORS avec liste d'origines explicite, limite JSON à 100 kb, messages génériques en production et arrêt `SIGTERM`/`SIGINT` avec fermeture HTTP/MongoDB et délai de sécurité de 10 s.
+- [ ] Définir la destination protégée, la fréquence et la rétention des sauvegardes durables ; les sauvegardes Cloud Atlas natives ne sont pas disponibles sur le cluster Free/M0 courant. Recommandation à faire valider : export `mongodump` quotidien vers un stockage objet privé chiffré contrôlé par Julie, rétention de 7 sauvegardes quotidiennes et 4 hebdomadaires, avec test de restauration mensuel ; aucun export externe n'a été effectué.
 - [x] Restaurer un dump de la base dédiée `carlog_pro_test` dans `carlog_pro_restore_check_20260928` ; les 5 collections ont le même nombre de documents après restauration. La copie de vérification est isolée de la source.
-- [ ] Ajouter/valider une CI qui lance tests backend et build frontend avant livraison.
-- [ ] Préparer le déploiement Render/Vercel ou Replit, puis vérifier HTTPS et variables sans afficher leurs valeurs.
+- [x] Ajouter une CI GitHub Actions dans `.github/workflows/ci.yml` qui installe les dépendances, exécute la suite backend et construit le frontend. L'exécution distante reste à confirmer après configuration des secrets GitHub `MONGO_URI_TEST` et `JWT_SECRET`.
+- [ ] Préparer le déploiement et vérifier HTTPS et variables sans afficher leurs valeurs. Le dépôt contient une configuration Replit (`.replit`) orientée Preview qui lance les serveurs de développement, mais aucun déploiement de production ni fournisseur unique n'est déterminé entre Replit et le couple Render/Vercel documenté dans `CLAUDE.md`. Choix du fournisseur, configuration de production et vérification HTTPS restent à décider ; aucun service externe n'a été modifié.
 
 ### Phase 8 — Qualité et livraison
 

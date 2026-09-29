@@ -55,10 +55,11 @@ npm --prefix frontend run build
 ```
 
 Les suites d'intégration nécessitent `backend/.env.test` avec `MONGO_URI_TEST` pointant vers une base de test dédiée, séparée des bases de développement et de production.
+La CI GitHub Actions reprend ces deux contrôles. Le job backend nécessite les secrets GitHub `MONGO_URI_TEST` et `JWT_SECRET` ; leurs valeurs ne doivent pas être ajoutées au dépôt ni affichées dans les logs.
 
 ## État du projet
 
-Le backend MVP et l'interface web sont largement implémentés. La dernière exécution de la suite complète a passé 59 tests sur 11 suites ; le build frontend a également réussi lors de la dernière vérification. Les validations de parcours réels, l'acceptation explicite des phases, certaines améliorations de gestion des utilisateurs et la préparation de production restent ouvertes.
+Le backend MVP et l'interface web sont largement implémentés. La dernière exécution locale a validé 76 tests sur 15 suites sans accès Atlas ; les 2 suites d'intégration restantes nécessitent une connectivité MongoDB Atlas autorisée. Le build frontend a réussi. Les validations de parcours réels, l'acceptation explicite des phases et le choix de l'infrastructure de production restent ouverts.
 
 La checklist de validation et l'ordre de travail restant sont dans [`docs/validation-et-prochaines-etapes.md`](docs/validation-et-prochaines-etapes.md). Le dossier PDF conserve son contenu initial ; une copie actualisée avec une synthèse des statuts est jointe sous `docs/CarLog_projet_maj_2026-09.pdf`.
 
