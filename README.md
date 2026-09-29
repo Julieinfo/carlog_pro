@@ -11,7 +11,7 @@ Application web de gestion de flotte pour petites entreprises. Le MVP permet de 
 - Gestion des alertes : signalement, consultation, filtres, résolution et suppression selon le rôle.
 - Affectations véhicule/conducteur : création, vérification des conflits, modification, clôture et kilométrage.
 - Vue d'ensemble avec indicateurs de flotte.
-- Gestion admin des utilisateurs : création, consultation et désactivation.
+- Gestion admin des utilisateurs : création, consultation, modification, désactivation et réactivation. Les parcours manuels de recette sont suivis dans `docs/validation-et-prochaines-etapes.md`.
 - Contrôle d'accès selon les rôles `admin`, `fleet_manager`, `conducteur`, `mecanicien` et `comptable`.
 
 ## Architecture
@@ -55,13 +55,14 @@ npm --prefix frontend run build
 ```
 
 Les suites d'intégration nécessitent `backend/.env.test` avec `MONGO_URI_TEST` pointant vers une base de test dédiée, séparée des bases de développement et de production.
+La CI GitHub Actions reprend ces deux contrôles avec une instance MongoDB éphémère ; elle ne requiert aucun secret de production ni secret Atlas.
 
 ## État du projet
 
-Le backend MVP et l'interface web sont largement implémentés. La dernière exécution de la suite complète a passé 59 tests sur 11 suites ; le build frontend a également réussi lors de la dernière vérification. Les validations de parcours réels, l'acceptation explicite des phases, certaines améliorations de gestion des utilisateurs et la préparation de production restent ouvertes.
+Le backend MVP et l'interface web sont largement implémentés. Les phases 0 à 6 sont validées. La phase 7 dispose d'une CI locale autonome et de configurations de préparation Render/Vercel ; la stratégie de sauvegarde durable, l'exécution distante de la CI et la vérification des services de production restent à finaliser. Voir [le guide de déploiement](docs/deploiement-production.md).
 
 La checklist de validation et l'ordre de travail restant sont dans [`docs/validation-et-prochaines-etapes.md`](docs/validation-et-prochaines-etapes.md). Le dossier PDF conserve son contenu initial ; une copie actualisée avec une synthèse des statuts est jointe sous `docs/CarLog_projet_maj_2026-09.pdf`.
 
 ## Hors périmètre actuel
 
-Application mobile native, Stripe et paiements, notifications email, PWA, géolocalisation active, exports comptables avancés et maintenance prédictive sont des pistes ultérieures, pas des prérequis du MVP actuel.
+Confirmation d'adresse email et récupération de compte sont explicitement hors MVP. Application mobile native, Stripe et paiements, autres notifications email, PWA, géolocalisation active, exports comptables avancés et maintenance prédictive sont des pistes ultérieures, pas des prérequis du MVP actuel.
