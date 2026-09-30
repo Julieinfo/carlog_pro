@@ -49,4 +49,3 @@ function arreterProprement(server, signal) {
 }
 
 module.exports = arreterProprement;
-const { ecrire } = require('./journal');
