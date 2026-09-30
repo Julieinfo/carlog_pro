@@ -375,11 +375,22 @@ function PolitiqueConfidentialite() {
 
       <h2>7. Transferts hors Union européenne</h2>
       <p>
-        <ACompleter>
-          confirmer les régions de traitement et d’hébergement réellement utilisées chez Vercel,
-          Render, MongoDB Atlas et Microsoft, ainsi que les garanties encadrant les éventuels
-          transferts de données hors Union européenne.
-        </ACompleter>
+        Les données applicatives sont hébergées dans l’Union européenne : la base de données MongoDB
+        Atlas est exploitée à Paris (AWS eu-west-3) et l’API sur Render à Francfort (AWS
+        eu-central-1). Les archives de sauvegarde sont synchronisées via Microsoft OneDrive, dont les
+        lieux de traitement dépendent du compte utilisé.
+      </p>
+      <p>
+        Le site est en revanche hébergé par Vercel Inc., société établie aux États-Unis, dont la
+        région d’exécution utilisée est Washington, D.C. (iad1 / us-east-1). À ce titre, les données
+        techniques de requête traitées par Vercel — dont l’adresse IP — peuvent être traitées hors de
+        l’Union européenne, y compris aux États-Unis.
+      </p>
+      <p>
+        <AValider>
+          les garanties encadrant ce transfert (addendum de traitement des données et clauses
+          contractuelles types proposés par Vercel dans ton compte) restent à vérifier et à citer ici.
+        </AValider>
       </p>
 
       <h2>8. Combien de temps les données sont conservées</h2>
