@@ -2,8 +2,8 @@ import { useEffect } from 'react';
 import PiedDePageLegal from '../components/PiedDePageLegal';
 
 // Textes rédigés à partir de l'inventaire factuel de docs/brouillon-juridique.md.
-// Les seules informations que l'éditrice doit confirmer sont marquées <ACompleter> :
-// elles ne sont jamais inventées (notamment aucune adresse personnelle).
+// <ACompleter> marque une information qui manque (jamais inventée, notamment aucune adresse
+// personnelle) ; <AValider> marque une rédaction proposée, à confirmer par l'éditrice.
 const CONTACT = 'juliedecastro2003@gmail.com';
 const DERNIERE_MISE_A_JOUR = '30 septembre 2026';
 
@@ -11,12 +11,17 @@ function ACompleter({ children }) {
   return <mark className="legal-a-completer">À COMPLÉTER — {children}</mark>;
 }
 
+function AValider({ children }) {
+  return <mark className="legal-a-valider">Proposition à valider — {children}</mark>;
+}
+
 function Banniere() {
   return (
     <p className="legal-banniere" role="note">
       <strong>Version provisoire.</strong> Le texte de cette page est rédigé, mais il n’est pas
-      définitif : les points signalés « à compléter » attendent une confirmation et une relecture
-      avant toute mise en service réelle. Aucune adresse personnelle n’est publiée à ce stade.
+      définitif : les mentions « à compléter » signalent une information manquante et les mentions
+      « proposition à valider » un choix rédactionnel à confirmer. Une relecture reste nécessaire
+      avant une mise en service réelle. Aucune adresse personnelle n’est publiée à ce stade.
     </p>
   );
 }
@@ -72,17 +77,21 @@ function MentionsLegales() {
           <strong>API et serveur applicatif</strong> : Render Services, Inc.
           <br />
           <ACompleter>
-            relever l’adresse légale exacte dans les informations officielles de Render avant
-            publication. Aucune adresse n’est inventée ici.
+            relever l’adresse légale exacte dans les informations de ton compte Render (contrat,
+            factures) : aucune source publique fiable n’a été trouvée et aucune adresse n’est
+            inventée ici.
           </ACompleter>
+          <br />
+          <AValider>
+            à défaut d’adresse vérifiée, ne publier que la dénomination « Render Services, Inc. ».
+          </AValider>
         </li>
         <li>
           <strong>Base de données</strong> : MongoDB Atlas, service de MongoDB, Inc.
           <br />
-          <ACompleter>
-            décider si ce sous-traitant est mentionné dans les mentions légales et, le cas échéant,
-            relever ses coordonnées officielles.
-          </ACompleter>
+          <AValider>
+            mention de ce sous-traitant retenue pour la transparence, sans adresse inventée.
+          </AValider>
         </li>
       </ul>
 
@@ -255,10 +264,14 @@ function ConditionsUtilisation() {
 
       <h2>Article 13 — Droit applicable et juridiction compétente</h2>
       <p>
-        <ACompleter>
-          confirmer le droit applicable et la juridiction compétente. Ces clauses n’étaient pas
-          tranchées dans le brouillon interne et ne sont pas rédigées à votre place.
-        </ACompleter>
+        Les présentes conditions sont soumises au <strong>droit français</strong>. En cas de litige,
+        et à défaut de résolution amiable, les tribunaux français sont compétents.
+      </p>
+      <p>
+        <AValider>
+          proposition de clause : à confirmer, notamment si tu préfères désigner une juridiction
+          précise plutôt que la règle générale.
+        </AValider>
       </p>
 
       <h2>Article 14 — Contact</h2>
@@ -324,11 +337,17 @@ function PolitiqueConfidentialite() {
 
       <h2>4. Base légale du traitement</h2>
       <p>
-        <ACompleter>
-          confirmer la base légale de chaque traitement (exécution du contrat, intérêt légitime). Il
-          s’agit d’une analyse juridique à valider, par exemple à partir des fiches et modèles de la
-          CNIL : elle n’est pas tranchée à votre place ici.
-        </ACompleter>
+        Les traitements nécessaires à la création du compte, à l’identification de l’entreprise et au
+        fonctionnement de la démonstration reposent sur l’<strong>exécution du contrat</strong> qui
+        vous lie à l’éditrice (article 6.1.b du RGPD). Les journaux techniques, la limitation des
+        tentatives de connexion et la prévention des usages abusifs reposent sur l’<strong>intérêt
+        légitime</strong> de l’éditrice à sécuriser le service (article 6.1.f du RGPD).
+      </p>
+      <p>
+        <AValider>
+          cette qualification est une proposition : elle doit être confirmée, par exemple à partir des
+          fiches de la CNIL, avant une mise en service réelle.
+        </AValider>
       </p>
 
       <h2>5. Caractère obligatoire ou facultatif</h2>
@@ -378,21 +397,21 @@ function PolitiqueConfidentialite() {
               <td>Compte utilisateur et identifiants</td>
               <td>Création du compte et authentification</td>
               <td>
-                <ACompleter>durée à recopier depuis la procédure existante</ACompleter>
+                Tant que le compte existe, puis 3 ans après la dernière activité
               </td>
             </tr>
             <tr>
               <td>Informations de l’entreprise (dont SIRET, adresse, téléphone)</td>
               <td>Identification de l’entreprise et fonctionnement du service</td>
               <td>
-                <ACompleter>durée à recopier depuis la procédure existante</ACompleter>
+                Tant que le compte existe, puis 3 ans après la dernière activité
               </td>
             </tr>
             <tr>
               <td>Utilisateurs, véhicules, alertes, affectations</td>
               <td>Fonctionnement de la démonstration de gestion de flotte</td>
               <td>
-                <ACompleter>durée à recopier depuis la procédure existante</ACompleter>
+                Tant que le compte existe, puis 3 ans après la dernière activité
               </td>
             </tr>
             <tr>
@@ -418,10 +437,11 @@ function PolitiqueConfidentialite() {
         automatiquement les comptes inactifs.
       </p>
       <p>
-        <ACompleter>
-          recopier ici les durées déjà définies dans votre procédure interne, sans redéfinir une
-          seconde politique, et préciser le délai résiduel de purge des sauvegardes.
-        </ACompleter>
+        <AValider>
+          ces durées sont des propositions fondées sur les recommandations de la CNIL (3 ans après le
+          dernier contact) ; si une procédure interne existe déjà, ce sont ses durées qui doivent
+          figurer ici, et le délai résiduel de purge des sauvegardes reste à préciser.
+        </AValider>
       </p>
 
       <h2>9. Cookies et traceurs</h2>
