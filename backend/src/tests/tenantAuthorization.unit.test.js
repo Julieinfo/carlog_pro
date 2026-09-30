@@ -67,8 +67,10 @@ describe('Sécurité multi-tenant et affectations', () => {
     });
 
     it('ignore les champs sensibles envoyés à la modification d’une affectation', async () => {
+        const session = { withTransaction: jest.fn(async (callback) => callback()), endSession: jest.fn() };
+        jest.spyOn(mongoose, 'startSession').mockResolvedValue(session);
         const modifiee = { _id: 'affectation-1' };
-        Affectation.findOne.mockResolvedValue({ _id: 'affectation-1' });
+        Affectation.findOne.mockReturnValue(queryMock({ _id: 'affectation-1', statut: 'terminee' }));
         Affectation.findOneAndUpdate.mockResolvedValue(modifiee);
         const req = {
             params: { id: 'affectation-1' },
@@ -82,13 +84,17 @@ describe('Sécurité multi-tenant et affectations', () => {
         };
         const res = responseMock();
 
-        await modifierAffectation(req, res);
+        try {
+            await modifierAffectation(req, res);
+        } finally {
+            mongoose.startSession.mockRestore();
+        }
 
         expect(Affectation.findOne).toHaveBeenCalledWith({ _id: 'affectation-1', entreprise: entrepriseId });
         expect(Affectation.findOneAndUpdate).toHaveBeenCalledWith(
             { _id: 'affectation-1', entreprise: entrepriseId },
             { observations: 'Mise à jour légitime' },
-            { new: true, runValidators: true }
+            { new: true, runValidators: true, session }
         );
         expect(res.status).toHaveBeenCalledWith(200);
     });

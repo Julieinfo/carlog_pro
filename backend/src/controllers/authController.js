@@ -3,6 +3,8 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Entreprise = require('../models/Entreprise');
 const repondreErreur = require('../utils/reponseErreur');
+const { ecrire, contexteRequete } = require('../utils/journal');
+const { estVerrouille, enregistrerEchec, reinitialiser } = require('../utils/verrouillageConnexion');
 
 /**
  * Genere un token JWT pour un utilisateur.
@@ -100,12 +102,20 @@ exports.inscription = async (req, res) => {
             prenom: user.prenom,
             email: user.email, 
             role: user.role,
-            entrepriseId: entreprise._id
+            entrepriseId: entreprise._id,
+            abonnement: entreprise.statutAbonnement
         },
         });
     } catch (err) {
         if (err.code === 11000) {
             return res.status(400).json({ message: 'Un compte ou une entreprise avec ces informations existe déjà.' });
+        }
+        if (process.env.NODE_ENV !== 'test') {
+            ecrire('error', 'registration_failed', {
+                ...contexteRequete(req),
+                status: 500,
+                errorName: err.name || 'Error'
+            });
         }
         const message = process.env.NODE_ENV === 'production' ? 'Erreur lors de la création du compte.' : err.message;
         res.status(500).json({ message });
@@ -126,6 +136,10 @@ exports.inscription = async (req, res) => {
 exports.connexion = async (req, res) => {
     try {
         const { email, motDePasse } = req.body;
+
+        if (estVerrouille(email)) {
+            return res.status(429).json({ message: 'Trop de tentatives. Réessayez plus tard.' });
+        }
         
         // motDePasse est cache dans le schema (select: false), donc on l'ajoute explicitement juste pour cette verification.
         // C'est une bonne pratique de securite : par defaut, on ne renvoie jamais le mot de passe dans les requetes.
@@ -135,9 +149,16 @@ exports.connexion = async (req, res) => {
         // Si on disait "Email inexistant" ou "Mot de passe incorrect", un attaquant pourrait enumerer les comptes.
         // J'ai choisi de ne pas differencier les cas pour eviter ce type d'attaque.
         if (!user || !(await user.verifierMotDePasse(motDePasse))) {
+        enregistrerEchec(email);
         return res.status(401).json({ message: 'Identifiants invalides.' });
         }
+
+        reinitialiser(email);
         
+        const entreprise = user.typeCompte === 'entreprise'
+            ? await Entreprise.findById(user.entreprise).select('statutAbonnement')
+            : null;
+
         // On renvoie un nouveau token a chaque connexion.
         // J'aurais pu implementer un systeme de refresh token, mais pour l'instant un simple token suffit.
         res.json({
@@ -148,11 +169,12 @@ exports.connexion = async (req, res) => {
             prenom: user.prenom,
             email: user.email, 
             role: user.role,
-            entrepriseId: user.entreprise
+            entrepriseId: user.entreprise,
+            abonnement: entreprise?.statutAbonnement ?? null
         },
         });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -168,50 +190,28 @@ exports.connexion = async (req, res) => {
  */
 exports.getProfil = async (req, res) => {
     try {
-        // req.user est disponible grace au middleware protect qui a decode le JWT.
-        // J'ai choisi de renvoyer req.user directement plutot que de refaire une requete a la base,
-        // car les infos dans le token sont suffisantes pour afficher le profil.
-        // Si on avait besoin de donnees a jour (ex: role modifie), il faudrait refaire une requete.
-        
-        // J'exclus explicitement le mot de passe de la reponse pour la securite.
-        // Meme si le middleware le fait deja, c'est une double securite.
-        const { motDePasse, ...userSansMotDePasse } = req.user.toObject();
-        
-        res.status(200).json(userSansMotDePasse);
+        res.status(200).json({
+            id: req.user._id,
+            nom: req.user.nom,
+            prenom: req.user.prenom,
+            email: req.user.email,
+            role: req.user.role,
+            entrepriseId: req.user.entreprise,
+            abonnement: req.entreprise?.statutAbonnement ?? null
+        });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
-exports.modifierEtatEntreprise = async (req, res) => {
+exports.getEntreprise = async (req, res) => {
     try {
-        const donnees = {};
-        if (req.body.statutAbonnement !== undefined) {
-            if (!['trial', 'active', 'past_due', 'canceled'].includes(req.body.statutAbonnement)) {
-                return res.status(400).json({ message: 'Statut d’abonnement invalide.' });
-            }
-            donnees.statutAbonnement = req.body.statutAbonnement;
-        }
-        if (req.body.formuleAbonnement !== undefined) {
-            if (!['starter', 'premium', 'enterprise'].includes(req.body.formuleAbonnement)) {
-                return res.status(400).json({ message: 'Formule d’abonnement invalide.' });
-            }
-            donnees.formuleAbonnement = req.body.formuleAbonnement;
-        }
-        if (req.body.actif !== undefined) {
-            if (typeof req.body.actif !== 'boolean') return res.status(400).json({ message: 'L’état actif doit être booléen.' });
-            donnees.actif = req.body.actif;
-        }
-
-        const entreprise = await Entreprise.findOneAndUpdate(
-            { _id: req.user.entreprise },
-            donnees,
-            { new: true, runValidators: true }
-        ).select('-__v');
+        const entreprise = await Entreprise.findById(req.user.entreprise)
+            .select('nom statutAbonnement formuleAbonnement');
 
         if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
         res.status(200).json(entreprise);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

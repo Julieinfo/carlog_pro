@@ -78,6 +78,6 @@ exports.getDashboardStats = async (req, res) => {
         });
 
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
