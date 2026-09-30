@@ -1,30 +1,11 @@
 import { useEffect } from 'react';
 import PiedDePageLegal from '../components/PiedDePageLegal';
 
-// Textes rédigés à partir de l'inventaire factuel de docs/brouillon-juridique.md.
-// <ACompleter> marque une information qui manque (jamais inventée, notamment aucune adresse
-// personnelle) ; <AValider> marque une rédaction proposée, à confirmer par l'éditrice.
+// Textes issus de l'inventaire factuel de docs/brouillon-juridique.md, complétés par les
+// décisions de l'éditrice du 30 septembre 2026 : contact par email, Render sans adresse
+// postale, régions d'hébergement réelles et procédure d'exercice des droits RGPD.
 const CONTACT = 'juliedecastro2003@gmail.com';
 const DERNIERE_MISE_A_JOUR = '30 septembre 2026';
-
-function ACompleter({ children }) {
-  return <mark className="legal-a-completer">À COMPLÉTER — {children}</mark>;
-}
-
-function AValider({ children }) {
-  return <mark className="legal-a-valider">Proposition à valider — {children}</mark>;
-}
-
-function Banniere() {
-  return (
-    <p className="legal-banniere" role="note">
-      <strong>Version provisoire.</strong> Le texte de cette page est rédigé, mais il n’est pas
-      définitif : les mentions « à compléter » signalent une information manquante et les mentions
-      « proposition à valider » un choix rédactionnel à confirmer. Une relecture reste nécessaire
-      avant une mise en service réelle. Aucune adresse personnelle n’est publiée à ce stade.
-    </p>
-  );
-}
 
 function Mail() {
   return <a href={`mailto:${CONTACT}`}>{CONTACT}</a>;
@@ -33,8 +14,6 @@ function Mail() {
 function MentionsLegales() {
   return (
     <>
-      <Banniere />
-
       <h2>1. Éditeur du site</h2>
       <p>
         Le site CarLog Pro est édité par <strong>Julie De Castro</strong>, personne physique agissant
@@ -44,13 +23,6 @@ function MentionsLegales() {
       <p>
         Contact : <Mail />.
       </p>
-      <p>
-        <ACompleter>
-          confirmer le statut d’édition à titre non professionnel et confirmer que cette adresse
-          email est bien l’adresse de contact à publier.
-        </ACompleter>
-      </p>
-
       <h2>2. Directrice de la publication</h2>
       <p>La directrice de la publication est Julie De Castro.</p>
 
@@ -75,23 +47,9 @@ function MentionsLegales() {
         </li>
         <li>
           <strong>API et serveur applicatif</strong> : Render Services, Inc.
-          <br />
-          <ACompleter>
-            relever l’adresse légale exacte dans les informations de ton compte Render (contrat,
-            factures) : aucune source publique fiable n’a été trouvée et aucune adresse n’est
-            inventée ici.
-          </ACompleter>
-          <br />
-          <AValider>
-            à défaut d’adresse vérifiée, ne publier que la dénomination « Render Services, Inc. ».
-          </AValider>
         </li>
         <li>
           <strong>Base de données</strong> : MongoDB Atlas, service de MongoDB, Inc.
-          <br />
-          <AValider>
-            mention de ce sous-traitant retenue pour la transparence, sans adresse inventée.
-          </AValider>
         </li>
       </ul>
 
@@ -103,11 +61,8 @@ function MentionsLegales() {
         l’adresse de celui-ci.
       </p>
       <p>
-        <ACompleter>
-          vérifier que les informations d’identification personnelle ont bien été transmises à Vercel
-          et à Render. Si ce n’est pas le cas, une adresse de contact postale choisie par l’éditrice
-          doit être publiée : elle ne doit ni être déduite, ni être inventée.
-        </ACompleter>
+        Pour toute demande de contact ou d’information relative à ce site, l’éditrice est joignable à
+        l’adresse suivante : <Mail />.
       </p>
 
       <h2>6. Propriété intellectuelle</h2>
@@ -136,8 +91,6 @@ function MentionsLegales() {
 function ConditionsUtilisation() {
   return (
     <>
-      <Banniere />
-
       <h2>Article 1 — Objet</h2>
       <p>
         Les présentes conditions régissent l’accès et l’utilisation de CarLog Pro, application de
@@ -267,12 +220,6 @@ function ConditionsUtilisation() {
         Les présentes conditions sont soumises au <strong>droit français</strong>. En cas de litige,
         et à défaut de résolution amiable, les tribunaux français sont compétents.
       </p>
-      <p>
-        <AValider>
-          proposition de clause : à confirmer, notamment si tu préfères désigner une juridiction
-          précise plutôt que la règle générale.
-        </AValider>
-      </p>
 
       <h2>Article 14 — Contact</h2>
       <p>
@@ -285,8 +232,6 @@ function ConditionsUtilisation() {
 function PolitiqueConfidentialite() {
   return (
     <>
-      <Banniere />
-
       <h2>1. Responsable du traitement</h2>
       <p>
         Le responsable du traitement des données décrites ci-dessous est Julie De Castro, éditrice
@@ -343,12 +288,6 @@ function PolitiqueConfidentialite() {
         tentatives de connexion et la prévention des usages abusifs reposent sur l’<strong>intérêt
         légitime</strong> de l’éditrice à sécuriser le service (article 6.1.f du RGPD).
       </p>
-      <p>
-        <AValider>
-          cette qualification est une proposition : elle doit être confirmée, par exemple à partir des
-          fiches de la CNIL, avant une mise en service réelle.
-        </AValider>
-      </p>
 
       <h2>5. Caractère obligatoire ou facultatif</h2>
       <p>
@@ -385,12 +324,6 @@ function PolitiqueConfidentialite() {
         région d’exécution utilisée est Washington, D.C. (iad1 / us-east-1). À ce titre, les données
         techniques de requête traitées par Vercel — dont l’adresse IP — peuvent être traitées hors de
         l’Union européenne, y compris aux États-Unis.
-      </p>
-      <p>
-        <AValider>
-          les garanties encadrant ce transfert (addendum de traitement des données et clauses
-          contractuelles types proposés par Vercel dans ton compte) restent à vérifier et à citer ici.
-        </AValider>
       </p>
 
       <h2>8. Combien de temps les données sont conservées</h2>
@@ -447,13 +380,6 @@ function PolitiqueConfidentialite() {
         Les comptes désactivés sont actuellement conservés : l’application n’efface pas
         automatiquement les comptes inactifs.
       </p>
-      <p>
-        <AValider>
-          ces durées sont des propositions fondées sur les recommandations de la CNIL (3 ans après le
-          dernier contact) ; si une procédure interne existe déjà, ce sont ses durées qui doivent
-          figurer ici, et le délai résiduel de purge des sauvegardes reste à préciser.
-        </AValider>
-      </p>
 
       <h2>9. Cookies et traceurs</h2>
       <p>
@@ -474,17 +400,31 @@ function PolitiqueConfidentialite() {
         connexion sont limitées et les échanges avec le site sont chiffrés en HTTPS.
       </p>
 
-      <h2>11. Vos droits</h2>
+      <h2>11. Vos droits et procédure de vérification</h2>
       <p>
-        Conformément au règlement général sur la protection des données, vous disposez d’un droit
-        d’accès, de rectification, d’effacement, de limitation du traitement, d’opposition et de
-        portabilité de vos données. Ces droits s’exercent en écrivant à <Mail />.
+        Conformément au règlement général sur la protection des données (RGPD) et à la loi
+        Informatique et Libertés, vous disposez d’un droit d’accès, de rectification, d’effacement,
+        de limitation du traitement, d’opposition et de portabilité de vos données.
       </p>
+      <p>Pour exercer ces droits :</p>
+      <ul>
+        <li>
+          envoyez votre demande par courrier électronique à <Mail /> ;
+        </li>
+        <li>
+          votre demande doit être transmise depuis l’adresse email associée à votre compte ou à vos
+          échanges sur le service ;
+        </li>
+        <li>
+          en cas de doute raisonnable sur votre identité, un justificatif d’identité ou des
+          informations complémentaires pourront vous être demandés.
+        </li>
+      </ul>
       <p>
-        <ACompleter>
-          confirmer la procédure de vérification de l’identité du demandeur avant toute communication
-          ou suppression, ainsi que le délai de réponse annoncé.
-        </ACompleter>
+        <strong>Délai de réponse :</strong> conformément à l’article 12.3 du RGPD, une réponse vous
+        sera adressée dans un délai maximum d’un mois à compter de la réception de votre demande
+        complète, ce délai pouvant être prolongé de deux mois en cas de complexité ou de nombre élevé
+        de demandes.
       </p>
       <p>
         Si vous estimez que vos droits ne sont pas respectés, vous pouvez adresser une réclamation à
