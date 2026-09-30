@@ -154,6 +154,12 @@ export default function Register({ onGoToLogin, themeToggle }) {
             </button>
           </form>
 
+          <p className="auth-cgu">
+            En créant un compte, vous confirmez avoir pris connaissance des{' '}
+            <a href="#/cgu">conditions d’utilisation</a> et de la{' '}
+            <a href="#/politique-confidentialite">politique de confidentialité</a>.
+          </p>
+
           <p className="auth-switch">
             Déjà un compte ?{' '}
             <button className="link-button" type="button" onClick={onGoToLogin}>
