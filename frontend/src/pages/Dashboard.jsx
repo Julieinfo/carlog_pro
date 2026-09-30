@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import PiedDePageLegal from '../components/PiedDePageLegal';
 
 const typesVehicule = ['porteur', 'tracteur', 'remorque', 'utilitaire', 'voiture'];
 const carburants = ['diesel', 'gnv', 'electrique', 'hydrogene', 'essence', 'hybride'];
@@ -180,6 +181,7 @@ export default function Dashboard({ themeToggle }) {
       {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin: isAdmin && !readOnly, changeAlert, deleteAlert }} />}
       {tab === 'affectations' && <AssignmentSection {...{ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }} />}
       {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }} />}
+      <PiedDePageLegal />
     </main>
   </div>;
 }

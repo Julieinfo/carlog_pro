@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import PiedDePageLegal from '../components/PiedDePageLegal';
 
 export default function Register({ onGoToLogin, themeToggle }) {
   const [form, setForm] = useState({
@@ -159,6 +160,8 @@ export default function Register({ onGoToLogin, themeToggle }) {
               Se connecter
             </button>
           </p>
+
+          <PiedDePageLegal />
         </section>
       </main>
     </div>
