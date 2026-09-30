@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import PiedDePageLegal from '../components/PiedDePageLegal';
 
 export default function Login({ onGoToRegister, themeToggle }) {
   const [email, setEmail] = useState('');
@@ -81,6 +82,8 @@ export default function Login({ onGoToRegister, themeToggle }) {
               Créer un compte entreprise
             </button>
           </p>
+
+          <PiedDePageLegal />
         </section>
       </main>
     </div>

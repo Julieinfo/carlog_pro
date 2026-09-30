@@ -11,7 +11,7 @@ const ecrire = (niveau, evenement, contexte = {}) => {
 
 const contexteRequete = (req) => ({
   requestId: req.id,
-  cfRay: req.get('cf-ray') || undefined,
+  cfRay: typeof req.get === 'function' ? req.get('cf-ray') || undefined : undefined,
   method: req.method,
   path: req.path
 });
