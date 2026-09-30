@@ -19,6 +19,7 @@
 ## Preuves automatisées déjà observées
 
 - [x] Suite backend complète : `npm test` — 84 tests, 17 suites réussis lors de l'exécution du 28 septembre 2026.
+- [x] Suite backend rejouée le 30 septembre 2026 après réparation du dépôt : 80 tests, 16 suites réussis sur la base dédiée. Les 19 fichiers suivis absents du disque ont été restaurés depuis Git, la ligne dupliquée de `arretPropre.js` supprimée et `middlewares/rateLimiters.js` (perdu lors du merge `2b9225b`) restauré depuis `607e131`. Le total de 17 suites correspond à une exécution antérieure : la branche courante contient 16 fichiers de test.
 - [x] Build frontend : `npm run build` réussi lors de la dernière vérification.
 - [x] Tests couvrant auth/JWT, autorisations, isolation de certains contrôleurs, affectations concurrentes, PTAC et règles Phase 4.
 - [x] `MONGO_URI_TEST` est configurée séparément de `MONGO_URI` dans l'environnement local vérifié ; ne jamais imprimer leurs valeurs.
@@ -152,7 +153,7 @@
 
 ### Obligations légales, confidentialité et SEO
 
-- [ ] Préparer et publier mentions légales, CGU et politique de confidentialité finales avant une mise en service réelle. Un brouillon factuel est dans `docs/brouillon-juridique.md` ; l'option d'anonymat de l'éditeur non professionnel et les coordonnées d'hébergement doivent être confirmées. Aucune adresse personnelle ne doit être inventée ou publiée sans accord.
+- [ ] Préparer et publier mentions légales, CGU et politique de confidentialité finales avant une mise en service réelle. Un brouillon factuel est dans `docs/brouillon-juridique.md` ; l'option d'anonymat de l'éditeur non professionnel et les coordonnées d'hébergement doivent être confirmées. Aucune adresse personnelle ne doit être inventée ou publiée sans accord. **Pages provisoires ajoutées le 30 septembre 2026** dans `frontend/src/pages/PagesLegales.jsx` (accessibles publiquement par ancre depuis la connexion, l'inscription et le dashboard ; bandeau « version provisoire » et mentions « à compléter » visibles). La case reste décochée : statut LCEN et identité transmise à Vercel/Render, adresse légale de Render, mention éventuelle de MongoDB Atlas, régions et transferts hors UE, durées de conservation, base légale RGPD et droit applicable des CGU ne sont pas encore tranchés, et le rendu n'a pas été vérifié visuellement.
 - [x] Inventorier les traceurs et n'afficher un bandeau de consentement que si des traceurs soumis au consentement sont utilisés.
 - [x] Définir les procédures d'accès, rectification, suppression et les durées de conservation des données personnelles.
 - [x] SEO technique de l'application : titre/description français, canonical, Open Graph/Twitter, favicon SVG, `robots.txt`, sitemap racine et image de partage ajoutés. Aucune image informative n'est intégrée à l'interface ; donc aucun `alt` manquant à corriger.
