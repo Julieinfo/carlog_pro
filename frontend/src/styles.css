@@ -208,6 +208,16 @@ body {
 .auth-submit:disabled { cursor: wait; opacity: .65; }
 .auth-error { background: rgba(229, 9, 20, .14); border: 1px solid rgba(229, 9, 20, .45); border-radius: 6px; color: var(--error-text); margin: 0; padding: 11px 13px; }
 .auth-switch { border-top: 1px solid var(--border-color); color: var(--text-muted); margin: 22px 0 0; padding-top: 18px; text-align: center; }
+.field span.champ-mot-de-passe { display: block; font-size: 1rem; margin: 0; position: relative; }
+.field span.champ-mot-de-passe input { padding-right: 42px; }
+.bouton-oeil { align-items: center; background: none; border: 0; border-radius: 6px; color: var(--text-muted); cursor: pointer; display: flex; justify-content: center; padding: 6px; position: absolute; right: 6px; top: 50%; transform: translateY(-50%); }
+.bouton-oeil:hover { color: var(--primary-red); }
+.bouton-oeil:focus-visible { outline: 2px solid var(--primary-red); outline-offset: 1px; }
+.auth-options { align-items: center; display: flex; flex-wrap: wrap; gap: 8px 16px; justify-content: space-between; }
+.auth-remember { align-items: center; color: var(--text-muted); cursor: pointer; display: inline-flex; font-size: .88rem; gap: 8px; }
+.auth-remember input { accent-color: var(--primary-red); height: 15px; margin: 0; width: 15px; }
+.auth-help { background: var(--bg-card-hover); border-left: 3px solid var(--primary-red); color: var(--text-muted); font-size: .88rem; margin: 0; padding: 11px 13px; }
+.auth-help a { color: var(--primary-red); }
 
 .user-menu, .page-heading, .tabs, .toolbar, .form-heading, .item-actions, .pagination {
   display: flex;

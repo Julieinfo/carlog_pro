@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { lireToken, effacerSession } from './stockageSession';
 
 const API = axios.create({
   // En production, /api passe par le meme domaine que le frontend.
@@ -19,9 +20,9 @@ export function messageErreurApi(error, fallback = 'Une erreur est survenue.') {
   return error.response.data?.message || fallback;
 }
 
-// Intercepteur pour injecter automatiquement le token JWT s'il existe dans le localStorage
+// Intercepteur pour injecter automatiquement le token JWT s'il existe dans la session
 API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = lireToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -32,8 +33,7 @@ API.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && !estRequeteConnexion(error)) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      effacerSession();
       window.dispatchEvent(new Event('auth:session-expired'));
     }
     return Promise.reject(error);

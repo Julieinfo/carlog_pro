@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import ChampMotDePasse from '../components/ChampMotDePasse';
 import PiedDePageLegal from '../components/PiedDePageLegal';
 
 export default function Register({ onGoToLogin, themeToggle }) {
@@ -53,7 +54,8 @@ export default function Register({ onGoToLogin, themeToggle }) {
       const res = await api.inscription(payload);
       // Prise en charge selon que api.js retourne res.data ou la réponse Axios
       const data = res.data || res;
-      login(data.user, data.token);
+      // Un compte vient d'être créé : la session est conservée après fermeture du navigateur.
+      login(data.user, data.token, true);
     } catch (err) {
       setErreur(messageErreurApi(err, 'Impossible de créer le compte.'));
     } finally {
@@ -78,7 +80,7 @@ export default function Register({ onGoToLogin, themeToggle }) {
           </div>
 
           <p className="auth-demo-note" role="note">
-            Démonstration portfolio : utilisez uniquement des données fictives. N’y saisissez pas de données personnelles ou de flotte réelles.
+            Démonstration portfolio : utilisez uniquement des données fictives. N'y saisissez pas de données personnelles ou de flotte réelles.
           </p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
@@ -96,10 +98,13 @@ export default function Register({ onGoToLogin, themeToggle }) {
               <span>Email</span>
               <input type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" />
             </label>
-            <label className="field">
-              <span>Mot de passe</span>
-              <input type="password" name="motDePasse" value={form.motDePasse} onChange={handleChange} required autoComplete="new-password" />
-            </label>
+            <ChampMotDePasse
+              libelle="Mot de passe"
+              name="motDePasse"
+              valeur={form.motDePasse}
+              onChange={handleChange}
+              autoComplete="new-password"
+            />
             <label className="field">
               <span>Nom de l'entreprise</span>
               <input name="nomEntreprise" value={form.nomEntreprise} onChange={handleChange} required autoComplete="organization" />
@@ -156,7 +161,7 @@ export default function Register({ onGoToLogin, themeToggle }) {
 
           <p className="auth-cgu">
             En créant un compte, vous confirmez avoir pris connaissance des{' '}
-            <a href="#/cgu">conditions d’utilisation</a> et de la{' '}
+            <a href="#/cgu">conditions d'utilisation</a> et de la{' '}
             <a href="#/politique-confidentialite">politique de confidentialité</a>.
           </p>
 

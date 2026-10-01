@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { api } from '../services/api';
+import { lireToken, sessionPersistante, ecrireSession, effacerSession } from '../services/stockageSession';
 
 const AuthContext = createContext(null);
 
@@ -13,9 +14,9 @@ export function AuthProvider({ children }) {
     let mounted = true;
 
     async function verifierSession() {
-      const savedToken = localStorage.getItem('token');
+      const savedToken = lireToken();
       if (!savedToken) {
-        localStorage.removeItem('user');
+        effacerSession();
         if (mounted) setVerification(false);
         return;
       }
@@ -27,8 +28,8 @@ export function AuthProvider({ children }) {
 
         setToken(savedToken);
         setUser(userData);
-        localStorage.setItem('token', savedToken);
-        localStorage.setItem('user', JSON.stringify(userData));
+        // On réécrit la session dans le même emplacement qu'à la connexion.
+        ecrireSession(userData, savedToken, sessionPersistante());
       } catch {
         if (mounted) logout();
       } finally {
@@ -45,12 +46,11 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('auth:session-expired', logout);
   }, []);
 
-  const login = (userData, tokenValue) => {
-    // 1. Sauvegarde dans le localStorage
-    localStorage.setItem('token', tokenValue);
-    localStorage.setItem('user', JSON.stringify(userData));
+  // seSouvenir omis (ex. rafraîchissement du profil) : on conserve l'emplacement déjà utilisé.
+  const login = (userData, tokenValue, seSouvenir) => {
+    const persistant = seSouvenir === undefined ? sessionPersistante() : seSouvenir;
+    ecrireSession(userData, tokenValue, persistant);
 
-    // 2. Mise à jour de l'état React
     setUser(userData);
     setToken(tokenValue);
   };
@@ -58,8 +58,7 @@ export function AuthProvider({ children }) {
   function logout() {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    effacerSession();
   }
 
   const value = { user, token, login, logout, verification, isAuthenticated: !!token };
