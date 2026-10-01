@@ -8,7 +8,6 @@ export default function Login({ onGoToRegister, themeToggle }) {
   const [email, setEmail] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [seSouvenir, setSeSouvenir] = useState(true);
-  const [aideMotDePasse, setAideMotDePasse] = useState(false);
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
   const { login } = useAuth();
@@ -77,23 +76,10 @@ export default function Login({ onGoToRegister, themeToggle }) {
                 />
                 <span>Se souvenir de moi</span>
               </label>
-              <button
-                className="link-button"
-                type="button"
-                onClick={() => setAideMotDePasse((ouvert) => !ouvert)}
-                aria-expanded={aideMotDePasse}
-              >
+              <a className="link-button" href="#/mot-de-passe-oublie">
                 Mot de passe oublié ?
-              </button>
+              </a>
             </div>
-
-            {aideMotDePasse && (
-              <p className="auth-help" role="note">
-                La réinitialisation automatique par email n’est pas disponible dans cette
-                démonstration. Pour demander une réinitialisation, écrivez à{' '}
-                <a href="mailto:juliedecastro2003@gmail.com">juliedecastro2003@gmail.com</a>.
-              </p>
-            )}
 
             {erreur && <p className="auth-error" role="alert">{erreur}</p>}
 
