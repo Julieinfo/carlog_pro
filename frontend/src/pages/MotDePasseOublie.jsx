@@ -43,7 +43,7 @@ export default function MotDePasseOublie({ themeToggle }) {
           </div>
 
           <p className="auth-demo-note" role="note">
-            Démonstration portfolio : l’envoi automatique d’emails n’est pas activé sur ce site.
+            Démonstration portfolio : l'envoi automatique d'emails n'est pas activé sur ce site.
           </p>
 
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
@@ -61,8 +61,8 @@ export default function MotDePasseOublie({ themeToggle }) {
 
             {demandeEnvoyee && (
               <p className="auth-help" role="status">
-                Aucun email n’est envoyé par cette démonstration. Pour réinitialiser votre mot de
-                passe, écrivez à <a href={`mailto:${CONTACT}`}>{CONTACT}</a> depuis l’adresse de
+                Aucun email n'est envoyé par cette démonstration. Pour réinitialiser votre mot de
+                passe, écrivez à <a href={`mailto:${CONTACT}`}>{CONTACT}</a> depuis l'adresse de
                 votre compte.
               </p>
             )}

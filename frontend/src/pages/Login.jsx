@@ -51,7 +51,7 @@ export default function Login({ onGoToRegister, themeToggle }) {
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <label className="field">
-              <span>Email</span>
+              <span>Adresse e-mail</span>
               <input
                 type="email"
                 value={email}
