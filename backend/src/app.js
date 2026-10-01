@@ -46,9 +46,10 @@ app.use(helmet());
 // CORRECTION SÉCURITÉ : Ajout d'une configuration restrictive pour autoriser uniquement les origines autorisées.
 // Avant : app.use(cors()) autorisait TOUTES les origines, ce qui est dangereux (risque d'attaques CSRF).
 // Maintenant : On autorise explicitement localhost en dev et l'URL de prod en environnement de production.
+const localOrigins = ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
 const allowedOrigins = process.env.NODE_ENV === 'production' 
-    ? [process.env.FRONTEND_URL].filter(Boolean)
-    : ['http://localhost:3000', 'http://localhost:5173', 'http://127.0.0.1:3000', 'http://127.0.0.1:5173'];
+    ? [process.env.FRONTEND_URL, ...localOrigins].filter(Boolean)
+    : localOrigins;
 app.use(cors({
     origin: allowedOrigins,
     credentials: true
