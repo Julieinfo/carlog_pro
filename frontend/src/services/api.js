@@ -72,6 +72,13 @@ export const api = {
   // Statistiques
   getStats: () => API.get('/stats'),
 
+  // Entretiens
+  getEntretiens: (params = {}) => API.get('/entretiens', { params }),
+  getEntretien: (id) => API.get(`/entretiens/${id}`),
+  addEntretien: (data) => API.post('/entretiens', data),
+  updateEntretien: (id, data) => API.put(`/entretiens/${id}`, data),
+  deleteEntretien: (id) => API.delete(`/entretiens/${id}`),
+
   // Utilisateurs de l'entreprise (administrateur uniquement)
   getUtilisateurs: () => API.get('/auth/utilisateurs'),
   addUtilisateur: (data) => API.post('/auth/utilisateurs', data),

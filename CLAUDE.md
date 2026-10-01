@@ -252,6 +252,8 @@ Une feature est finie quand :
 4. Préparer les documents légaux et la procédure de gestion des données personnelles avant une mise en service réelle.
 5. Faire évoluer l'interface et le référencement public selon les retours d'usage.
 
+- [2026-10-01] · Module Entretiens ajouté : modèle et API sécurisés par entreprise avec filtres statut/type, formulaire global, changement de statut et carnet de santé par véhicule dans le dashboard. Build frontend validé ; les tests backend nécessitent l'accès réseau MongoDB Atlas, bloqué par la sandbox.
+
 ---
 
 *Adapté du starter CLAUDE.md générique pour coller au projet réel CarLog Pro (Express/MongoDB/React, SaaS B2B de gestion de flotte).*
