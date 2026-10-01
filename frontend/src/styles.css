@@ -235,7 +235,7 @@ body {
 .toolbar { flex-wrap: wrap; margin-bottom: 20px; }
 .toolbar input { flex: 1 1 260px; }
 .toolbar select { min-width: 150px; }
-input, select, textarea { width: 100%; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 10px 12px; font: inherit; }
+input, select, textarea { box-sizing: border-box; width: 100%; background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 6px; color: var(--text-main); padding: 10px 12px; font: inherit; }
 textarea { min-height: 80px; resize: vertical; }
 .form-panel { background: var(--bg-dark); border: 1px solid var(--border-color); border-radius: 8px; padding: 18px; margin: 18px 0; }
 .form-heading { justify-content: space-between; margin-bottom: 14px; }
