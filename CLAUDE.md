@@ -256,6 +256,7 @@ Une feature est finie quand :
 - [2026-10-02] · Module Coûts ajouté : dépenses et pleins par véhicule, filtres période/véhicule/catégorie, KPI TCO, coût/km, comparaison mensuelle, répartition et évolution mensuelle, historique et export CSV. Tests RBAC ciblés (18) et build frontend validés.
 - [2026-10-02] · Suivi carburant ajouté sous Coûts : pleins enrichis (station, type de carburant), consommation L/100 km, coût/km, moyennes par véhicule, alerte au-delà de 12 L/100 km, modification et suppression. Tests RBAC ciblés (18) et build frontend validés.
 - [2026-10-02] · Module Documents & contrats ajouté : dépôt local de fichiers contrôlés (10 Mo), consultation authentifiée, téléchargement, archivage, suppression, association véhicule, filtres et statuts d’échéance avec alertes à 30 jours. `multer` est utilisé pour le multipart ; le stockage local est réservé au développement et devra être remplacé par un stockage persistant avant la production.
+- [2026-10-02] · Page Rapports ajoutée : sélecteur de période et véhicule, rapports activité/coûts/carburant/entretiens/alertes/affectations, tableau de résultat, export CSV et génération PDF via impression navigateur, sans nouvelle dépendance.
 
 ---
 

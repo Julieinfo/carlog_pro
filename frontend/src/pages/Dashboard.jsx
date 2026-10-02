@@ -24,6 +24,8 @@ const userInitial = { nom: '', prenom: '', email: '', telephone: '', motDePasse:
 const entretienInitial = { vehicule: '', typeEntretien: 'revision', statut: 'planifie', dateEntretien: '', kilometragePrevisionnel: '', kilometrageReel: '', cout: 0, description: '' };
 const depenseInitial = { vehicule: '', categorie: 'carburant', dateDepense: '', montant: '', kilometrage: '', litres: '', prixAuLitre: '', description: '' };
 const documentInitial = { vehicule: '', typeDocument: 'assurance', reference: '', prestataire: '', dateDebut: '', dateEcheance: '', cout: '' };
+const typesRapport = ['activite', 'couts', 'carburant', 'entretiens', 'alertes', 'affectations'];
+const libellesRapport = { activite: 'Activité', couts: 'Coûts', carburant: 'Carburant', entretiens: 'Entretiens', alertes: 'Alertes', affectations: 'Affectations' };
 
 function asList(response) {
   const data = response?.data ?? response;
@@ -68,6 +70,8 @@ export default function Dashboard({ themeToggle }) {
   const [documentFilters, setDocumentFilters] = useState({ vehicule: '', typeDocument: '', statut: '' });
   const [documentForm, setDocumentForm] = useState(documentInitial);
   const [documentFile, setDocumentFile] = useState(null);
+  const [reportFilters, setReportFilters] = useState({ type: 'activite', debut: '', fin: '', vehicule: '' });
+  const [generatedReport, setGeneratedReport] = useState(null);
 
   const isAdmin = user?.role === 'admin';
   const readOnly = user?.abonnement === 'past_due';
@@ -299,6 +303,53 @@ export default function Dashboard({ themeToggle }) {
   }
   async function disableUser(id) { if (!window.confirm('Désactiver cet utilisateur ?')) return; try { await api.disableUtilisateur(id); setNotice('Utilisateur désactivé.'); await loadData(); } catch (exception) { handleError(exception); } }
   async function reactivateUser(id) { try { await api.reactivateUtilisateur(id); setNotice('Utilisateur réactivé.'); await loadData(); } catch (exception) { handleError(exception); } }
+  async function generateReport(event) {
+    event.preventDefault();
+    if (reportFilters.debut && reportFilters.fin && reportFilters.debut > reportFilters.fin) {
+      setError('La date de début doit être antérieure ou égale à la date de fin.');
+      return;
+    }
+    setError('');
+    try {
+      const [alertsResult, assignmentsResult, entretiensResult, depensesResult] = await Promise.allSettled([
+        api.getAlertes(),
+        api.getAffectations(),
+        api.getEntretiens({ limit: 100 }),
+        api.getDepenses({ ...coutsFilters, limit: 100 })
+      ]);
+      const report = construireRapport(reportFilters, {
+        vehicles,
+        alerts: alertsResult.status === 'fulfilled' ? asList(alertsResult.value) : alerts,
+        assignments: assignmentsResult.status === 'fulfilled' ? asList(assignmentsResult.value) : assignments,
+        entretiens: entretiensResult.status === 'fulfilled' ? asList(entretiensResult.value) : entretiens,
+        depenses: depensesResult.status === 'fulfilled' ? asList(depensesResult.value) : depenses
+      });
+      setGeneratedReport(report);
+      setNotice(`Rapport ${libellesRapport[reportFilters.type]} généré.`);
+    } catch (exception) { handleError(exception); }
+  }
+  function exportReportCsv() {
+    if (!generatedReport) return;
+    const csv = [generatedReport.columns, ...generatedReport.rows]
+      .map((row) => row.map((value) => `"${String(value ?? '').replaceAll('"', '""')}"`).join(';'))
+      .join('\r\n');
+    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `rapport-${reportFilters.type}-${new Date().toISOString().slice(0, 10)}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  function exportReportPdf() {
+    if (!generatedReport) return;
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    if (!popup) { setError('Autorisez les fenêtres popup pour imprimer le rapport en PDF.'); return; }
+    const escape = (value) => String(value ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+    popup.document.write(`<html><head><title>${escape(generatedReport.title)}</title><style>body{font-family:Arial,sans-serif;color:#0f172a;padding:24px}h1{font-size:22px}p{color:#475569}table{border-collapse:collapse;width:100%;margin-top:20px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left;font-size:12px}th{background:#f1f5f9}</style></head><body><h1>${escape(generatedReport.title)}</h1><p>${escape(generatedReport.subtitle)}</p><table><thead><tr>${generatedReport.columns.map((column) => `<th>${escape(column)}</th>`).join('')}</tr></thead><tbody>${generatedReport.rows.map((row) => `<tr>${row.map((value) => `<td>${escape(value)}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`);
+    popup.document.close();
+    popup.focus();
+    popup.print();
+  }
 
   if (canceled) return <div>
     <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span>{themeToggle}<button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
@@ -319,12 +370,13 @@ export default function Dashboard({ themeToggle }) {
       <div className="page-heading"><div><p className="eyebrow">Gestion de flotte</p><h1 className="dashboard-title">Votre espace de pilotage</h1></div></div>
       {error && <div className="notice error">{error}</div>}{notice && <div className="notice success">{notice}<button onClick={() => setNotice('')} aria-label="Fermer">×</button></div>}
       {readOnly && <div className="notice error" role="status">L'abonnement de votre entreprise est en attente de régularisation. L'espace est en lecture seule, sauf pour le signalement d'une alerte.{isAdmin && ' La régularisation est gérée manuellement pour le moment ; contactez l’assistance CarLog Pro.'}</div>}
-      <nav className="tabs">{[['accueil', 'Vue d’ensemble'], ['vehicules', 'Véhicules'], ['entretiens', 'Entretiens'], ['couts', 'Coûts'], ['documents', 'Documents & contrats'], ['alertes', 'Alertes'], ['affectations', 'Affectations'], ...(isAdmin ? [['utilisateurs', 'Utilisateurs']] : [])].map(([id, text]) => <button className={tab === id ? 'tab active' : 'tab'} key={id} onClick={() => setTab(id)}>{text}</button>)}</nav>
+      <nav className="tabs">{[['accueil', 'Vue d’ensemble'], ['vehicules', 'Véhicules'], ['entretiens', 'Entretiens'], ['couts', 'Coûts'], ['documents', 'Documents & contrats'], ['rapports', 'Rapports'], ['alertes', 'Alertes'], ['affectations', 'Affectations'], ...(isAdmin ? [['utilisateurs', 'Utilisateurs']] : [])].map(([id, text]) => <button className={tab === id ? 'tab active' : 'tab'} key={id} onClick={() => setTab(id)}>{text}</button>)}</nav>
       {tab === 'accueil' && <Home stats={stats} vehicles={vehicles} alerts={alerts} assignments={activeAssignments} openTab={setTab} />}
       {tab === 'vehicules' && <VehicleSection {...{ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin: isAdmin && !readOnly, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle, openVehicleHistory, selectedVehicleHistory, setSelectedVehicleHistory }} />}
       {tab === 'entretiens' && <EntretienSection {...{ entretiens, entretienFilters, setEntretienFilters, entretienForm, setEntretienForm, saveEntretien, changeEntretien, deleteEntretien, vehicles, canManageMaintenance: !readOnly && ['admin', 'fleet_manager', 'mecanicien'].includes(user?.role), isAdmin: isAdmin && !readOnly }} />}
       {tab === 'couts' && <CoutsSection {...{ depenses, coutsOverview, carburantOverview, coutsFilters, setCoutsFilters, loadData, depenseForm, setDepenseForm, editingDepense, setEditingDepense, saveDepense, editDepense, deleteDepense, exportDepensesCsv, vehicles, canManageCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role) }} />}
       {tab === 'documents' && <DocumentSection {...{ documents, documentFilters, setDocumentFilters, documentForm, setDocumentForm, documentFile, setDocumentFile, saveDocument, downloadDocument, previewDocument, archiveDocument, deleteDocument, loadData, vehicles, canManageDocuments: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteDocuments: !readOnly && ['admin', 'fleet_manager'].includes(user?.role) }} />}
+      {tab === 'rapports' && <RapportsSection {...{ reportFilters, setReportFilters, generateReport, generatedReport, exportReportCsv, exportReportPdf, vehicles }} />}
       {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin: isAdmin && !readOnly, changeAlert, deleteAlert }} />}
       {tab === 'affectations' && <AssignmentSection {...{ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }} />}
       {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }} />}
@@ -340,6 +392,81 @@ function Home({ stats, vehicles, alerts, assignments, openTab }) {
 function Kpi({ title, value }) { return <article className="kpi"><small>{title}</small><strong>{value}</strong></article>; }
 function ListCard({ title, items, onOpen }) { return <section className="card-section"><div className="section-header"><h2>{title}</h2><button className="link-button" onClick={onOpen}>Voir tout</button></div>{items.map((item) => <div className="data-item" key={item._id}><div><strong>{item.marque ? `${item.marque} ${item.modele}` : item.titre}</strong><small>{item.immatriculation || `${item.typeAlerte} · ${item.niveauUrgence}`}</small></div><span className="status">{label(item.statut)}</span></div>)}{!items.length && <p className="empty-state">Aucune donnée pour le moment.</p>}</section>; }
 function Field({ label: title, children }) { return <label className="field"><span>{title}</span>{children}</label>; }
+
+function construireRapport(filters, donnees) {
+  const debut = filters.debut ? new Date(`${filters.debut}T00:00:00.000Z`) : null;
+  const fin = filters.fin ? new Date(`${filters.fin}T23:59:59.999Z`) : null;
+  const vehicleId = filters.vehicule;
+  const dansPeriode = (item, champ) => {
+    const value = item[champ] || item.createdAt;
+    if (!value) return true;
+    const date = new Date(value);
+    return (!debut || date >= debut) && (!fin || date <= fin);
+  };
+  const duVehicule = (item) => !vehicleId || String(item.vehicule?._id || item.vehicule) === vehicleId;
+  const nomVehicule = (item) => item.vehicule?.immatriculation || 'Non associé';
+  let columns;
+  let rows;
+  let source;
+  switch (filters.type) {
+    case 'couts':
+      source = donnees.depenses.filter((item) => duVehicule(item) && dansPeriode(item, 'dateDepense'));
+      columns = ['Date', 'Véhicule', 'Catégorie', 'Montant (€)', 'Kilométrage', 'Description'];
+      rows = source.map((item) => [dateFr(item.dateDepense), nomVehicule(item), label(item.categorie), item.montant, item.kilometrage ?? '', item.description || '']);
+      break;
+    case 'carburant':
+      source = donnees.depenses.filter((item) => item.categorie === 'carburant' && duVehicule(item) && dansPeriode(item, 'dateDepense'));
+      columns = ['Date', 'Véhicule', 'Litres', 'Prix/L (€)', 'Montant (€)', 'Kilométrage'];
+      rows = source.map((item) => [dateFr(item.dateDepense), nomVehicule(item), item.litres ?? '', item.prixAuLitre ?? '', item.montant, item.kilometrage ?? '']);
+      break;
+    case 'entretiens':
+      source = donnees.entretiens.filter((item) => duVehicule(item) && dansPeriode(item, 'dateEntretien'));
+      columns = ['Date', 'Véhicule', 'Type', 'Statut', 'Coût (€)', 'Kilométrage'];
+      rows = source.map((item) => [dateFr(item.dateEntretien), nomVehicule(item), label(item.typeEntretien), label(item.statut), item.cout ?? 0, item.kilometrageReel ?? item.kilometragePrevisionnel ?? '']);
+      break;
+    case 'alertes':
+      source = donnees.alerts.filter((item) => duVehicule(item) && dansPeriode(item, 'createdAt'));
+      columns = ['Date', 'Véhicule', 'Titre', 'Type', 'Urgence', 'Statut'];
+      rows = source.map((item) => [dateFr(item.createdAt), nomVehicule(item), item.titre, label(item.typeAlerte), item.niveauUrgence, label(item.statut)]);
+      break;
+    case 'affectations':
+      source = donnees.assignments.filter((item) => duVehicule(item) && dansPeriode(item, 'dateDebut'));
+      columns = ['Début', 'Fin', 'Véhicule', 'Statut', 'Km début', 'Km fin'];
+      rows = source.map((item) => [dateFr(item.dateDebut), dateFr(item.dateFin), nomVehicule(item), label(item.statut), item.kmDebut, item.kmFin ?? '']);
+      break;
+    default:
+      source = [
+        ...donnees.depenses.filter((item) => duVehicule(item) && dansPeriode(item, 'dateDepense')).map((item) => ({ date: item.dateDepense, type: 'Coût', vehicle: nomVehicule(item), detail: label(item.categorie), amount: `${item.montant} €` })),
+        ...donnees.entretiens.filter((item) => duVehicule(item) && dansPeriode(item, 'dateEntretien')).map((item) => ({ date: item.dateEntretien, type: 'Entretien', vehicle: nomVehicule(item), detail: label(item.typeEntretien), amount: `${item.cout ?? 0} €` })),
+        ...donnees.alerts.filter((item) => duVehicule(item) && dansPeriode(item, 'createdAt')).map((item) => ({ date: item.createdAt, type: 'Alerte', vehicle: nomVehicule(item), detail: item.titre, amount: label(item.statut) })),
+        ...donnees.assignments.filter((item) => duVehicule(item) && dansPeriode(item, 'dateDebut')).map((item) => ({ date: item.dateDebut, type: 'Affectation', vehicle: nomVehicule(item), detail: label(item.statut), amount: `${item.kmDebut ?? ''} km` }))
+      ].sort((a, b) => new Date(b.date) - new Date(a.date));
+      columns = ['Date', 'Type', 'Véhicule', 'Détail', 'Valeur'];
+      rows = source.map((item) => [dateFr(item.date), item.type, item.vehicle, item.detail, item.amount]);
+  }
+  const periode = `${filters.debut || 'Début'} → ${filters.fin || 'Aujourd’hui'}`;
+  return { title: `Rapport ${libellesRapport[filters.type]}`, subtitle: `Période : ${periode} · ${rows.length} élément(s)`, columns, rows };
+}
+
+function dateFr(value) {
+  return value ? new Date(value).toLocaleDateString('fr-FR') : '';
+}
+
+function RapportsSection({ reportFilters, setReportFilters, generateReport, generatedReport, exportReportCsv, exportReportPdf, vehicles }) {
+  return <section className="workspace">
+    <div className="section-header"><div><p className="eyebrow">Analyse et partage</p><h2>Rapports</h2></div></div>
+    <form className="form-panel" onSubmit={generateReport}>
+      <div className="form-grid">
+        <Field label="Type de rapport"><select value={reportFilters.type} onChange={(event) => setReportFilters({ ...reportFilters, type: event.target.value })}>{typesRapport.map((type) => <option key={type} value={type}>{libellesRapport[type]}</option>)}</select></Field>
+        <Field label="Du"><input type="date" value={reportFilters.debut} onChange={(event) => setReportFilters({ ...reportFilters, debut: event.target.value })} /></Field>
+        <Field label="Au"><input type="date" value={reportFilters.fin} onChange={(event) => setReportFilters({ ...reportFilters, fin: event.target.value })} /></Field>
+        <Field label="Véhicule"><select value={reportFilters.vehicule} onChange={(event) => setReportFilters({ ...reportFilters, vehicule: event.target.value })}><option value="">Toute la flotte</option>{vehicles.map((vehicle) => <option key={vehicle._id} value={vehicle._id}>{vehicle.immatriculation} · {vehicle.marque} {vehicle.modele}</option>)}</select></Field>
+      </div>
+      <button className="btn-primary">Générer le rapport</button>
+    </form>
+    {generatedReport ? <><div className="section-header"><div><h3>{generatedReport.title}</h3><small>{generatedReport.subtitle}</small></div><div className="item-actions"><button className="btn-secondary" onClick={exportReportCsv}>Télécharger en CSV</button><button className="btn-primary" onClick={exportReportPdf}>Télécharger en PDF</button></div></div>{generatedReport.rows.length ? <div className="table-wrap"><table><thead><tr>{generatedReport.columns.map((column) => <th key={column}>{column}</th>)}</tr></thead><tbody>{generatedReport.rows.map((row, index) => <tr key={`${index}-${row[0]}`}>{row.map((value, cellIndex) => <td key={`${index}-${cellIndex}`}>{value}</td>)}</tr>)}</tbody></table></div> : <p className="empty-state">Aucune donnée ne correspond aux critères sélectionnés.</p>}</> : <p className="empty-state">Choisissez les critères puis générez un rapport.</p>}
+  </section>;
+}
 
 function VehicleSection({ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle, openVehicleHistory, selectedVehicleHistory, setSelectedVehicleHistory }) { return <section className="workspace"><div className="section-header"><div><p className="eyebrow">Parc automobile</p><h2>Véhicules <span className="count-badge">{pagination.totalItems}</span></h2></div></div><div className="toolbar"><input placeholder="Plaque, marque, modèle" value={vehicleFilters.search} onChange={(e) => setVehicleFilters({ ...vehicleFilters, search: e.target.value })} /><select value={vehicleFilters.typeVehicule} onChange={(e) => setVehicleFilters({ ...vehicleFilters, typeVehicule: e.target.value })}><option value="">Tous les types</option>{typesVehicule.map((item) => <option key={item}>{item}</option>)}</select><select value={vehicleFilters.statut} onChange={(e) => setVehicleFilters({ ...vehicleFilters, statut: e.target.value })}><option value="">Tous les statuts</option>{statutsVehicule.map((item) => <option key={item}>{item}</option>)}</select><button className="btn-primary" onClick={() => loadData()}>Rechercher</button></div>{selectedVehicleHistory && <section className="card-section"><div className="section-header"><div><p className="eyebrow">Carnet de santé</p><h3>{selectedVehicleHistory.vehicle.marque} {selectedVehicleHistory.vehicle.modele} · {selectedVehicleHistory.vehicle.immatriculation}</h3></div><button className="link-button" onClick={() => setSelectedVehicleHistory(null)}>Fermer</button></div><h4>Entretiens</h4>{selectedVehicleHistory.items.length ? <div className="data-list">{selectedVehicleHistory.items.map((item) => <div className="data-item" key={item._id}><div><strong>{label(item.typeEntretien)}</strong><small>{new Date(item.dateEntretien).toLocaleDateString('fr-FR')} · {item.cout} €</small><p>{item.description || 'Aucune description.'}</p></div><span className="status">{label(item.statut)}</span></div>)}</div> : <p className="empty-state">Aucun entretien enregistré pour ce véhicule.</p>}<h4>Documents associés</h4>{selectedVehicleHistory.documents?.length ? <div className="data-list">{selectedVehicleHistory.documents.map((item) => <div className="data-item" key={item._id}><div><strong>{item.nomOriginal}</strong><small>{label(item.typeDocument)} · échéance {new Date(item.dateEcheance).toLocaleDateString('fr-FR')}</small></div><span className="status">{label(item.statut)}</span></div>)}</div> : <p className="empty-state">Aucun document associé à ce véhicule.</p>}</section>}{canManageFleet && <VehicleForm form={vehicleForm} setForm={setVehicleForm} submit={saveVehicle} editing={editingVehicle} cancel={() => { setEditingVehicle(null); setVehicleForm(vehicleInitial); }} />}{vehicles.length ? <div className="table-wrap"><table><thead><tr><th>Véhicule</th><th>Type</th><th>Kilométrage</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{vehicles.map((item) => <tr key={item._id}><td><strong>{item.marque} {item.modele}</strong><small>{item.immatriculation} · {item.annee || 'année non renseignée'}</small></td><td>{item.typeVehicule}</td><td>{item.kilometrage} km</td><td><span className="status">{label(item.statut)}</span></td><td><button className="link-button" onClick={() => openVehicleHistory(item)}>Carnet</button>{canManageFleet && <button className="link-button" onClick={() => { setEditingVehicle(item); setVehicleForm({ ...vehicleInitial, ...item }); }}>Modifier</button>}{isAdmin && <button className="link-button danger" onClick={() => archiveVehicle(item._id)}>Archiver</button>}</td></tr>)}</tbody></table></div> : <p className="empty-state">Aucun véhicule ne correspond à vos critères.</p>}<Pagination data={pagination} change={(page) => { setVehicleFilters({ ...vehicleFilters, page }); loadData({ page }); }} /></section>; }
 function VehicleForm({ form, setForm, submit, editing, cancel }) { return <form className="form-panel" onSubmit={submit}><div className="form-heading"><h3>{editing ? 'Modifier le véhicule' : 'Ajouter un véhicule'}</h3>{editing && <button type="button" className="link-button" onClick={cancel}>Annuler</button>}</div><div className="form-grid"><Field label="Immatriculation"><input required value={form.immatriculation} onChange={(e) => setForm({ ...form, immatriculation: e.target.value })} /></Field><Field label="Marque"><input required value={form.marque} onChange={(e) => setForm({ ...form, marque: e.target.value })} /></Field><Field label="Modèle"><input required value={form.modele} onChange={(e) => setForm({ ...form, modele: e.target.value })} /></Field><Field label="Type"><select value={form.typeVehicule} onChange={(e) => setForm({ ...form, typeVehicule: e.target.value })}>{typesVehicule.map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Année"><input type="number" value={form.annee} onChange={(e) => setForm({ ...form, annee: e.target.value })} /></Field><Field label="PTAC (kg)"><input required min="1" type="number" value={form.ptac} onChange={(e) => setForm({ ...form, ptac: e.target.value })} /></Field><Field label="Carburant"><select value={form.carburant} onChange={(e) => setForm({ ...form, carburant: e.target.value })}>{carburants.map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Kilométrage"><input min="0" type="number" value={form.kilometrage} onChange={(e) => setForm({ ...form, kilometrage: e.target.value })} /></Field>{editing && <Field label="Statut"><select value={form.statut} onChange={(e) => setForm({ ...form, statut: e.target.value })}>{statutsVehicule.map((item) => <option key={item}>{item}</option>)}</select></Field>}</div><button className="btn-primary">{editing ? 'Enregistrer' : 'Ajouter le véhicule'}</button></form>; }
