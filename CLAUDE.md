@@ -260,6 +260,7 @@ Une feature est finie quand :
 - [2026-10-02] · Alertes enrichies : priorités information/faible/moyen/élevé/critique, statuts affichés active/traitée/ignorée, filtres véhicule/priorité/statut, compteur dans la navigation et actions de traitement/ignorance. Synchronisation automatique persistée pour les entretiens à venir/en retard, documents arrivant à échéance/expirés et consommations supérieures à 12 L/100 km.
 - [2026-10-02] · Fiche véhicule enrichie : informations générales, photo HTTPS facultative, mise en circulation, affectations, entretiens, prochain entretien, alertes, documents/contrats, dépenses, consommation moyenne, TCO, coût/km et actions rapides vers les formulaires existants. La photo reste une URL contrôlée, sans stockage de fichier supplémentaire.
 - [2026-10-02] · Vue d’ensemble enrichie : actions rapides, KPI véhicules/alertes/entretiens/coûts, cartes cliquables avec filtres associés, éléments récents, échéances proches, répartitions flotte/dépenses et boutons « Voir tout ».
+- [2026-10-02] · Barre supérieure enrichie : logo retour dashboard, bascule clair/sombre conservée, cloche ouvrant les alertes avec compteur actif, menu profil avec identité/rôle et déconnexion directe ou depuis le menu. Build frontend et diagnostics validés.
 
 ---
 

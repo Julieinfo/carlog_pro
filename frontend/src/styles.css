@@ -61,6 +61,44 @@ body {
   color: var(--primary-red);
 }
 
+.logo-button {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.logo-button:focus-visible, .notification-button:focus-visible, .profile-button:focus-visible, .profile-dropdown button:focus-visible {
+  outline: 2px solid var(--primary-red);
+  outline-offset: 2px;
+}
+
+.notification-button, .profile-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-main);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  gap: 7px;
+  min-height: 38px;
+  padding: 7px 10px;
+}
+
+.notification-button:hover, .profile-button:hover {
+  background: var(--bg-card-hover);
+}
+
+.notification-button { position: relative; }
+.notification-badge { background: var(--primary-red); border-radius: 999px; color: white; font-size: .7rem; line-height: 1; min-width: 16px; padding: 3px 4px; }
+.profile-menu { position: relative; }
+.profile-dropdown { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 12px 28px rgba(15, 23, 42, .18); display: grid; gap: 7px; min-width: 220px; padding: 14px; position: absolute; right: 0; top: calc(100% + 8px); z-index: 10; }
+.profile-dropdown small { color: var(--text-muted); }
+.profile-dropdown button { background: transparent; border: 0; border-top: 1px solid var(--border-color); color: var(--primary-red); cursor: pointer; font: inherit; margin-top: 5px; padding: 10px 0 0; text-align: left; }
+
 .btn-logout {
   background: transparent;
   border: 1px solid var(--border-color);
@@ -300,7 +338,8 @@ th { color: var(--text-muted); font-size: .78rem; text-transform: uppercase; }
 
 @media (max-width: 700px) {
   .navbar { padding: 14px 18px; }
-  .user-menu span { display: none; }
+  .user-menu > span { display: none; }
+  .profile-name { display: none; }
   .user-menu { gap: 8px; }
   .btn-theme, .btn-logout { font-size: .85rem; padding: 8px 10px; }
   .dashboard-container { margin-top: 24px; padding: 0 14px; }

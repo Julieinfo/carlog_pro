@@ -36,6 +36,40 @@ function asList(response) {
 }
 function label(value) { return String(value || '').replaceAll('_', ' '); }
 
+function TopBar({ user, themeToggle, notificationCount, onHome, onNotifications, onLogout }) {
+  const [profileOpen, setProfileOpen] = useState(false);
+
+  return (
+    <header className="navbar">
+      <button className="logo logo-button" type="button" onClick={onHome} aria-label="Retourner au tableau de bord">
+        CarLog <span>Pro</span>
+      </button>
+      <div className="user-menu">
+        <button className="notification-button" type="button" onClick={onNotifications} aria-label={`Voir les alertes (${notificationCount} non lues)`}>
+          <span aria-hidden="true">🔔</span>
+          {notificationCount > 0 && <b className="notification-badge">{notificationCount > 99 ? '99+' : notificationCount}</b>}
+        </button>
+        <div className="profile-menu">
+          <button className="profile-button" type="button" onClick={() => setProfileOpen((open) => !open)} aria-expanded={profileOpen} aria-haspopup="menu">
+            <span className="profile-name">{user?.prenom || 'Utilisateur'}</span>
+            <span aria-hidden="true">⌄</span>
+          </button>
+          {profileOpen && (
+            <div className="profile-dropdown" role="menu">
+              <strong>{[user?.prenom, user?.nom].filter(Boolean).join(' ') || 'Utilisateur'}</strong>
+              {user?.email && <small>{user.email}</small>}
+              {user?.role && <small>{libellesRoles[user.role] || user.role}</small>}
+              <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); onLogout(); }}>Déconnexion</button>
+            </div>
+          )}
+        </div>
+        {themeToggle}
+        <button className="btn-logout" type="button" onClick={onLogout}>Déconnexion</button>
+      </div>
+    </header>
+  );
+}
+
 export default function Dashboard({ themeToggle }) {
   const { token, logout, user, login } = useAuth();
   const [tab, setTab] = useState('accueil');
@@ -363,7 +397,7 @@ export default function Dashboard({ themeToggle }) {
   }
 
   if (canceled) return <div>
-    <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span>{themeToggle}<button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
+    <TopBar user={user} themeToggle={themeToggle} notificationCount={alerts.filter((item) => item.statut === 'active' || item.statut === 'en_cours').length} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onLogout={logout} />
     <main className="dashboard-container">
       <div className="page-heading"><div><p className="eyebrow">Gestion du compte</p><h1 className="dashboard-title">Abonnement suspendu</h1></div><button className="btn-secondary" onClick={refreshSubscription}>Actualiser le statut</button></div>
       <div className="notice error" role="status">L'abonnement de votre entreprise est résilié. L'accès aux données de la flotte est suspendu.</div>
@@ -381,7 +415,7 @@ export default function Dashboard({ themeToggle }) {
   };
 
   return <div>
-    <header className="navbar"><div className="logo">CarLog <span>Pro</span></div><div className="user-menu"><span>Bonjour, <strong>{user?.prenom || 'utilisateur'}</strong></span>{themeToggle}<button className="btn-logout" onClick={logout}>Déconnexion</button></div></header>
+    <TopBar user={user} themeToggle={themeToggle} notificationCount={activeAlertCount} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onLogout={logout} />
     <main className="dashboard-container">
       <div className="page-heading"><div><p className="eyebrow">Gestion de flotte</p><h1 className="dashboard-title">Votre espace de pilotage</h1></div></div>
       {error && <div className="notice error">{error}</div>}{notice && <div className="notice success">{notice}<button onClick={() => setNotice('')} aria-label="Fermer">×</button></div>}
