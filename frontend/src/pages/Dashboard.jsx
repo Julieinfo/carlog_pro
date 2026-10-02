@@ -36,7 +36,7 @@ function asList(response) {
 }
 function label(value) { return String(value || '').replaceAll('_', ' '); }
 
-function TopBar({ user, themeToggle, notificationCount, onHome, onNotifications, onLogout }) {
+function TopBar({ user, themeToggle, notificationCount, onHome, onNotifications, onMenuAction, onLogout }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
   return (
@@ -59,6 +59,16 @@ function TopBar({ user, themeToggle, notificationCount, onHome, onNotifications,
               <strong>{[user?.prenom, user?.nom].filter(Boolean).join(' ') || 'Utilisateur'}</strong>
               {user?.email && <small>{user.email}</small>}
               {user?.role && <small>{libellesRoles[user.role] || user.role}</small>}
+              <div className="profile-links">
+                <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); onMenuAction('profil'); }}>Mon profil</button>
+                <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); onMenuAction('entreprise'); }}>Paramètres de l’entreprise</button>
+                <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); onMenuAction('documents'); }}>Documents & contrats</button>
+                <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); onMenuAction('notifications'); }}>Préférences de notification</button>
+                <a href="mailto:juliedecastro2003@gmail.com" role="menuitem" onClick={() => setProfileOpen(false)}>Centre d’aide</a>
+                <a href="#/mentions-legales" role="menuitem" onClick={() => setProfileOpen(false)}>Mentions légales</a>
+                <a href="#/cgu" role="menuitem" onClick={() => setProfileOpen(false)}>Conditions d’utilisation</a>
+                <a href="#/politique-confidentialite" role="menuitem" onClick={() => setProfileOpen(false)}>Politique de confidentialité</a>
+              </div>
               <button type="button" role="menuitem" onClick={() => { setProfileOpen(false); onLogout(); }}>Déconnexion</button>
             </div>
           )}
@@ -397,7 +407,14 @@ export default function Dashboard({ themeToggle }) {
   }
 
   if (canceled) return <div>
-    <TopBar user={user} themeToggle={themeToggle} notificationCount={alerts.filter((item) => item.statut === 'active' || item.statut === 'en_cours').length} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onLogout={logout} />
+    <TopBar user={user} themeToggle={themeToggle} notificationCount={alerts.filter((item) => item.statut === 'active' || item.statut === 'en_cours').length} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
+      if (action === 'documents') setTab('documents');
+      else setNotice(action === 'notifications'
+        ? 'Les préférences de notification seront disponibles dans une prochaine version.'
+        : action === 'entreprise'
+          ? (isAdmin ? 'Les paramètres de l’entreprise sont accessibles depuis l’administration des utilisateurs.' : 'Les paramètres de l’entreprise sont réservés à l’administrateur.')
+          : 'Les informations de votre profil sont affichées dans le menu du profil.');
+    }} onLogout={logout} />
     <main className="dashboard-container">
       <div className="page-heading"><div><p className="eyebrow">Gestion du compte</p><h1 className="dashboard-title">Abonnement suspendu</h1></div><button className="btn-secondary" onClick={refreshSubscription}>Actualiser le statut</button></div>
       <div className="notice error" role="status">L'abonnement de votre entreprise est résilié. L'accès aux données de la flotte est suspendu.</div>
@@ -415,7 +432,14 @@ export default function Dashboard({ themeToggle }) {
   };
 
   return <div>
-    <TopBar user={user} themeToggle={themeToggle} notificationCount={activeAlertCount} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onLogout={logout} />
+    <TopBar user={user} themeToggle={themeToggle} notificationCount={activeAlertCount} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
+      if (action === 'documents') setTab('documents');
+      else setNotice(action === 'notifications'
+        ? 'Les préférences de notification seront disponibles dans une prochaine version.'
+        : action === 'entreprise'
+          ? (isAdmin ? 'Les paramètres de l’entreprise sont accessibles depuis l’administration des utilisateurs.' : 'Les paramètres de l’entreprise sont réservés à l’administrateur.')
+          : 'Les informations de votre profil sont affichées dans le menu du profil.');
+    }} onLogout={logout} />
     <main className="dashboard-container">
       <div className="page-heading"><div><p className="eyebrow">Gestion de flotte</p><h1 className="dashboard-title">Votre espace de pilotage</h1></div></div>
       {error && <div className="notice error">{error}</div>}{notice && <div className="notice success">{notice}<button onClick={() => setNotice('')} aria-label="Fermer">×</button></div>}

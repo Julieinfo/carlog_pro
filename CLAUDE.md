@@ -261,6 +261,7 @@ Une feature est finie quand :
 - [2026-10-02] · Fiche véhicule enrichie : informations générales, photo HTTPS facultative, mise en circulation, affectations, entretiens, prochain entretien, alertes, documents/contrats, dépenses, consommation moyenne, TCO, coût/km et actions rapides vers les formulaires existants. La photo reste une URL contrôlée, sans stockage de fichier supplémentaire.
 - [2026-10-02] · Vue d’ensemble enrichie : actions rapides, KPI véhicules/alertes/entretiens/coûts, cartes cliquables avec filtres associés, éléments récents, échéances proches, répartitions flotte/dépenses et boutons « Voir tout ».
 - [2026-10-02] · Barre supérieure enrichie : logo retour dashboard, bascule clair/sombre conservée, cloche ouvrant les alertes avec compteur actif, menu profil avec identité/rôle et déconnexion directe ou depuis le menu. Build frontend et diagnostics validés.
+- [2026-10-02] · Menu profil complété avec les liens profil, paramètres entreprise, documents & contrats, préférences de notification, centre d’aide et trois pages légales. Les préférences persistantes et les pages dédiées profil/entreprise restent hors périmètre actuel ; les entrées affichent un message explicite.
 
 ---
 
