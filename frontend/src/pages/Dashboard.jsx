@@ -26,6 +26,7 @@ const userInitial = { nom: '', prenom: '', email: '', telephone: '', motDePasse:
 const entretienInitial = { vehicule: '', typeEntretien: 'revision', statut: 'planifie', dateEntretien: '', kilometragePrevisionnel: '', kilometrageReel: '', cout: 0, description: '' };
 const depenseInitial = { vehicule: '', categorie: 'carburant', dateDepense: '', montant: '', kilometrage: '', litres: '', prixAuLitre: '', description: '' };
 const documentInitial = { vehicule: '', typeDocument: 'assurance', reference: '', prestataire: '', dateDebut: '', dateEcheance: '', cout: '' };
+const profileInitial = { nom: '', prenom: '', email: '', telephone: '', motDePasseActuel: '', nouveauMotDePasse: '', confirmationMotDePasse: '' };
 const typesRapport = ['activite', 'couts', 'carburant', 'entretiens', 'alertes', 'affectations'];
 const libellesRapport = { activite: 'Activité', couts: 'Coûts', carburant: 'Carburant', entretiens: 'Entretiens', alertes: 'Alertes', affectations: 'Affectations' };
 
@@ -74,7 +75,6 @@ function TopBar({ user, themeToggle, notificationCount, onHome, onNotifications,
           )}
         </div>
         {themeToggle}
-        <button className="btn-logout" type="button" onClick={onLogout}>Déconnexion</button>
       </div>
     </header>
   );
@@ -118,6 +118,7 @@ export default function Dashboard({ themeToggle }) {
   const [documentFile, setDocumentFile] = useState(null);
   const [reportFilters, setReportFilters] = useState({ type: 'activite', debut: '', fin: '', vehicule: '' });
   const [generatedReport, setGeneratedReport] = useState(null);
+  const [profileForm, setProfileForm] = useState(profileInitial);
 
   const isAdmin = user?.role === 'admin';
   const readOnly = user?.abonnement === 'past_due';
@@ -125,6 +126,10 @@ export default function Dashboard({ themeToggle }) {
   const canManageFleet = !readOnly && ['admin', 'fleet_manager'].includes(user?.role);
   const canViewUsers = ['admin', 'fleet_manager'].includes(user?.role);
   const canModifyAlerts = !readOnly && ['admin', 'fleet_manager', 'mecanicien'].includes(user?.role);
+
+  useEffect(() => {
+    if (user) setProfileForm({ ...profileInitial, nom: user.nom || '', prenom: user.prenom || '', email: user.email || '', telephone: user.telephone || '' });
+  }, [user]);
 
   async function loadData(params = {}) {
     setLoading(true);
@@ -175,6 +180,24 @@ export default function Dashboard({ themeToggle }) {
     try {
       const response = await api.getProfil();
       login(response.data, token);
+    } catch (exception) { handleError(exception); }
+  }
+
+  async function saveProfile(event) {
+    event.preventDefault();
+    try {
+      const donnees = { nom: profileForm.nom, prenom: profileForm.prenom, email: profileForm.email, telephone: profileForm.telephone };
+      if (profileForm.motDePasseActuel || profileForm.nouveauMotDePasse || profileForm.confirmationMotDePasse) {
+        Object.assign(donnees, {
+          motDePasseActuel: profileForm.motDePasseActuel,
+          nouveauMotDePasse: profileForm.nouveauMotDePasse,
+          confirmationMotDePasse: profileForm.confirmationMotDePasse,
+        });
+      }
+      const response = await api.updateProfil(donnees);
+      login(response.data, token);
+      setProfileForm({ ...profileInitial, nom: response.data.nom, prenom: response.data.prenom, email: response.data.email, telephone: response.data.telephone || '' });
+      setNotice('Profil enregistré.');
     } catch (exception) { handleError(exception); }
   }
 
@@ -409,6 +432,7 @@ export default function Dashboard({ themeToggle }) {
   if (canceled) return <div>
     <TopBar user={user} themeToggle={themeToggle} notificationCount={alerts.filter((item) => item.statut === 'active' || item.statut === 'en_cours').length} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
       if (action === 'documents') setTab('documents');
+      else if (action === 'profil') setTab('profil');
       else setNotice(action === 'notifications'
         ? 'Les préférences de notification seront disponibles dans une prochaine version.'
         : action === 'entreprise'
@@ -434,6 +458,7 @@ export default function Dashboard({ themeToggle }) {
   return <div>
     <TopBar user={user} themeToggle={themeToggle} notificationCount={activeAlertCount} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
       if (action === 'documents') setTab('documents');
+      else if (action === 'profil') setTab('profil');
       else setNotice(action === 'notifications'
         ? 'Les préférences de notification seront disponibles dans une prochaine version.'
         : action === 'entreprise'
@@ -451,6 +476,7 @@ export default function Dashboard({ themeToggle }) {
       {tab === 'couts' && <CoutsSection {...{ depenses, coutsOverview, carburantOverview, coutsFilters, setCoutsFilters, loadData, depenseForm, setDepenseForm, editingDepense, setEditingDepense, saveDepense, editDepense, deleteDepense, exportDepensesCsv, vehicles, canManageCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role) }} />}
       {tab === 'documents' && <DocumentSection {...{ documents, documentFilters, setDocumentFilters, documentForm, setDocumentForm, documentFile, setDocumentFile, saveDocument, downloadDocument, previewDocument, archiveDocument, deleteDocument, loadData, vehicles, canManageDocuments: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteDocuments: !readOnly && ['admin', 'fleet_manager'].includes(user?.role) }} />}
       {tab === 'rapports' && <RapportsSection {...{ reportFilters, setReportFilters, generateReport, generatedReport, exportReportCsv, exportReportPdf, vehicles }} />}
+      {tab === 'profil' && <ProfileSection user={user} profileForm={profileForm} setProfileForm={setProfileForm} onSubmit={saveProfile} onCancel={() => setProfileForm({ ...profileInitial, nom: user?.nom || '', prenom: user?.prenom || '', email: user?.email || '', telephone: user?.telephone || '' })} />}
       {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin: isAdmin && !readOnly, changeAlert, deleteAlert, onViewVehicle: (vehicle) => { setVehicleFilters({ ...vehicleFilters, search: vehicle.immatriculation }); setTab('vehicules'); } }} />}
       {tab === 'affectations' && <AssignmentSection {...{ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }} />}
       {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }} />}
@@ -607,6 +633,24 @@ function AlertForm({ form, setForm, vehicles, users, submit }) { return <form cl
 
 function AssignmentSection({ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }) { return <section className="workspace"><div className="section-header"><div><p className="eyebrow">Missions et conducteurs</p><h2>Affectations <span className="count-badge">{activeAssignments.length} en cours</span></h2></div></div>{canManageFleet && <AssignmentForm form={assignmentForm} setForm={setAssignmentForm} vehicles={vehicles} users={users} submit={saveAssignment} editing={editingAssignment} cancel={() => { setEditingAssignment(null); setAssignmentForm(assignmentInitial); }} />}{assignments.length ? <div className="data-list">{assignments.map((item) => <article className="data-item" key={item._id}><div><strong>{item.vehicule?.immatriculation || 'Véhicule'}</strong><small>{item.vehicule?.marque} {item.vehicule?.modele} · conducteur : {item.conducteur?.prenom} {item.conducteur?.nom}</small><p>Début : {new Date(item.dateDebut).toLocaleDateString('fr-FR')} · {item.kmDebut} km {item.kmFin !== undefined && `→ ${item.kmFin} km`}</p></div><div className="item-actions"><span className="status">{label(item.statut)}</span>{canManageFleet && item.statut === 'en_cours' && <><button className="link-button" onClick={() => { setEditingAssignment(item); setAssignmentForm({ vehicule: item.vehicule?._id || '', conducteur: item.conducteur?._id || '', dateDebut: item.dateDebut?.slice(0, 10) || '', kmDebut: item.kmDebut, observations: item.observations || '' }); }}>Modifier</button><button className="link-button" onClick={() => finishAssignment(item)}>Terminer</button></>}</div></article>)}</div> : <p className="empty-state">Aucune affectation enregistrée.</p>}</section>; }
 function AssignmentForm({ form, setForm, vehicles, users, submit, editing, cancel }) { return <form className="form-panel" onSubmit={submit}><div className="form-heading"><h3>{editing ? 'Modifier l’affectation' : 'Nouvelle affectation'}</h3>{editing && <button type="button" className="link-button" onClick={cancel}>Annuler</button>}</div><div className="form-grid"><Field label="Véhicule"><select required value={form.vehicule} onChange={(e) => setForm({ ...form, vehicule: e.target.value })}><option value="">Choisir</option>{vehicles.filter((item) => item.statut === 'disponible' || item._id === form.vehicule).map((item) => <option key={item._id} value={item._id}>{item.immatriculation} · {item.modele}</option>)}</select></Field><Field label="Conducteur"><select required value={form.conducteur} onChange={(e) => setForm({ ...form, conducteur: e.target.value })}><option value="">Choisir</option>{users.filter((item) => item.role === 'conducteur' && item.actif).map((item) => <option key={item._id} value={item._id}>{item.prenom} {item.nom}</option>)}</select></Field><Field label="Date de début"><input type="date" value={form.dateDebut} onChange={(e) => setForm({ ...form, dateDebut: e.target.value })} /></Field><Field label="Kilométrage de départ"><input required min="0" type="number" value={form.kmDebut} onChange={(e) => setForm({ ...form, kmDebut: e.target.value })} /></Field><Field label="Observations"><textarea value={form.observations} onChange={(e) => setForm({ ...form, observations: e.target.value })} /></Field></div><button className="btn-primary">{editing ? 'Enregistrer' : 'Créer l’affectation'}</button></form>; }
+
+function ProfileSection({ user, profileForm, setProfileForm, onSubmit, onCancel }) {
+  const [showPasswords, setShowPasswords] = useState(false);
+  const initials = `${user?.prenom?.[0] || ''}${user?.nom?.[0] || ''}`.toUpperCase() || '?';
+  const update = (field, value) => setProfileForm({ ...profileForm, [field]: value });
+  return <section className="workspace profile-section">
+    <div className="section-header"><div><p className="eyebrow">Compte utilisateur</p><h2>Mon profil</h2></div></div>
+    <div className="profile-identity"><div className="profile-avatar" aria-hidden="true">{initials}</div><div><strong>{[user?.prenom, user?.nom].filter(Boolean).join(' ')}</strong><small>{libellesRoles[user?.role] || user?.role || 'Rôle non renseigné'}</small></div></div>
+    <form onSubmit={onSubmit}>
+      <div className="form-heading"><h3>Informations personnelles</h3></div>
+      <div className="form-grid"><Field label="Prénom"><input required value={profileForm.prenom} onChange={(e) => update('prenom', e.target.value)} /></Field><Field label="Nom"><input required value={profileForm.nom} onChange={(e) => update('nom', e.target.value)} /></Field><Field label="Adresse e-mail"><input required type="email" value={profileForm.email} onChange={(e) => update('email', e.target.value)} /></Field><Field label="Téléphone (facultatif)"><input type="tel" value={profileForm.telephone} onChange={(e) => update('telephone', e.target.value)} /></Field><Field label="Fonction dans l’entreprise"><input value={libellesRoles[user?.role] || user?.role || 'Non renseignée'} readOnly /></Field><Field label="Rôle"><input value={libellesRoles[user?.role] || user?.role || 'Non renseigné'} readOnly /></Field></div>
+      <div className="form-heading"><h3>Modifier le mot de passe</h3><small>Laissez ces champs vides pour conserver votre mot de passe actuel.</small></div>
+      <div className="form-grid"><Field label="Mot de passe actuel"><input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileForm.motDePasseActuel} onChange={(e) => update('motDePasseActuel', e.target.value)} /></Field><Field label="Nouveau mot de passe"><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" value={profileForm.nouveauMotDePasse} onChange={(e) => update('nouveauMotDePasse', e.target.value)} /></Field><Field label="Confirmation du nouveau mot de passe"><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" value={profileForm.confirmationMotDePasse} onChange={(e) => update('confirmationMotDePasse', e.target.value)} /></Field></div>
+      <label className="auth-remember"><input type="checkbox" checked={showPasswords} onChange={(e) => setShowPasswords(e.target.checked)} /> Afficher les mots de passe</label>
+      <div className="item-actions profile-actions"><button className="btn-primary">Enregistrer les modifications</button><button type="button" className="btn-secondary" onClick={onCancel}>Annuler</button></div>
+    </form>
+  </section>;
+}
 
 function UserSection({ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }) {
   return <section className="workspace">

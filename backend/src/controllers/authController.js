@@ -100,6 +100,7 @@ exports.inscription = async (req, res) => {
             id: user._id, 
             nom: user.nom, 
             prenom: user.prenom,
+            telephone: user.telephone || '',
             email: user.email, 
             role: user.role,
             entrepriseId: entreprise._id,
@@ -167,6 +168,7 @@ exports.connexion = async (req, res) => {
             id: user._id, 
             nom: user.nom, 
             prenom: user.prenom,
+            telephone: user.telephone || '',
             email: user.email, 
             role: user.role,
             entrepriseId: user.entreprise,
@@ -195,11 +197,67 @@ exports.getProfil = async (req, res) => {
             nom: req.user.nom,
             prenom: req.user.prenom,
             email: req.user.email,
+            telephone: req.user.telephone || '',
             role: req.user.role,
             entrepriseId: req.user.entreprise,
             abonnement: req.entreprise?.statutAbonnement ?? null
         });
     } catch (err) {
+        repondreErreur(res, err, 500, req);
+    }
+};
+
+exports.modifierProfil = async (req, res) => {
+    try {
+        const { nom, prenom, email, telephone, motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse } = req.body;
+        const modifications = {};
+        for (const champ of ['nom', 'prenom', 'telephone']) {
+            if (Object.prototype.hasOwnProperty.call(req.body, champ)) {
+                if (typeof req.body[champ] !== 'string' || (champ !== 'telephone' && !req.body[champ].trim())) {
+                    return res.status(400).json({ message: `Le champ ${champ} est invalide.` });
+                }
+                modifications[champ] = req.body[champ].trim();
+            }
+        }
+        if (email !== undefined) {
+            if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+                return res.status(400).json({ message: 'Le format de l’email est invalide.' });
+            }
+            modifications.email = email.toLowerCase().trim();
+            const emailExistant = await User.findOne({ email: modifications.email, _id: { $ne: req.user._id } });
+            if (emailExistant) return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
+        }
+        const changementMotDePasse = [motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse].some(Boolean);
+        if (changementMotDePasse) {
+            if (!motDePasseActuel || !nouveauMotDePasse || nouveauMotDePasse !== confirmationMotDePasse) {
+                return res.status(400).json({ message: 'Le mot de passe actuel et la confirmation du nouveau mot de passe sont obligatoires.' });
+            }
+            const utilisateurAvecMotDePasse = await User.findById(req.user._id).select('+motDePasse');
+            if (!utilisateurAvecMotDePasse || !(await utilisateurAvecMotDePasse.verifierMotDePasse(motDePasseActuel))) {
+                return res.status(401).json({ message: 'Le mot de passe actuel est incorrect.' });
+            }
+            if (nouveauMotDePasse.length < 8 || !/[A-Z]/.test(nouveauMotDePasse) || !/[a-z]/.test(nouveauMotDePasse) || !/[0-9]/.test(nouveauMotDePasse) || !/[\W_]/.test(nouveauMotDePasse)) {
+                return res.status(400).json({ message: 'Le nouveau mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.' });
+            }
+            modifications.motDePasse = nouveauMotDePasse;
+        }
+        if (!Object.keys(modifications).length) return res.status(400).json({ message: 'Aucune information à modifier.' });
+        const utilisateurModifie = await User.findById(req.user._id);
+        if (!utilisateurModifie) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+        Object.assign(utilisateurModifie, modifications);
+        await utilisateurModifie.save();
+        res.status(200).json({
+            id: utilisateurModifie._id,
+            nom: utilisateurModifie.nom,
+            prenom: utilisateurModifie.prenom,
+            email: utilisateurModifie.email,
+            telephone: utilisateurModifie.telephone || '',
+            role: utilisateurModifie.role,
+            entrepriseId: utilisateurModifie.entreprise,
+            abonnement: req.user.entreprise?.statutAbonnement ?? null
+        });
+    } catch (err) {
+        if (err.code === 11000) return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
         repondreErreur(res, err, 500, req);
     }
 };

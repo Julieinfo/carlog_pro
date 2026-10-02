@@ -46,6 +46,7 @@ export const api = {
   connexion: (credentials) => API.post('/auth/connexion', credentials),
   inscription: (userData) => API.post('/auth/inscription', userData),
   getProfil: () => API.get('/auth/me'),
+  updateProfil: (data) => API.patch('/auth/me', data),
   getEntreprise: () => API.get('/auth/entreprise'),
 
   // Véhicules

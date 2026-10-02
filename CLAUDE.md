@@ -262,6 +262,7 @@ Une feature est finie quand :
 - [2026-10-02] · Vue d’ensemble enrichie : actions rapides, KPI véhicules/alertes/entretiens/coûts, cartes cliquables avec filtres associés, éléments récents, échéances proches, répartitions flotte/dépenses et boutons « Voir tout ».
 - [2026-10-02] · Barre supérieure enrichie : logo retour dashboard, bascule clair/sombre conservée, cloche ouvrant les alertes avec compteur actif, menu profil avec identité/rôle et déconnexion directe ou depuis le menu. Build frontend et diagnostics validés.
 - [2026-10-02] · Menu profil complété avec les liens profil, paramètres entreprise, documents & contrats, préférences de notification, centre d’aide et trois pages légales. Les préférences persistantes et les pages dédiées profil/entreprise restent hors périmètre actuel ; les entrées affichent un message explicite.
+- [2026-10-02] · Page « Mon profil » ajoutée : avatar initiales, informations personnelles, téléphone facultatif, email modifiable, rôle/fonction en lecture seule et changement sécurisé du mot de passe avec confirmation et affichage/masquage. Nouvelle route authentifiée `PATCH /api/auth/me`, sans suppression de compte ni historique de connexions pour le moment. Tests d’authentification (6) et build frontend validés.
 
 ---
 
