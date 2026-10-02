@@ -15,6 +15,7 @@ const alerteRoutes = require('./routes/alerteRoutes');
 const statsRoutes = require('./routes/statsRoutes');
 const entretienRoutes = require('./routes/entretienRoutes');
 const depenseRoutes = require('./routes/depenseRoutes');
+const documentRoutes = require('./routes/documentRoutes');
 const { swaggerUi, specs } = require('./config/swagger');
 
 // NOTE SÉCURITÉ : Pas de middleware CSRF nécessaire pour cette API REST avec JWT.
@@ -76,6 +77,7 @@ app.use('/api/alertes', alerteRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/entretiens', entretienRoutes);
 app.use('/api/depenses', depenseRoutes);
+app.use('/api/documents', documentRoutes);
 
 // Swagger UI : genere une interface graphique pour la documentation API.
 // C'est super pratique pour tester les endpoints sans avoir a utiliser Postman ou cURL.

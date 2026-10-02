@@ -5,6 +5,7 @@ const statsRoutes = require('../routes/statsRoutes');
 const authRoutes = require('../routes/authRoutes');
 const entretienRoutes = require('../routes/entretienRoutes');
 const depenseRoutes = require('../routes/depenseRoutes');
+const documentRoutes = require('../routes/documentRoutes');
 
 const roles = ['admin', 'fleet_manager', 'conducteur', 'mecanicien', 'comptable'];
 
@@ -39,6 +40,9 @@ describe('Matrice RBAC des routes protégées', () => {
         [depenseRoutes, 'get', '/', ['admin', 'fleet_manager', 'conducteur', 'mecanicien', 'comptable']],
         [depenseRoutes, 'post', '/', ['admin', 'fleet_manager', 'comptable']],
         [depenseRoutes, 'delete', '/:id', ['admin', 'fleet_manager', 'comptable']],
+        [documentRoutes, 'get', '/', ['admin', 'fleet_manager', 'conducteur', 'mecanicien', 'comptable']],
+        [documentRoutes, 'post', '/', ['admin', 'fleet_manager', 'comptable']],
+        [documentRoutes, 'delete', '/:id', ['admin', 'fleet_manager', 'comptable']],
         [authRoutes, 'post', '/utilisateurs', ['admin']],
         [authRoutes, 'patch', '/utilisateurs/:id', ['admin']],
         [authRoutes, 'patch', '/utilisateurs/:id/desactiver', ['admin']],

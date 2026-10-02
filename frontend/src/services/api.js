@@ -87,6 +87,15 @@ export const api = {
   updateDepense: (id, data) => API.put(`/depenses/${id}`, data),
   deleteDepense: (id) => API.delete(`/depenses/${id}`),
 
+  // Documents et contrats
+  getDocuments: (params = {}) => API.get('/documents', { params }),
+  getDocument: (id) => API.get(`/documents/${id}`),
+  addDocument: (data) => API.post('/documents', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  updateDocument: (id, data) => API.put(`/documents/${id}`, data),
+  deleteDocument: (id) => API.delete(`/documents/${id}`),
+  downloadDocument: (id) => API.get(`/documents/${id}/download`, { responseType: 'blob' }),
+  previewDocument: (id) => API.get(`/documents/${id}/preview`, { responseType: 'blob' }),
+
   // Utilisateurs de l'entreprise (administrateur uniquement)
   getUtilisateurs: () => API.get('/auth/utilisateurs'),
   addUtilisateur: (data) => API.post('/auth/utilisateurs', data),

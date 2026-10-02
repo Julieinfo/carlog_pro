@@ -12,6 +12,8 @@ const statutsAlerte = ['active', 'en_cours', 'resolue', 'acquittee'];
 const typesEntretien = ['vidange', 'controle_technique', 'pneumatiques', 'reparation', 'revision', 'autre'];
 const statutsEntretien = ['planifie', 'en_cours', 'realise'];
 const categoriesDepense = ['carburant', 'peages', 'assurances', 'leasing', 'entretien', 'reparation', 'autres'];
+const typesDocument = ['assurance', 'carte_grise', 'controle_technique', 'leasing', 'location', 'facture', 'autre'];
+const statutsDocument = ['actif', 'a_renouveler', 'urgent', 'expire', 'archive'];
 const roles = ['admin', 'fleet_manager', 'conducteur', 'mecanicien', 'comptable'];
 const libellesRoles = { admin: 'Administrateur', fleet_manager: 'Gestionnaire de flotte', conducteur: 'Conducteur', mecanicien: 'Mécanicien', comptable: 'Comptable' };
 
@@ -21,6 +23,7 @@ const assignmentInitial = { vehicule: '', conducteur: '', dateDebut: '', kmDebut
 const userInitial = { nom: '', prenom: '', email: '', telephone: '', motDePasse: '', role: 'conducteur' };
 const entretienInitial = { vehicule: '', typeEntretien: 'revision', statut: 'planifie', dateEntretien: '', kilometragePrevisionnel: '', kilometrageReel: '', cout: 0, description: '' };
 const depenseInitial = { vehicule: '', categorie: 'carburant', dateDepense: '', montant: '', kilometrage: '', litres: '', prixAuLitre: '', description: '' };
+const documentInitial = { vehicule: '', typeDocument: 'assurance', reference: '', prestataire: '', dateDebut: '', dateEcheance: '', cout: '' };
 
 function asList(response) {
   const data = response?.data ?? response;
@@ -61,6 +64,10 @@ export default function Dashboard({ themeToggle }) {
   const [coutsFilters, setCoutsFilters] = useState({ debut: '', fin: '', vehicule: '', categorie: '' });
   const [depenseForm, setDepenseForm] = useState(depenseInitial);
   const [editingDepense, setEditingDepense] = useState(null);
+  const [documents, setDocuments] = useState([]);
+  const [documentFilters, setDocumentFilters] = useState({ vehicule: '', typeDocument: '', statut: '' });
+  const [documentForm, setDocumentForm] = useState(documentInitial);
+  const [documentFile, setDocumentFile] = useState(null);
 
   const isAdmin = user?.role === 'admin';
   const readOnly = user?.abonnement === 'past_due';
@@ -80,6 +87,7 @@ export default function Dashboard({ themeToggle }) {
       api.getDepenses(coutsFilters),
       api.getDepensesOverview(coutsFilters),
       api.getCarburantOverview(coutsFilters),
+      api.getDocuments(documentFilters),
       api.getStats(),
       canViewUsers ? api.getUtilisateurs() : Promise.resolve(null),
     ]);
@@ -89,7 +97,7 @@ export default function Dashboard({ themeToggle }) {
       setLoading(false);
       return;
     }
-    const [vehicleResult, alertResult, assignmentResult, entretienResult, depenseResult, coutsResult, carburantResult, statsResult, userResult] = results;
+    const [vehicleResult, alertResult, assignmentResult, entretienResult, depenseResult, coutsResult, carburantResult, documentResult, statsResult, userResult] = results;
     if (vehicleResult.status === 'fulfilled') {
       setVehicles(vehicleResult.value.data?.data || []);
       setPagination(vehicleResult.value.data?.pagination || pagination);
@@ -100,6 +108,7 @@ export default function Dashboard({ themeToggle }) {
     if (depenseResult.status === 'fulfilled') setDepenses(asList(depenseResult.value));
     if (coutsResult.status === 'fulfilled') setCoutsOverview(coutsResult.value.data?.data || null);
     if (carburantResult.status === 'fulfilled') setCarburantOverview(carburantResult.value.data?.data || null);
+    if (documentResult.status === 'fulfilled') setDocuments(asList(documentResult.value));
     if (statsResult.status === 'fulfilled') setStats(statsResult.value.data);
     if (userResult?.status === 'fulfilled') setUsers(asList(userResult.value));
     const blockingError = [vehicleResult, alertResult, assignmentResult, entretienResult].find((item) => item.status === 'rejected');
@@ -188,6 +197,38 @@ export default function Dashboard({ themeToggle }) {
       await loadData();
     } catch (exception) { handleError(exception); }
   }
+  async function saveDocument(event) {
+    event.preventDefault();
+    try {
+      if (!documentFile) throw new Error('Sélectionnez un fichier.');
+      const data = new FormData();
+      Object.entries(documentForm).forEach(([key, value]) => { if (value !== '') data.append(key, value); });
+      data.append('fichier', documentFile);
+      await api.addDocument(data);
+      setDocumentForm(documentInitial); setDocumentFile(null); event.target.reset(); setNotice('Document ajouté.'); await loadData();
+    } catch (exception) { handleError(exception); }
+  }
+  async function downloadDocument(item) {
+    try {
+      const response = await api.downloadDocument(item._id);
+      const url = URL.createObjectURL(response.data);
+      const link = document.createElement('a'); link.href = url; link.download = item.nomOriginal; link.click(); URL.revokeObjectURL(url);
+    } catch (exception) { handleError(exception); }
+  }
+  async function previewDocument(item) {
+    try {
+      const response = await api.previewDocument(item._id);
+      const url = URL.createObjectURL(response.data);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (exception) { handleError(exception); }
+  }
+  async function archiveDocument(item) {
+    try { await api.updateDocument(item._id, { statut: 'archive' }); setNotice('Document archivé.'); await loadData(); } catch (exception) { handleError(exception); }
+  }
+  async function deleteDocument(id) {
+    if (!window.confirm('Supprimer définitivement ce document ?')) return;
+    try { await api.deleteDocument(id); setNotice('Document supprimé.'); await loadData(); } catch (exception) { handleError(exception); }
+  }
   function editDepense(item) {
     setEditingDepense(item);
     setDepenseForm({
@@ -221,8 +262,11 @@ export default function Dashboard({ themeToggle }) {
   }
   async function openVehicleHistory(vehicle) {
     try {
-      const response = await api.getEntretiens({ vehicule: vehicle._id, limit: 100 });
-      setSelectedVehicleHistory({ vehicle, items: asList(response) });
+      const [entretiensResponse, documentsResponse] = await Promise.all([
+        api.getEntretiens({ vehicule: vehicle._id, limit: 100 }),
+        api.getDocuments({ vehicule: vehicle._id })
+      ]);
+      setSelectedVehicleHistory({ vehicle, items: asList(entretiensResponse), documents: asList(documentsResponse) });
       setTab('vehicules');
     } catch (exception) { handleError(exception); }
   }
@@ -275,11 +319,12 @@ export default function Dashboard({ themeToggle }) {
       <div className="page-heading"><div><p className="eyebrow">Gestion de flotte</p><h1 className="dashboard-title">Votre espace de pilotage</h1></div></div>
       {error && <div className="notice error">{error}</div>}{notice && <div className="notice success">{notice}<button onClick={() => setNotice('')} aria-label="Fermer">×</button></div>}
       {readOnly && <div className="notice error" role="status">L'abonnement de votre entreprise est en attente de régularisation. L'espace est en lecture seule, sauf pour le signalement d'une alerte.{isAdmin && ' La régularisation est gérée manuellement pour le moment ; contactez l’assistance CarLog Pro.'}</div>}
-      <nav className="tabs">{[['accueil', 'Vue d’ensemble'], ['vehicules', 'Véhicules'], ['entretiens', 'Entretiens'], ['couts', 'Coûts'], ['alertes', 'Alertes'], ['affectations', 'Affectations'], ...(isAdmin ? [['utilisateurs', 'Utilisateurs']] : [])].map(([id, text]) => <button className={tab === id ? 'tab active' : 'tab'} key={id} onClick={() => setTab(id)}>{text}</button>)}</nav>
+      <nav className="tabs">{[['accueil', 'Vue d’ensemble'], ['vehicules', 'Véhicules'], ['entretiens', 'Entretiens'], ['couts', 'Coûts'], ['documents', 'Documents & contrats'], ['alertes', 'Alertes'], ['affectations', 'Affectations'], ...(isAdmin ? [['utilisateurs', 'Utilisateurs']] : [])].map(([id, text]) => <button className={tab === id ? 'tab active' : 'tab'} key={id} onClick={() => setTab(id)}>{text}</button>)}</nav>
       {tab === 'accueil' && <Home stats={stats} vehicles={vehicles} alerts={alerts} assignments={activeAssignments} openTab={setTab} />}
       {tab === 'vehicules' && <VehicleSection {...{ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin: isAdmin && !readOnly, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle, openVehicleHistory, selectedVehicleHistory, setSelectedVehicleHistory }} />}
       {tab === 'entretiens' && <EntretienSection {...{ entretiens, entretienFilters, setEntretienFilters, entretienForm, setEntretienForm, saveEntretien, changeEntretien, deleteEntretien, vehicles, canManageMaintenance: !readOnly && ['admin', 'fleet_manager', 'mecanicien'].includes(user?.role), isAdmin: isAdmin && !readOnly }} />}
       {tab === 'couts' && <CoutsSection {...{ depenses, coutsOverview, carburantOverview, coutsFilters, setCoutsFilters, loadData, depenseForm, setDepenseForm, editingDepense, setEditingDepense, saveDepense, editDepense, deleteDepense, exportDepensesCsv, vehicles, canManageCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role) }} />}
+      {tab === 'documents' && <DocumentSection {...{ documents, documentFilters, setDocumentFilters, documentForm, setDocumentForm, documentFile, setDocumentFile, saveDocument, downloadDocument, previewDocument, archiveDocument, deleteDocument, loadData, vehicles, canManageDocuments: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteDocuments: !readOnly && ['admin', 'fleet_manager'].includes(user?.role) }} />}
       {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin: isAdmin && !readOnly, changeAlert, deleteAlert }} />}
       {tab === 'affectations' && <AssignmentSection {...{ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }} />}
       {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }} />}
@@ -296,7 +341,7 @@ function Kpi({ title, value }) { return <article className="kpi"><small>{title}<
 function ListCard({ title, items, onOpen }) { return <section className="card-section"><div className="section-header"><h2>{title}</h2><button className="link-button" onClick={onOpen}>Voir tout</button></div>{items.map((item) => <div className="data-item" key={item._id}><div><strong>{item.marque ? `${item.marque} ${item.modele}` : item.titre}</strong><small>{item.immatriculation || `${item.typeAlerte} · ${item.niveauUrgence}`}</small></div><span className="status">{label(item.statut)}</span></div>)}{!items.length && <p className="empty-state">Aucune donnée pour le moment.</p>}</section>; }
 function Field({ label: title, children }) { return <label className="field"><span>{title}</span>{children}</label>; }
 
-function VehicleSection({ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle, openVehicleHistory, selectedVehicleHistory, setSelectedVehicleHistory }) { return <section className="workspace"><div className="section-header"><div><p className="eyebrow">Parc automobile</p><h2>Véhicules <span className="count-badge">{pagination.totalItems}</span></h2></div></div><div className="toolbar"><input placeholder="Plaque, marque, modèle" value={vehicleFilters.search} onChange={(e) => setVehicleFilters({ ...vehicleFilters, search: e.target.value })} /><select value={vehicleFilters.typeVehicule} onChange={(e) => setVehicleFilters({ ...vehicleFilters, typeVehicule: e.target.value })}><option value="">Tous les types</option>{typesVehicule.map((item) => <option key={item}>{item}</option>)}</select><select value={vehicleFilters.statut} onChange={(e) => setVehicleFilters({ ...vehicleFilters, statut: e.target.value })}><option value="">Tous les statuts</option>{statutsVehicule.map((item) => <option key={item}>{item}</option>)}</select><button className="btn-primary" onClick={() => loadData()}>Rechercher</button></div>{selectedVehicleHistory && <section className="card-section"><div className="section-header"><div><p className="eyebrow">Carnet de santé</p><h3>{selectedVehicleHistory.vehicle.marque} {selectedVehicleHistory.vehicle.modele} · {selectedVehicleHistory.vehicle.immatriculation}</h3></div><button className="link-button" onClick={() => setSelectedVehicleHistory(null)}>Fermer</button></div>{selectedVehicleHistory.items.length ? <div className="data-list">{selectedVehicleHistory.items.map((item) => <div className="data-item" key={item._id}><div><strong>{label(item.typeEntretien)}</strong><small>{new Date(item.dateEntretien).toLocaleDateString('fr-FR')} · {item.cout} €</small><p>{item.description || 'Aucune description.'}</p></div><span className="status">{label(item.statut)}</span></div>)}</div> : <p className="empty-state">Aucun entretien enregistré pour ce véhicule.</p>}</section>}{canManageFleet && <VehicleForm form={vehicleForm} setForm={setVehicleForm} submit={saveVehicle} editing={editingVehicle} cancel={() => { setEditingVehicle(null); setVehicleForm(vehicleInitial); }} />}{vehicles.length ? <div className="table-wrap"><table><thead><tr><th>Véhicule</th><th>Type</th><th>Kilométrage</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{vehicles.map((item) => <tr key={item._id}><td><strong>{item.marque} {item.modele}</strong><small>{item.immatriculation} · {item.annee || 'année non renseignée'}</small></td><td>{item.typeVehicule}</td><td>{item.kilometrage} km</td><td><span className="status">{label(item.statut)}</span></td><td><button className="link-button" onClick={() => openVehicleHistory(item)}>Carnet</button>{canManageFleet && <button className="link-button" onClick={() => { setEditingVehicle(item); setVehicleForm({ ...vehicleInitial, ...item }); }}>Modifier</button>}{isAdmin && <button className="link-button danger" onClick={() => archiveVehicle(item._id)}>Archiver</button>}</td></tr>)}</tbody></table></div> : <p className="empty-state">Aucun véhicule ne correspond à vos critères.</p>}<Pagination data={pagination} change={(page) => { setVehicleFilters({ ...vehicleFilters, page }); loadData({ page }); }} /></section>; }
+function VehicleSection({ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle, openVehicleHistory, selectedVehicleHistory, setSelectedVehicleHistory }) { return <section className="workspace"><div className="section-header"><div><p className="eyebrow">Parc automobile</p><h2>Véhicules <span className="count-badge">{pagination.totalItems}</span></h2></div></div><div className="toolbar"><input placeholder="Plaque, marque, modèle" value={vehicleFilters.search} onChange={(e) => setVehicleFilters({ ...vehicleFilters, search: e.target.value })} /><select value={vehicleFilters.typeVehicule} onChange={(e) => setVehicleFilters({ ...vehicleFilters, typeVehicule: e.target.value })}><option value="">Tous les types</option>{typesVehicule.map((item) => <option key={item}>{item}</option>)}</select><select value={vehicleFilters.statut} onChange={(e) => setVehicleFilters({ ...vehicleFilters, statut: e.target.value })}><option value="">Tous les statuts</option>{statutsVehicule.map((item) => <option key={item}>{item}</option>)}</select><button className="btn-primary" onClick={() => loadData()}>Rechercher</button></div>{selectedVehicleHistory && <section className="card-section"><div className="section-header"><div><p className="eyebrow">Carnet de santé</p><h3>{selectedVehicleHistory.vehicle.marque} {selectedVehicleHistory.vehicle.modele} · {selectedVehicleHistory.vehicle.immatriculation}</h3></div><button className="link-button" onClick={() => setSelectedVehicleHistory(null)}>Fermer</button></div><h4>Entretiens</h4>{selectedVehicleHistory.items.length ? <div className="data-list">{selectedVehicleHistory.items.map((item) => <div className="data-item" key={item._id}><div><strong>{label(item.typeEntretien)}</strong><small>{new Date(item.dateEntretien).toLocaleDateString('fr-FR')} · {item.cout} €</small><p>{item.description || 'Aucune description.'}</p></div><span className="status">{label(item.statut)}</span></div>)}</div> : <p className="empty-state">Aucun entretien enregistré pour ce véhicule.</p>}<h4>Documents associés</h4>{selectedVehicleHistory.documents?.length ? <div className="data-list">{selectedVehicleHistory.documents.map((item) => <div className="data-item" key={item._id}><div><strong>{item.nomOriginal}</strong><small>{label(item.typeDocument)} · échéance {new Date(item.dateEcheance).toLocaleDateString('fr-FR')}</small></div><span className="status">{label(item.statut)}</span></div>)}</div> : <p className="empty-state">Aucun document associé à ce véhicule.</p>}</section>}{canManageFleet && <VehicleForm form={vehicleForm} setForm={setVehicleForm} submit={saveVehicle} editing={editingVehicle} cancel={() => { setEditingVehicle(null); setVehicleForm(vehicleInitial); }} />}{vehicles.length ? <div className="table-wrap"><table><thead><tr><th>Véhicule</th><th>Type</th><th>Kilométrage</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{vehicles.map((item) => <tr key={item._id}><td><strong>{item.marque} {item.modele}</strong><small>{item.immatriculation} · {item.annee || 'année non renseignée'}</small></td><td>{item.typeVehicule}</td><td>{item.kilometrage} km</td><td><span className="status">{label(item.statut)}</span></td><td><button className="link-button" onClick={() => openVehicleHistory(item)}>Carnet</button>{canManageFleet && <button className="link-button" onClick={() => { setEditingVehicle(item); setVehicleForm({ ...vehicleInitial, ...item }); }}>Modifier</button>}{isAdmin && <button className="link-button danger" onClick={() => archiveVehicle(item._id)}>Archiver</button>}</td></tr>)}</tbody></table></div> : <p className="empty-state">Aucun véhicule ne correspond à vos critères.</p>}<Pagination data={pagination} change={(page) => { setVehicleFilters({ ...vehicleFilters, page }); loadData({ page }); }} /></section>; }
 function VehicleForm({ form, setForm, submit, editing, cancel }) { return <form className="form-panel" onSubmit={submit}><div className="form-heading"><h3>{editing ? 'Modifier le véhicule' : 'Ajouter un véhicule'}</h3>{editing && <button type="button" className="link-button" onClick={cancel}>Annuler</button>}</div><div className="form-grid"><Field label="Immatriculation"><input required value={form.immatriculation} onChange={(e) => setForm({ ...form, immatriculation: e.target.value })} /></Field><Field label="Marque"><input required value={form.marque} onChange={(e) => setForm({ ...form, marque: e.target.value })} /></Field><Field label="Modèle"><input required value={form.modele} onChange={(e) => setForm({ ...form, modele: e.target.value })} /></Field><Field label="Type"><select value={form.typeVehicule} onChange={(e) => setForm({ ...form, typeVehicule: e.target.value })}>{typesVehicule.map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Année"><input type="number" value={form.annee} onChange={(e) => setForm({ ...form, annee: e.target.value })} /></Field><Field label="PTAC (kg)"><input required min="1" type="number" value={form.ptac} onChange={(e) => setForm({ ...form, ptac: e.target.value })} /></Field><Field label="Carburant"><select value={form.carburant} onChange={(e) => setForm({ ...form, carburant: e.target.value })}>{carburants.map((item) => <option key={item}>{item}</option>)}</select></Field><Field label="Kilométrage"><input min="0" type="number" value={form.kilometrage} onChange={(e) => setForm({ ...form, kilometrage: e.target.value })} /></Field>{editing && <Field label="Statut"><select value={form.statut} onChange={(e) => setForm({ ...form, statut: e.target.value })}>{statutsVehicule.map((item) => <option key={item}>{item}</option>)}</select></Field>}</div><button className="btn-primary">{editing ? 'Enregistrer' : 'Ajouter le véhicule'}</button></form>; }
 
 function EntretienSection({ entretiens, entretienFilters, setEntretienFilters, entretienForm, setEntretienForm, saveEntretien, changeEntretien, deleteEntretien, vehicles, canManageMaintenance, isAdmin }) {
@@ -322,6 +367,16 @@ function UserSection({ users, user, userForm, setUserForm, saveUser, disableUser
   </section>;
 }
 function Pagination({ data, change }) { return data.totalPages > 1 && <div className="pagination"><button disabled={data.currentPage <= 1} onClick={() => change(data.currentPage - 1)}>Précédent</button><span>Page {data.currentPage} sur {data.totalPages}</span><button disabled={data.currentPage >= data.totalPages} onClick={() => change(data.currentPage + 1)}>Suivant</button></div>; }
+
+function DocumentSection({ documents, documentFilters, setDocumentFilters, documentForm, setDocumentForm, documentFile, setDocumentFile, saveDocument, downloadDocument, previewDocument, archiveDocument, deleteDocument, loadData, vehicles, canManageDocuments, canDeleteDocuments }) {
+  const statutLabel = { actif: 'Actif', a_renouveler: 'À renouveler', urgent: 'Urgent', expire: 'Expiré', archive: 'Archivé' };
+  return <section className="workspace">
+    <div className="section-header"><div><p className="eyebrow">Conformité et contrats</p><h2>Documents & contrats <span className="count-badge">{documents.length}</span></h2></div></div>
+    <div className="toolbar"><select value={documentFilters.vehicule} onChange={(e) => setDocumentFilters({ ...documentFilters, vehicule: e.target.value })}><option value="">Tous les véhicules</option>{vehicles.map((item) => <option key={item._id} value={item._id}>{item.immatriculation}</option>)}</select><select value={documentFilters.typeDocument} onChange={(e) => setDocumentFilters({ ...documentFilters, typeDocument: e.target.value })}><option value="">Tous les types</option>{typesDocument.map((item) => <option key={item} value={item}>{label(item)}</option>)}</select><select value={documentFilters.statut} onChange={(e) => setDocumentFilters({ ...documentFilters, statut: e.target.value })}><option value="">Tous les statuts</option>{statutsDocument.map((item) => <option key={item} value={item}>{statutLabel[item]}</option>)}</select><button className="btn-primary" onClick={() => loadData()}>Actualiser</button></div>
+    {canManageDocuments && <form className="form-panel" onSubmit={saveDocument}><div className="form-heading"><h3>Ajouter un document</h3><small>PDF, image ou fichier texte · 10 Mo maximum.</small></div><div className="form-grid"><Field label="Fichier"><input required type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.txt" onChange={(e) => setDocumentFile(e.target.files[0] || null)} /></Field><Field label="Véhicule"><select required value={documentForm.vehicule} onChange={(e) => setDocumentForm({ ...documentForm, vehicule: e.target.value })}><option value="">Sélectionner</option>{vehicles.map((item) => <option key={item._id} value={item._id}>{item.immatriculation} · {item.marque} {item.modele}</option>)}</select></Field><Field label="Type"><select value={documentForm.typeDocument} onChange={(e) => setDocumentForm({ ...documentForm, typeDocument: e.target.value })}>{typesDocument.map((item) => <option key={item} value={item}>{label(item)}</option>)}</select></Field><Field label="Référence / contrat"><input maxLength="200" value={documentForm.reference} onChange={(e) => setDocumentForm({ ...documentForm, reference: e.target.value })} /></Field><Field label="Compagnie / prestataire"><input maxLength="200" value={documentForm.prestataire} onChange={(e) => setDocumentForm({ ...documentForm, prestataire: e.target.value })} /></Field><Field label="Date de début"><input required type="date" value={documentForm.dateDebut} onChange={(e) => setDocumentForm({ ...documentForm, dateDebut: e.target.value })} /></Field><Field label="Date d’échéance"><input required type="date" value={documentForm.dateEcheance} onChange={(e) => setDocumentForm({ ...documentForm, dateEcheance: e.target.value })} /></Field><Field label="Coût (€)"><input min="0" step="0.01" type="number" value={documentForm.cout} onChange={(e) => setDocumentForm({ ...documentForm, cout: e.target.value })} /></Field></div><button className="btn-primary">Ajouter le document</button></form>}
+    {documents.length ? <div className="table-wrap"><table><thead><tr><th>Document</th><th>Véhicule</th><th>Échéance</th><th>Statut</th><th>Actions</th></tr></thead><tbody>{documents.map((item) => <tr key={item._id}><td><strong>{item.nomOriginal}</strong><small>{label(item.typeDocument)}{item.reference ? ` · ${item.reference}` : ''}</small></td><td>{item.vehicule?.immatriculation || '—'}</td><td>{new Date(item.dateEcheance).toLocaleDateString('fr-FR')}</td><td><span className={`status ${item.statut === 'expire' || item.statut === 'urgent' ? 'danger' : ''}`}>{statutLabel[item.statut] || item.statut}</span></td><td><button className="link-button" onClick={() => previewDocument(item)}>Consulter</button><button className="link-button" onClick={() => downloadDocument(item)}>Télécharger</button>{canManageDocuments && item.statut !== 'archive' && <button className="link-button" onClick={() => archiveDocument(item)}>Archiver</button>}{canDeleteDocuments && <button className="link-button danger" onClick={() => deleteDocument(item._id)}>Supprimer</button>}</td></tr>)}</tbody></table></div> : <p className="empty-state">Aucun document pour ces critères.</p>}
+  </section>;
+}
 
 function CoutsSection({ depenses, coutsOverview, carburantOverview, coutsFilters, setCoutsFilters, loadData, depenseForm, setDepenseForm, editingDepense, setEditingDepense, saveDepense, editDepense, deleteDepense, exportDepensesCsv, vehicles, canManageCosts, canDeleteCosts }) {
   const [sousOnglet, setSousOnglet] = useState('overview');
