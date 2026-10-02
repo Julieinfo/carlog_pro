@@ -265,11 +265,48 @@ exports.modifierProfil = async (req, res) => {
 exports.getEntreprise = async (req, res) => {
     try {
         const entreprise = await Entreprise.findById(req.user.entreprise)
-            .select('nom statutAbonnement formuleAbonnement');
+            .select('-__v');
 
         if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
         res.status(200).json(entreprise);
     } catch (err) {
+        repondreErreur(res, err, 500, req);
+    }
+};
+
+exports.modifierEntreprise = async (req, res) => {
+    try {
+        const champs = [
+            'nom', 'logoUrl', 'secteurActivite', 'telephone', 'emailProfessionnel',
+            'adresse', 'tailleFlotte', 'devise', 'fuseauHoraire', 'formatDate',
+            'uniteDistance', 'uniteCarburant', 'seuilConsommationInhabituelle',
+            'delaiAlerteDocument', 'delaiAlerteContrat'
+        ];
+        const modifications = {};
+        for (const champ of champs) {
+            if (Object.prototype.hasOwnProperty.call(req.body, champ)) modifications[champ] = req.body[champ];
+        }
+        if (!modifications.nom || typeof modifications.nom !== 'string' || !modifications.nom.trim()) {
+            return res.status(400).json({ message: 'Le nom de l’entreprise est obligatoire.' });
+        }
+        if (modifications.logoUrl && (!/^https:\/\//i.test(modifications.logoUrl) || modifications.logoUrl.length > 500)) {
+            return res.status(400).json({ message: 'Le logo doit être une URL HTTPS valide.' });
+        }
+        if (modifications.emailProfessionnel && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(modifications.emailProfessionnel)) {
+            return res.status(400).json({ message: 'Le format de l’email de contact est invalide.' });
+        }
+        if (modifications.adresse) {
+            const { rue, codePostal, ville, pays } = modifications.adresse;
+            if (!rue?.trim() || !/^[0-9]{5}$/.test(codePostal || '') || !ville?.trim()) {
+                return res.status(400).json({ message: 'L’adresse de l’entreprise est invalide.' });
+            }
+            modifications.adresse = { rue: rue.trim(), codePostal, ville: ville.trim(), pays: pays?.trim() || 'France' };
+        }
+        const entreprise = await Entreprise.findByIdAndUpdate(req.user.entreprise, modifications, { new: true, runValidators: true });
+        if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
+        res.status(200).json(entreprise);
+    } catch (err) {
+        if (err.code === 11000) return res.status(400).json({ message: 'Ce SIRET est déjà utilisé.' });
         repondreErreur(res, err, 500, req);
     }
 };

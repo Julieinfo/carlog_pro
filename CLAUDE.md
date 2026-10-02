@@ -263,6 +263,12 @@ Une feature est finie quand :
 - [2026-10-02] · Barre supérieure enrichie : logo retour dashboard, bascule clair/sombre conservée, cloche ouvrant les alertes avec compteur actif, menu profil avec identité/rôle et déconnexion directe ou depuis le menu. Build frontend et diagnostics validés.
 - [2026-10-02] · Menu profil complété avec les liens profil, paramètres entreprise, documents & contrats, préférences de notification, centre d’aide et trois pages légales. Les préférences persistantes et les pages dédiées profil/entreprise restent hors périmètre actuel ; les entrées affichent un message explicite.
 - [2026-10-02] · Page « Mon profil » ajoutée : avatar initiales, informations personnelles, téléphone facultatif, email modifiable, rôle/fonction en lecture seule et changement sécurisé du mot de passe avec confirmation et affichage/masquage. Nouvelle route authentifiée `PATCH /api/auth/me`, sans suppression de compte ni historique de connexions pour le moment. Tests d’authentification (6) et build frontend validés.
+- [2026-10-02] · Page « Paramètres de l’entreprise » ajoutée pour les administrateurs : identité, logo HTTPS facultatif, adresse, contacts, SIRET fictif en lecture seule, secteur, taille de flotte, devise, fuseau horaire, format de date, unités distance/carburant et seuils d’alertes. Nouvelle route sécurisée `PATCH /api/auth/entreprise` avec whitelist et filtrage par entreprise JWT. Build frontend, syntaxe backend et tests d’authentification (6) validés.
+- [2026-10-02] · État de chargement initial du frontend rendu explicite et visible (« Chargement de votre session... ») afin d’éviter un écran vide pendant la vérification du JWT au démarrage local.
+- [2026-10-02] · Correction du mode local : Vite utilise automatiquement `http://localhost:5000/api` en développement au lieu de l’URL Render définie dans `.env`. L’URL Render reste utilisée pour les builds de production.
+- [2026-10-02] · Correction écran noir Vite : les imports du contexte d’authentification sont désormais uniformisés avec l’extension `.jsx`, évitant deux instances de `AuthContext` pendant le hot reload (`useAuth` hors `AuthProvider`).
+- [2026-10-02] · Ajout d’un Error Boundary frontend : une exception React affiche désormais un message visible et un bouton de rechargement au lieu de laisser un écran noir silencieux.
+- [2026-10-02] · L’onglet visible « Paramètres entreprise » a été retiré de la navigation principale à la demande de Julie ; la page reste accessible uniquement depuis le menu Profil.
 
 ---
 

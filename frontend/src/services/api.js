@@ -4,7 +4,7 @@ import { lireToken, effacerSession } from './stockageSession';
 const API = axios.create({
   // En production, /api passe par le meme domaine que le frontend.
   // VITE_API_URL reste disponible si le frontend et l'API sont deployes separement.
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: import.meta.env.DEV ? 'http://localhost:5000/api' : (import.meta.env.VITE_API_URL || '/api'),
 });
 
 const estRequeteConnexion = (error) => /\/auth\/connexion(?:[/?#]|$)/.test(error.config?.url || '');
@@ -48,6 +48,7 @@ export const api = {
   getProfil: () => API.get('/auth/me'),
   updateProfil: (data) => API.patch('/auth/me', data),
   getEntreprise: () => API.get('/auth/entreprise'),
+  updateEntreprise: (data) => API.patch('/auth/entreprise', data),
 
   // Véhicules
   getVehicules: (params = {}) => API.get('/vehicules', { params }),

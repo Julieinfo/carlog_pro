@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, messageErreurApi } from '../services/api';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext.jsx';
 import PiedDePageLegal from '../components/PiedDePageLegal';
 
 const typesVehicule = ['porteur', 'tracteur', 'remorque', 'utilitaire', 'voiture'];
@@ -27,6 +27,7 @@ const entretienInitial = { vehicule: '', typeEntretien: 'revision', statut: 'pla
 const depenseInitial = { vehicule: '', categorie: 'carburant', dateDepense: '', montant: '', kilometrage: '', litres: '', prixAuLitre: '', description: '' };
 const documentInitial = { vehicule: '', typeDocument: 'assurance', reference: '', prestataire: '', dateDebut: '', dateEcheance: '', cout: '' };
 const profileInitial = { nom: '', prenom: '', email: '', telephone: '', motDePasseActuel: '', nouveauMotDePasse: '', confirmationMotDePasse: '' };
+const entrepriseInitial = { nom: '', logoUrl: '', secteurActivite: '', telephone: '', emailProfessionnel: '', adresse: { rue: '', codePostal: '', ville: '', pays: 'France' }, tailleFlotte: 0, siret: '', devise: 'EUR', fuseauHoraire: 'Europe/Paris', formatDate: 'DD/MM/YYYY', uniteDistance: 'kilometres', uniteCarburant: 'litres', seuilConsommationInhabituelle: 12, delaiAlerteDocument: 30, delaiAlerteContrat: 30 };
 const typesRapport = ['activite', 'couts', 'carburant', 'entretiens', 'alertes', 'affectations'];
 const libellesRapport = { activite: 'Activité', couts: 'Coûts', carburant: 'Carburant', entretiens: 'Entretiens', alertes: 'Alertes', affectations: 'Affectations' };
 
@@ -119,6 +120,7 @@ export default function Dashboard({ themeToggle }) {
   const [reportFilters, setReportFilters] = useState({ type: 'activite', debut: '', fin: '', vehicule: '' });
   const [generatedReport, setGeneratedReport] = useState(null);
   const [profileForm, setProfileForm] = useState(profileInitial);
+  const [entrepriseForm, setEntrepriseForm] = useState(entrepriseInitial);
 
   const isAdmin = user?.role === 'admin';
   const readOnly = user?.abonnement === 'past_due';
@@ -173,8 +175,8 @@ export default function Dashboard({ themeToggle }) {
 
   useEffect(() => { if (!canceled) loadData(); }, [token, canManageFleet, canceled]);
   useEffect(() => {
-    if (canceled && isAdmin) api.getEntreprise().then((response) => setEntrepriseInfo(response.data)).catch(() => {});
-  }, [canceled, isAdmin]);
+    if (isAdmin) api.getEntreprise().then((response) => { setEntrepriseInfo(response.data); setEntrepriseForm({ ...entrepriseInitial, ...response.data, adresse: { ...entrepriseInitial.adresse, ...(response.data.adresse || {}) } }); }).catch((exception) => { if (canceled) setError(messageErreurApi(exception)); });
+  }, [isAdmin, canceled]);
 
   async function refreshSubscription() {
     try {
@@ -194,11 +196,34 @@ export default function Dashboard({ themeToggle }) {
           confirmationMotDePasse: profileForm.confirmationMotDePasse,
         });
       }
+
       const response = await api.updateProfil(donnees);
       login(response.data, token);
       setProfileForm({ ...profileInitial, nom: response.data.nom, prenom: response.data.prenom, email: response.data.email, telephone: response.data.telephone || '' });
       setNotice('Profil enregistré.');
     } catch (exception) { handleError(exception); }
+  }
+
+  async function saveEntreprise(event) {
+    event.preventDefault();
+    try {
+      const response = await api.updateEntreprise({
+        ...entrepriseForm,
+        tailleFlotte: Number(entrepriseForm.tailleFlotte),
+        seuilConsommationInhabituelle: Number(entrepriseForm.seuilConsommationInhabituelle),
+        delaiAlerteDocument: Number(entrepriseForm.delaiAlerteDocument),
+        delaiAlerteContrat: Number(entrepriseForm.delaiAlerteContrat),
+      });
+      setEntrepriseInfo(response.data);
+      setEntrepriseForm({
+        ...entrepriseInitial,
+        ...response.data,
+        adresse: { ...entrepriseInitial.adresse, ...(response.data.adresse || {}) },
+      });
+      setNotice('Paramètres de l’entreprise enregistrés.');
+    } catch (exception) {
+      handleError(exception);
+    }
   }
 
   function handleError(exception) {
@@ -433,6 +458,7 @@ export default function Dashboard({ themeToggle }) {
     <TopBar user={user} themeToggle={themeToggle} notificationCount={alerts.filter((item) => item.statut === 'active' || item.statut === 'en_cours').length} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
       if (action === 'documents') setTab('documents');
       else if (action === 'profil') setTab('profil');
+      else if (action === 'entreprise' && isAdmin) setTab('entreprise');
       else setNotice(action === 'notifications'
         ? 'Les préférences de notification seront disponibles dans une prochaine version.'
         : action === 'entreprise'
@@ -459,6 +485,7 @@ export default function Dashboard({ themeToggle }) {
     <TopBar user={user} themeToggle={themeToggle} notificationCount={activeAlertCount} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
       if (action === 'documents') setTab('documents');
       else if (action === 'profil') setTab('profil');
+      else if (action === 'entreprise' && isAdmin) setTab('entreprise');
       else setNotice(action === 'notifications'
         ? 'Les préférences de notification seront disponibles dans une prochaine version.'
         : action === 'entreprise'
@@ -477,6 +504,21 @@ export default function Dashboard({ themeToggle }) {
       {tab === 'documents' && <DocumentSection {...{ documents, documentFilters, setDocumentFilters, documentForm, setDocumentForm, documentFile, setDocumentFile, saveDocument, downloadDocument, previewDocument, archiveDocument, deleteDocument, loadData, vehicles, canManageDocuments: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteDocuments: !readOnly && ['admin', 'fleet_manager'].includes(user?.role) }} />}
       {tab === 'rapports' && <RapportsSection {...{ reportFilters, setReportFilters, generateReport, generatedReport, exportReportCsv, exportReportPdf, vehicles }} />}
       {tab === 'profil' && <ProfileSection user={user} profileForm={profileForm} setProfileForm={setProfileForm} onSubmit={saveProfile} onCancel={() => setProfileForm({ ...profileInitial, nom: user?.nom || '', prenom: user?.prenom || '', email: user?.email || '', telephone: user?.telephone || '' })} />}
+      {tab === 'entreprise' && isAdmin && (
+        <EntrepriseSettingsSection
+          form={entrepriseForm}
+          setForm={setEntrepriseForm}
+          onSubmit={saveEntreprise}
+          onCancel={() => {
+            const entreprise = entrepriseInfo || {};
+            setEntrepriseForm({
+              ...entrepriseInitial,
+              ...entreprise,
+              adresse: { ...entrepriseInitial.adresse, ...(entreprise.adresse || {}) },
+            });
+          }}
+        />
+      )}
       {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin: isAdmin && !readOnly, changeAlert, deleteAlert, onViewVehicle: (vehicle) => { setVehicleFilters({ ...vehicleFilters, search: vehicle.immatriculation }); setTab('vehicules'); } }} />}
       {tab === 'affectations' && <AssignmentSection {...{ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }} />}
       {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }} />}
@@ -648,6 +690,25 @@ function ProfileSection({ user, profileForm, setProfileForm, onSubmit, onCancel 
       <div className="form-grid"><Field label="Mot de passe actuel"><input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileForm.motDePasseActuel} onChange={(e) => update('motDePasseActuel', e.target.value)} /></Field><Field label="Nouveau mot de passe"><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" value={profileForm.nouveauMotDePasse} onChange={(e) => update('nouveauMotDePasse', e.target.value)} /></Field><Field label="Confirmation du nouveau mot de passe"><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" value={profileForm.confirmationMotDePasse} onChange={(e) => update('confirmationMotDePasse', e.target.value)} /></Field></div>
       <label className="auth-remember"><input type="checkbox" checked={showPasswords} onChange={(e) => setShowPasswords(e.target.checked)} /> Afficher les mots de passe</label>
       <div className="item-actions profile-actions"><button className="btn-primary">Enregistrer les modifications</button><button type="button" className="btn-secondary" onClick={onCancel}>Annuler</button></div>
+    </form>
+  </section>;
+}
+
+function EntrepriseSettingsSection({ form, setForm, onSubmit, onCancel }) {
+  const valeurs = form || entrepriseInitial;
+  const update = (field, value) => setForm({ ...valeurs, [field]: value });
+  const adresse = valeurs.adresse || entrepriseInitial.adresse;
+  const updateAddress = (field, value) => setForm({ ...valeurs, adresse: { ...adresse, [field]: value } });
+  return <section className="workspace profile-section">
+    <div className="section-header"><div><p className="eyebrow">Configuration du compte entreprise</p><h2>Paramètres de l’entreprise</h2></div></div>
+    <form onSubmit={onSubmit}>
+      <div className="form-heading"><h3>Informations de l’entreprise</h3><small>Le SIRET reste une donnée fictive pour le portfolio.</small></div>
+      <div className="form-grid"><Field label="Nom de l’entreprise"><input required value={valeurs.nom || ''} onChange={(e) => update('nom', e.target.value)} /></Field><Field label="Logo (URL HTTPS)"><input type="url" value={valeurs.logoUrl || ''} onChange={(e) => update('logoUrl', e.target.value)} /></Field><Field label="Secteur d’activité (facultatif)"><input value={valeurs.secteurActivite || ''} onChange={(e) => update('secteurActivite', e.target.value)} /></Field><Field label="Taille de la flotte"><input min="0" type="number" value={valeurs.tailleFlotte ?? 0} onChange={(e) => update('tailleFlotte', e.target.value)} /></Field><Field label="SIRET fictif"><input value={valeurs.siret || ''} readOnly /></Field><Field label="E-mail de contact"><input required type="email" value={valeurs.emailProfessionnel || ''} onChange={(e) => update('emailProfessionnel', e.target.value)} /></Field><Field label="Téléphone de contact"><input required value={valeurs.telephone || ''} onChange={(e) => update('telephone', e.target.value)} /></Field></div>
+      <div className="form-heading"><h3>Adresse de l’entreprise</h3></div>
+      <div className="form-grid"><Field label="Rue"><input required value={adresse.rue || ''} onChange={(e) => updateAddress('rue', e.target.value)} /></Field><Field label="Code postal"><input required pattern="[0-9]{5}" value={adresse.codePostal || ''} onChange={(e) => updateAddress('codePostal', e.target.value)} /></Field><Field label="Ville"><input required value={adresse.ville || ''} onChange={(e) => updateAddress('ville', e.target.value)} /></Field><Field label="Pays"><input required value={adresse.pays || 'France'} onChange={(e) => updateAddress('pays', e.target.value)} /></Field></div>
+      <div className="form-heading"><h3>Préférences régionales et alertes</h3></div>
+      <div className="form-grid"><Field label="Devise"><select value={valeurs.devise || 'EUR'} onChange={(e) => update('devise', e.target.value)}><option value="EUR">Euro (€)</option><option value="USD">Dollar ($)</option><option value="GBP">Livre (£)</option></select></Field><Field label="Fuseau horaire"><input value={valeurs.fuseauHoraire || 'Europe/Paris'} onChange={(e) => update('fuseauHoraire', e.target.value)} /></Field><Field label="Format de date"><select value={valeurs.formatDate || 'DD/MM/YYYY'} onChange={(e) => update('formatDate', e.target.value)}><option>DD/MM/YYYY</option><option>MM/DD/YYYY</option><option>YYYY-MM-DD</option></select></Field><Field label="Distances"><select value={valeurs.uniteDistance || 'kilometres'} onChange={(e) => update('uniteDistance', e.target.value)}><option value="kilometres">Kilomètres</option><option value="miles">Miles</option></select></Field><Field label="Carburant"><select value={valeurs.uniteCarburant || 'litres'} onChange={(e) => update('uniteCarburant', e.target.value)}><option value="litres">Litres</option><option value="gallons">Gallons</option></select></Field><Field label="Seuil consommation inhabituelle"><input min="0" step="0.1" type="number" value={valeurs.seuilConsommationInhabituelle ?? 12} onChange={(e) => update('seuilConsommationInhabituelle', e.target.value)} /></Field><Field label="Alerte document avant expiration (jours)"><input min="0" max="365" type="number" value={valeurs.delaiAlerteDocument ?? 30} onChange={(e) => update('delaiAlerteDocument', e.target.value)} /></Field><Field label="Alerte contrat avant échéance (jours)"><input min="0" max="365" type="number" value={valeurs.delaiAlerteContrat ?? 30} onChange={(e) => update('delaiAlerteContrat', e.target.value)} /></Field></div>
+      <div className="item-actions profile-actions"><button className="btn-primary">Enregistrer les paramètres</button><button type="button" className="btn-secondary" onClick={onCancel}>Annuler</button></div>
     </form>
   </section>;
 }

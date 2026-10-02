@@ -1,4 +1,4 @@
-import { useAuth } from './context/AuthContext';
+import { useAuth } from './context/AuthContext.jsx';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -49,7 +49,16 @@ export default function App() {
   if (pageLegale) return <PagesLegales slug={pageLegale} themeToggle={themeToggle} />;
   if (motDePasseOublie) return <MotDePasseOublie themeToggle={themeToggle} />;
 
-  if (verification) return <p>Chargement...</p>;
+  if (verification) {
+    return (
+      <div className="auth-shell app-loading" role="status" aria-live="polite">
+        <div className="loading-card">
+          <strong>CarLog Pro</strong>
+          <p>Chargement de votre session...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return pageAuth === 'login' ? (

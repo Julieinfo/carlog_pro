@@ -241,6 +241,13 @@ body {
 }
 
 .auth-shell { min-height: 100vh; background: var(--bg-dark); }
+.app-loading { align-items: center; display: flex; justify-content: center; padding: 24px; }
+.app-error { align-items: center; display: flex; justify-content: center; padding: 24px; }
+.loading-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-main); max-width: 360px; padding: 28px; text-align: center; width: 100%; }
+.loading-card strong { font-size: 1.3rem; }
+.loading-card p { color: var(--text-muted); margin: 12px 0 0; }
+.app-error h1 { font-size: 1.2rem; margin: 18px 0 0; }
+.app-error .btn-primary { margin-top: 18px; }
 .auth-container { display: flex; justify-content: center; padding-top: 72px; }
 .auth-card { width: min(100%, 540px); }
 .auth-card .section-header h1 { margin: 0; font-size: 1.6rem; }

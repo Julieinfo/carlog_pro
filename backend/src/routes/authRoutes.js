@@ -11,7 +11,7 @@ const { getUtilisateurs, creerUtilisateur, modifierUtilisateur, desactiverUtilis
 
 // Import des fonctions du controleur.
 // Ces fonctions contiennent la logique metier pour l'inscription, la connexion et le profil.
-const { inscription, connexion, getProfil, modifierProfil, getEntreprise } = require('../controllers/authController');
+const { inscription, connexion, getProfil, modifierProfil, getEntreprise, modifierEntreprise } = require('../controllers/authController');
 
 // ==========================================
 // ROUTES PUBLIQUES (pas besoin de JWT)
@@ -34,6 +34,7 @@ router.post('/connexion', limiteurConnexion, validateConnexion, connexion);
 router.get('/me', protect, getProfil);
 router.patch('/me', protect, modifierProfil);
 router.get('/entreprise', protect, authorize('admin'), getEntreprise);
+router.patch('/entreprise', protect, authorize('admin'), modifierEntreprise);
 
 router.get('/utilisateurs', protect, authorize('admin', 'fleet_manager'), getUtilisateurs);
 router.post('/utilisateurs', protect, authorize('admin'), creerUtilisateur);
