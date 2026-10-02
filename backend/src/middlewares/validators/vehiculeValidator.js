@@ -40,6 +40,14 @@ exports.validateCreerVehicule = [
         .trim()
         .notEmpty().withMessage('Le modèle est obligatoire.'),
 
+    body('photoUrl')
+        .optional({ values: 'falsy' })
+        .isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage('La photo doit être une URL HTTP ou HTTPS valide.'),
+
+    body('dateMiseEnService')
+        .optional({ values: 'falsy' })
+        .isISO8601().withMessage('La date de mise en circulation est invalide.'),
+
     // Le type de vehicule est obligatoire et doit faire partie de l'enum.
     body('typeVehicule')
         .notEmpty().withMessage('Le type de véhicule est obligatoire.')
@@ -92,6 +100,14 @@ exports.validateModifierVehicule = [
         .optional()
         .trim()
         .notEmpty().withMessage('Le modèle ne peut pas être vide.'),
+
+    body('photoUrl')
+        .optional({ values: 'falsy' })
+        .isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage('La photo doit être une URL HTTP ou HTTPS valide.'),
+
+    body('dateMiseEnService')
+        .optional({ values: 'falsy' })
+        .isISO8601().withMessage('La date de mise en circulation est invalide.'),
 
     body('typeVehicule')
         .optional()

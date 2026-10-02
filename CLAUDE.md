@@ -258,6 +258,7 @@ Une feature est finie quand :
 - [2026-10-02] · Module Documents & contrats ajouté : dépôt local de fichiers contrôlés (10 Mo), consultation authentifiée, téléchargement, archivage, suppression, association véhicule, filtres et statuts d’échéance avec alertes à 30 jours. `multer` est utilisé pour le multipart ; le stockage local est réservé au développement et devra être remplacé par un stockage persistant avant la production.
 - [2026-10-02] · Page Rapports ajoutée : sélecteur de période et véhicule, rapports activité/coûts/carburant/entretiens/alertes/affectations, tableau de résultat, export CSV et génération PDF via impression navigateur, sans nouvelle dépendance.
 - [2026-10-02] · Alertes enrichies : priorités information/faible/moyen/élevé/critique, statuts affichés active/traitée/ignorée, filtres véhicule/priorité/statut, compteur dans la navigation et actions de traitement/ignorance. Synchronisation automatique persistée pour les entretiens à venir/en retard, documents arrivant à échéance/expirés et consommations supérieures à 12 L/100 km.
+- [2026-10-02] · Fiche véhicule enrichie : informations générales, photo HTTPS facultative, mise en circulation, affectations, entretiens, prochain entretien, alertes, documents/contrats, dépenses, consommation moyenne, TCO, coût/km et actions rapides vers les formulaires existants. La photo reste une URL contrôlée, sans stockage de fichier supplémentaire.
 
 ---
 

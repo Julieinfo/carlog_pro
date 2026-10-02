@@ -32,6 +32,11 @@ const vehiculeSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    photoUrl: {
+        type: String,
+        trim: true,
+        maxlength: 1000
+    },
     // Annee de fabrication du vehicule.
     // min: 1900 et max: annee courante + 1 evitent les valeurs absurdes.
     annee: {
