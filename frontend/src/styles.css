@@ -253,8 +253,11 @@ textarea { min-height: 80px; resize: vertical; }
 .notice.success { background: rgba(16, 185, 129, .14); color: var(--success-text); display: flex; justify-content: space-between; }
 .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
 .kpi { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; }
+.kpi-clickable { cursor: pointer; transition: border-color .2s, transform .2s; }
+.kpi-clickable:hover, .kpi-clickable:focus-visible { border-color: var(--primary-red); transform: translateY(-1px); outline: none; }
 .kpi small { color: var(--text-muted); display: block; }
 .kpi strong { display: block; font-size: 2rem; margin-top: 8px; }
+.quick-actions { align-items: center; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 10px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; margin-bottom: 20px; padding: 16px; }
 .table-wrap { overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { border-bottom: 1px solid var(--border-color); padding: 13px 10px; text-align: left; vertical-align: middle; }
