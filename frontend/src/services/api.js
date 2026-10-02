@@ -79,6 +79,14 @@ export const api = {
   updateEntretien: (id, data) => API.put(`/entretiens/${id}`, data),
   deleteEntretien: (id) => API.delete(`/entretiens/${id}`),
 
+  // Coûts et dépenses
+  getDepenses: (params = {}) => API.get('/depenses', { params }),
+  getDepensesOverview: (params = {}) => API.get('/depenses/overview', { params }),
+  getCarburantOverview: (params = {}) => API.get('/depenses/carburant/overview', { params }),
+  addDepense: (data) => API.post('/depenses', data),
+  updateDepense: (id, data) => API.put(`/depenses/${id}`, data),
+  deleteDepense: (id) => API.delete(`/depenses/${id}`),
+
   // Utilisateurs de l'entreprise (administrateur uniquement)
   getUtilisateurs: () => API.get('/auth/utilisateurs'),
   addUtilisateur: (data) => API.post('/auth/utilisateurs', data),

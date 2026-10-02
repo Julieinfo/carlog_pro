@@ -253,6 +253,8 @@ Une feature est finie quand :
 5. Faire évoluer l'interface et le référencement public selon les retours d'usage.
 
 - [2026-10-01] · Module Entretiens ajouté : modèle et API sécurisés par entreprise avec filtres statut/type, formulaire global, changement de statut et carnet de santé par véhicule dans le dashboard. Build frontend validé ; les tests backend nécessitent l'accès réseau MongoDB Atlas, bloqué par la sandbox.
+- [2026-10-02] · Module Coûts ajouté : dépenses et pleins par véhicule, filtres période/véhicule/catégorie, KPI TCO, coût/km, comparaison mensuelle, répartition et évolution mensuelle, historique et export CSV. Tests RBAC ciblés (18) et build frontend validés.
+- [2026-10-02] · Suivi carburant ajouté sous Coûts : pleins enrichis (station, type de carburant), consommation L/100 km, coût/km, moyennes par véhicule, alerte au-delà de 12 L/100 km, modification et suppression. Tests RBAC ciblés (18) et build frontend validés.
 
 ---
 

@@ -11,6 +11,7 @@ const urgences = ['low', 'medium', 'critical'];
 const statutsAlerte = ['active', 'en_cours', 'resolue', 'acquittee'];
 const typesEntretien = ['vidange', 'controle_technique', 'pneumatiques', 'reparation', 'revision', 'autre'];
 const statutsEntretien = ['planifie', 'en_cours', 'realise'];
+const categoriesDepense = ['carburant', 'peages', 'assurances', 'leasing', 'entretien', 'reparation', 'autres'];
 const roles = ['admin', 'fleet_manager', 'conducteur', 'mecanicien', 'comptable'];
 const libellesRoles = { admin: 'Administrateur', fleet_manager: 'Gestionnaire de flotte', conducteur: 'Conducteur', mecanicien: 'Mécanicien', comptable: 'Comptable' };
 
@@ -19,6 +20,7 @@ const alertInitial = { titre: '', description: '', typeAlerte: 'maintenance', ni
 const assignmentInitial = { vehicule: '', conducteur: '', dateDebut: '', kmDebut: 0, observations: '' };
 const userInitial = { nom: '', prenom: '', email: '', telephone: '', motDePasse: '', role: 'conducteur' };
 const entretienInitial = { vehicule: '', typeEntretien: 'revision', statut: 'planifie', dateEntretien: '', kilometragePrevisionnel: '', kilometrageReel: '', cout: 0, description: '' };
+const depenseInitial = { vehicule: '', categorie: 'carburant', dateDepense: '', montant: '', kilometrage: '', litres: '', prixAuLitre: '', description: '' };
 
 function asList(response) {
   const data = response?.data ?? response;
@@ -34,6 +36,9 @@ export default function Dashboard({ themeToggle }) {
   const [alerts, setAlerts] = useState([]);
   const [assignments, setAssignments] = useState([]);
   const [entretiens, setEntretiens] = useState([]);
+  const [depenses, setDepenses] = useState([]);
+  const [coutsOverview, setCoutsOverview] = useState(null);
+  const [carburantOverview, setCarburantOverview] = useState(null);
   const [users, setUsers] = useState([]);
   const [entrepriseInfo, setEntrepriseInfo] = useState(null);
   const [stats, setStats] = useState(null);
@@ -53,6 +58,9 @@ export default function Dashboard({ themeToggle }) {
   const [entretienFilters, setEntretienFilters] = useState({ statut: '', typeEntretien: '' });
   const [entretienForm, setEntretienForm] = useState(entretienInitial);
   const [selectedVehicleHistory, setSelectedVehicleHistory] = useState(null);
+  const [coutsFilters, setCoutsFilters] = useState({ debut: '', fin: '', vehicule: '', categorie: '' });
+  const [depenseForm, setDepenseForm] = useState(depenseInitial);
+  const [editingDepense, setEditingDepense] = useState(null);
 
   const isAdmin = user?.role === 'admin';
   const readOnly = user?.abonnement === 'past_due';
@@ -69,6 +77,9 @@ export default function Dashboard({ themeToggle }) {
       api.getAlertes(),
       api.getAffectations(),
       api.getEntretiens(),
+      api.getDepenses(coutsFilters),
+      api.getDepensesOverview(coutsFilters),
+      api.getCarburantOverview(coutsFilters),
       api.getStats(),
       canViewUsers ? api.getUtilisateurs() : Promise.resolve(null),
     ]);
@@ -78,7 +89,7 @@ export default function Dashboard({ themeToggle }) {
       setLoading(false);
       return;
     }
-    const [vehicleResult, alertResult, assignmentResult, entretienResult, statsResult, userResult] = results;
+    const [vehicleResult, alertResult, assignmentResult, entretienResult, depenseResult, coutsResult, carburantResult, statsResult, userResult] = results;
     if (vehicleResult.status === 'fulfilled') {
       setVehicles(vehicleResult.value.data?.data || []);
       setPagination(vehicleResult.value.data?.pagination || pagination);
@@ -86,6 +97,9 @@ export default function Dashboard({ themeToggle }) {
     if (alertResult.status === 'fulfilled') setAlerts(asList(alertResult.value));
     if (assignmentResult.status === 'fulfilled') setAssignments(asList(assignmentResult.value));
     if (entretienResult.status === 'fulfilled') setEntretiens(asList(entretienResult.value));
+    if (depenseResult.status === 'fulfilled') setDepenses(asList(depenseResult.value));
+    if (coutsResult.status === 'fulfilled') setCoutsOverview(coutsResult.value.data?.data || null);
+    if (carburantResult.status === 'fulfilled') setCarburantOverview(carburantResult.value.data?.data || null);
     if (statsResult.status === 'fulfilled') setStats(statsResult.value.data);
     if (userResult?.status === 'fulfilled') setUsers(asList(userResult.value));
     const blockingError = [vehicleResult, alertResult, assignmentResult, entretienResult].find((item) => item.status === 'rejected');
@@ -160,6 +174,51 @@ export default function Dashboard({ themeToggle }) {
       await loadData();
     } catch (exception) { handleError(exception); }
   }
+  async function saveDepense(event) {
+    event.preventDefault();
+    try {
+      const data = { ...depenseForm, montant: Number(depenseForm.montant) };
+      ['kilometrage', 'litres', 'prixAuLitre'].forEach((champ) => {
+        if (data[champ] === '') delete data[champ]; else data[champ] = Number(data[champ]);
+      });
+      if (editingDepense) await api.updateDepense(editingDepense._id, data); else await api.addDepense(data);
+      setDepenseForm(depenseInitial);
+      setEditingDepense(null);
+      setNotice('Dépense enregistrée.');
+      await loadData();
+    } catch (exception) { handleError(exception); }
+  }
+  function editDepense(item) {
+    setEditingDepense(item);
+    setDepenseForm({
+      ...depenseInitial,
+      ...item,
+      vehicule: item.vehicule?._id || item.vehicule,
+      dateDepense: item.dateDepense ? new Date(item.dateDepense).toISOString().slice(0, 10) : ''
+    });
+  }
+  function exportDepensesCsv() {
+    const headers = ['Date', 'Véhicule', 'Catégorie', 'Montant', 'Kilométrage', 'Description'];
+    const rows = depenses.map((item) => [
+      new Date(item.dateDepense).toLocaleDateString('fr-FR'),
+      item.vehicule?.immatriculation || '',
+      label(item.categorie),
+      item.montant,
+      item.kilometrage ?? '',
+      item.description || ''
+    ]);
+    const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(';')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'depenses-carlog-pro.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+  async function deleteDepense(id) {
+    if (!window.confirm('Supprimer cette dépense ?')) return;
+    try { await api.deleteDepense(id); setNotice('Dépense supprimée.'); await loadData(); } catch (exception) { handleError(exception); }
+  }
   async function openVehicleHistory(vehicle) {
     try {
       const response = await api.getEntretiens({ vehicule: vehicle._id, limit: 100 });
@@ -216,10 +275,11 @@ export default function Dashboard({ themeToggle }) {
       <div className="page-heading"><div><p className="eyebrow">Gestion de flotte</p><h1 className="dashboard-title">Votre espace de pilotage</h1></div></div>
       {error && <div className="notice error">{error}</div>}{notice && <div className="notice success">{notice}<button onClick={() => setNotice('')} aria-label="Fermer">×</button></div>}
       {readOnly && <div className="notice error" role="status">L'abonnement de votre entreprise est en attente de régularisation. L'espace est en lecture seule, sauf pour le signalement d'une alerte.{isAdmin && ' La régularisation est gérée manuellement pour le moment ; contactez l’assistance CarLog Pro.'}</div>}
-      <nav className="tabs">{[['accueil', 'Vue d’ensemble'], ['vehicules', 'Véhicules'], ['entretiens', 'Entretiens'], ['alertes', 'Alertes'], ['affectations', 'Affectations'], ...(isAdmin ? [['utilisateurs', 'Utilisateurs']] : [])].map(([id, text]) => <button className={tab === id ? 'tab active' : 'tab'} key={id} onClick={() => setTab(id)}>{text}</button>)}</nav>
+      <nav className="tabs">{[['accueil', 'Vue d’ensemble'], ['vehicules', 'Véhicules'], ['entretiens', 'Entretiens'], ['couts', 'Coûts'], ['alertes', 'Alertes'], ['affectations', 'Affectations'], ...(isAdmin ? [['utilisateurs', 'Utilisateurs']] : [])].map(([id, text]) => <button className={tab === id ? 'tab active' : 'tab'} key={id} onClick={() => setTab(id)}>{text}</button>)}</nav>
       {tab === 'accueil' && <Home stats={stats} vehicles={vehicles} alerts={alerts} assignments={activeAssignments} openTab={setTab} />}
       {tab === 'vehicules' && <VehicleSection {...{ vehicleFilters, setVehicleFilters, pagination, loadData, canManageFleet, isAdmin: isAdmin && !readOnly, vehicles, vehicleForm, setVehicleForm, saveVehicle, editingVehicle, setEditingVehicle, archiveVehicle, openVehicleHistory, selectedVehicleHistory, setSelectedVehicleHistory }} />}
       {tab === 'entretiens' && <EntretienSection {...{ entretiens, entretienFilters, setEntretienFilters, entretienForm, setEntretienForm, saveEntretien, changeEntretien, deleteEntretien, vehicles, canManageMaintenance: !readOnly && ['admin', 'fleet_manager', 'mecanicien'].includes(user?.role), isAdmin: isAdmin && !readOnly }} />}
+      {tab === 'couts' && <CoutsSection {...{ depenses, coutsOverview, carburantOverview, coutsFilters, setCoutsFilters, loadData, depenseForm, setDepenseForm, editingDepense, setEditingDepense, saveDepense, editDepense, deleteDepense, exportDepensesCsv, vehicles, canManageCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteCosts: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role) }} />}
       {tab === 'alertes' && <AlertSection {...{ alertFilters, setAlertFilters, filteredAlerts, alertForm, setAlertForm, vehicles, users, saveAlert, canModifyAlerts, isAdmin: isAdmin && !readOnly, changeAlert, deleteAlert }} />}
       {tab === 'affectations' && <AssignmentSection {...{ assignments, activeAssignments, canManageFleet, vehicles, users, assignmentForm, setAssignmentForm, saveAssignment, editingAssignment, setEditingAssignment, finishAssignment }} />}
       {tab === 'utilisateurs' && isAdmin && <UserSection {...{ users, user, userForm, setUserForm, saveUser, disableUser, reactivateUser, editingUser, setEditingUser, readOnly }} />}
@@ -262,3 +322,29 @@ function UserSection({ users, user, userForm, setUserForm, saveUser, disableUser
   </section>;
 }
 function Pagination({ data, change }) { return data.totalPages > 1 && <div className="pagination"><button disabled={data.currentPage <= 1} onClick={() => change(data.currentPage - 1)}>Précédent</button><span>Page {data.currentPage} sur {data.totalPages}</span><button disabled={data.currentPage >= data.totalPages} onClick={() => change(data.currentPage + 1)}>Suivant</button></div>; }
+
+function CoutsSection({ depenses, coutsOverview, carburantOverview, coutsFilters, setCoutsFilters, loadData, depenseForm, setDepenseForm, editingDepense, setEditingDepense, saveDepense, editDepense, deleteDepense, exportDepensesCsv, vehicles, canManageCosts, canDeleteCosts }) {
+  const [sousOnglet, setSousOnglet] = useState('overview');
+  const total = coutsOverview?.total || 0;
+  const precedent = coutsOverview?.precedentTotal || 0;
+  const variation = precedent ? ((total - precedent) / precedent) * 100 : null;
+  const maxCategorie = Math.max(...(coutsOverview?.parCategorie || []).map((item) => item.total), 1);
+  const maxMois = Math.max(...(coutsOverview?.parMois || []).map((item) => item.total), 1);
+  const pleins = carburantOverview?.pleins || depenses.filter((item) => item.categorie === 'carburant');
+  return <section className="workspace">
+    <div className="section-header"><div><p className="eyebrow">Pilotage financier</p><h2>Coûts</h2></div><div className="item-actions"><button className="btn-secondary" onClick={exportDepensesCsv}>Exporter en CSV</button></div></div>
+    <nav className="tabs"><button className={sousOnglet === 'overview' ? 'tab active' : 'tab'} onClick={() => setSousOnglet('overview')}>Vue d’ensemble</button><button className={sousOnglet === 'carburant' ? 'tab active' : 'tab'} onClick={() => setSousOnglet('carburant')}>Carburant</button></nav>
+    {sousOnglet === 'overview' ? <><div className="toolbar"><Field label="Du"><input type="date" value={coutsFilters.debut} onChange={(e) => setCoutsFilters({ ...coutsFilters, debut: e.target.value })} /></Field><Field label="Au"><input type="date" value={coutsFilters.fin} onChange={(e) => setCoutsFilters({ ...coutsFilters, fin: e.target.value })} /></Field><select value={coutsFilters.vehicule} onChange={(e) => setCoutsFilters({ ...coutsFilters, vehicule: e.target.value })}><option value="">Tous les véhicules</option>{vehicles.map((item) => <option key={item._id} value={item._id}>{item.immatriculation}</option>)}</select><select value={coutsFilters.categorie} onChange={(e) => setCoutsFilters({ ...coutsFilters, categorie: e.target.value })}><option value="">Toutes les catégories</option>{categoriesDepense.map((item) => <option key={item} value={item}>{label(item)}</option>)}</select><button className="btn-primary" onClick={() => loadData()}>Appliquer</button></div>
+    <div className="kpi-grid"><Kpi title="Coût total" value={`${total.toFixed(2)} €`} /><Kpi title="Moyenne par véhicule" value={`${(coutsOverview?.moyenneParVehicule || 0).toFixed(2)} €`} /><Kpi title="Coût par kilomètre" value={`${(coutsOverview?.coutParKilometre || 0).toFixed(2)} €`} /><Kpi title="Comparaison mois précédent" value={variation === null ? '—' : `${variation >= 0 ? '+' : ''}${variation.toFixed(1)} %`} /></div>
+    <div className="dashboard-grid"><section className="card-section"><div className="section-header"><h3>Répartition des dépenses</h3></div>{(coutsOverview?.parCategorie || []).map((item) => <div className="stat-row" key={item._id}><span>{label(item._id)}</span><strong>{item.total.toFixed(2)} €</strong><div className="bar"><i style={{ width: `${item.total / maxCategorie * 100}%` }} /></div></div>)}{!coutsOverview?.parCategorie?.length && <p className="empty-state">Aucune dépense sur cette période.</p>}</section><section className="card-section"><div className="section-header"><h3>Évolution mensuelle</h3></div>{(coutsOverview?.parMois || []).map((item) => <div className="stat-row" key={item._id}><span>{item._id}</span><strong>{item.total.toFixed(2)} €</strong><div className="bar"><i style={{ width: `${item.total / maxMois * 100}%` }} /></div></div>)}{!coutsOverview?.parMois?.length && <p className="empty-state">Aucune donnée mensuelle.</p>}</section></div>
+    <section className="card-section"><div className="section-header"><h3>TCO par véhicule</h3><small>Coût total de possession sur la période sélectionnée</small></div>{coutsOverview?.parVehicule?.length ? <div className="table-wrap"><table><thead><tr><th>Véhicule</th><th>TCO</th><th>Distance connue</th><th>Coût/km</th></tr></thead><tbody>{coutsOverview.parVehicule.map((item) => { const distance = Number.isFinite(item.minimumKm) && Number.isFinite(item.maximumKm) ? Math.max(item.maximumKm - item.minimumKm, 0) : 0; const vehicle = vehicles.find((entry) => String(entry._id) === String(item._id)); return <tr key={item._id}><td>{vehicle?.immatriculation || 'Véhicule indisponible'}</td><td>{item.total.toFixed(2)} €</td><td>{distance ? `${distance} km` : '—'}</td><td>{distance ? `${(item.total / distance).toFixed(2)} €` : '—'}</td></tr>; })}</tbody></table></div> : <p className="empty-state">Aucun TCO calculable pour cette période.</p>}</section>
+    {canManageCosts && <form className="form-panel" onSubmit={saveDepense}><div className="form-heading"><h3>{depenseForm.categorie === 'carburant' ? 'Enregistrer un plein' : 'Ajouter une dépense'}</h3><small>Les pleins sont enregistrés dans la catégorie carburant.</small></div><div className="form-grid"><Field label="Véhicule"><select required value={depenseForm.vehicule} onChange={(e) => setDepenseForm({ ...depenseForm, vehicule: e.target.value })}><option value="">Sélectionner</option>{vehicles.map((item) => <option key={item._id} value={item._id}>{item.immatriculation} · {item.marque} {item.modele}</option>)}</select></Field><Field label="Catégorie"><select value={depenseForm.categorie} onChange={(e) => setDepenseForm({ ...depenseForm, categorie: e.target.value })}>{categoriesDepense.map((item) => <option key={item} value={item}>{label(item)}</option>)}</select></Field><Field label="Date"><input required type="date" value={depenseForm.dateDepense} onChange={(e) => setDepenseForm({ ...depenseForm, dateDepense: e.target.value })} /></Field><Field label="Montant (€)"><input required min="0" step="0.01" type="number" value={depenseForm.montant} onChange={(e) => setDepenseForm({ ...depenseForm, montant: e.target.value })} /></Field><Field label="Kilométrage"><input min="0" type="number" value={depenseForm.kilometrage} onChange={(e) => setDepenseForm({ ...depenseForm, kilometrage: e.target.value })} /></Field>{depenseForm.categorie === 'carburant' && <><Field label="Litres"><input min="0" step="0.01" type="number" value={depenseForm.litres} onChange={(e) => setDepenseForm({ ...depenseForm, litres: e.target.value })} /></Field><Field label="Prix au litre (€)"><input min="0" step="0.001" type="number" value={depenseForm.prixAuLitre} onChange={(e) => setDepenseForm({ ...depenseForm, prixAuLitre: e.target.value })} /></Field></>}<Field label="Description"><textarea maxLength="2000" value={depenseForm.description} onChange={(e) => setDepenseForm({ ...depenseForm, description: e.target.value })} /></Field></div><button className="btn-primary">Enregistrer la dépense</button></form>}
+    <div className="section-header"><div><h3>Historique des dépenses</h3><small>{depenses.length} dépense(s) chargée(s)</small></div></div>{depenses.length ? <div className="table-wrap"><table><thead><tr><th>Date</th><th>Véhicule</th><th>Catégorie</th><th>Montant</th><th>Km</th><th>Actions</th></tr></thead><tbody>{depenses.map((item) => <tr key={item._id}><td>{new Date(item.dateDepense).toLocaleDateString('fr-FR')}</td><td>{item.vehicule?.immatriculation || '—'}</td><td>{label(item.categorie)}</td><td>{Number(item.montant).toFixed(2)} €</td><td>{item.kilometrage ?? '—'}</td><td>{canManageCosts && <button className="link-button" onClick={() => editDepense(item)}>Modifier</button>}{canDeleteCosts && <button className="link-button danger" onClick={() => deleteDepense(item._id)}>Supprimer</button>}</td></tr>)}</tbody></table></div> : <p className="empty-state">Aucune dépense enregistrée.</p>}</> : <>
+    <div className="toolbar"><Field label="Du"><input type="date" value={coutsFilters.debut} onChange={(e) => setCoutsFilters({ ...coutsFilters, debut: e.target.value })} /></Field><Field label="Au"><input type="date" value={coutsFilters.fin} onChange={(e) => setCoutsFilters({ ...coutsFilters, fin: e.target.value })} /></Field><button className="btn-primary" onClick={() => loadData()}>Appliquer</button></div>
+    <div className="kpi-grid"><Kpi title="Pleins enregistrés" value={pleins.length} /><Kpi title="Litres consommés" value={`${pleins.reduce((sum, item) => sum + (Number(item.litres) || 0), 0).toFixed(2)} L`} /><Kpi title="Alertes consommation" value={pleins.filter((item) => item.consommationInhabituelle).length} /><Kpi title="Seuil d’alerte" value={`${carburantOverview?.seuilAlerte || 12} L/100 km`} /></div>
+    {canManageCosts && <form className="form-panel" onSubmit={saveDepense}><div className="form-heading"><h3>{editingDepense ? 'Modifier le plein' : 'Enregistrer un plein'}</h3>{editingDepense && <button type="button" className="link-button" onClick={() => { setEditingDepense(null); setDepenseForm(depenseInitial); }}>Annuler</button>}</div><div className="form-grid"><Field label="Véhicule"><select required value={depenseForm.vehicule} onChange={(e) => setDepenseForm({ ...depenseForm, vehicule: e.target.value })}><option value="">Sélectionner</option>{vehicles.map((item) => <option key={item._id} value={item._id}>{item.immatriculation} · {item.marque} {item.modele}</option>)}</select></Field><Field label="Date"><input required type="date" value={depenseForm.dateDepense} onChange={(e) => setDepenseForm({ ...depenseForm, dateDepense: e.target.value, categorie: 'carburant' })} /></Field><Field label="Kilométrage"><input required min="0" type="number" value={depenseForm.kilometrage} onChange={(e) => setDepenseForm({ ...depenseForm, kilometrage: e.target.value, categorie: 'carburant' })} /></Field><Field label="Litres"><input required min="0" step="0.01" type="number" value={depenseForm.litres} onChange={(e) => setDepenseForm({ ...depenseForm, litres: e.target.value, categorie: 'carburant' })} /></Field><Field label="Prix au litre (€)"><input required min="0" step="0.001" type="number" value={depenseForm.prixAuLitre} onChange={(e) => setDepenseForm({ ...depenseForm, prixAuLitre: e.target.value, categorie: 'carburant' })} /></Field><Field label="Montant total (€)"><input required min="0" step="0.01" type="number" value={depenseForm.montant} onChange={(e) => setDepenseForm({ ...depenseForm, montant: e.target.value, categorie: 'carburant' })} /></Field><Field label="Station-service"><input maxLength="200" value={depenseForm.stationService || ''} onChange={(e) => setDepenseForm({ ...depenseForm, stationService: e.target.value, categorie: 'carburant' })} /></Field><Field label="Type de carburant"><select required value={depenseForm.typeCarburant || 'diesel'} onChange={(e) => setDepenseForm({ ...depenseForm, typeCarburant: e.target.value, categorie: 'carburant' })}>{carburants.map((item) => <option key={item} value={item}>{label(item)}</option>)}</select></Field></div><button className="btn-primary">{editingDepense ? 'Enregistrer les modifications' : 'Enregistrer le plein'}</button></form>}
+    {pleins.length ? <div className="table-wrap"><table><thead><tr><th>Date</th><th>Véhicule</th><th>Km</th><th>Litres</th><th>Prix/L</th><th>Montant</th><th>Consommation</th><th>Actions</th></tr></thead><tbody>{pleins.map((item) => <tr key={item._id}><td>{new Date(item.dateDepense).toLocaleDateString('fr-FR')}</td><td>{item.vehicule?.immatriculation || '—'}</td><td>{item.kilometrage ?? '—'}</td><td>{item.litres ?? '—'}</td><td>{item.prixAuLitre ?? '—'} €</td><td>{Number(item.montant).toFixed(2)} €</td><td>{item.consommationMoyenne === null || item.consommationMoyenne === undefined ? '—' : <span className={item.consommationInhabituelle ? 'status error' : 'status'}>{item.consommationMoyenne.toFixed(2)} L/100 km{item.consommationInhabituelle ? ' ⚠️' : ''}</span>}</td><td>{canManageCosts && <button className="link-button" onClick={() => editDepense(item)}>Modifier</button>}{canDeleteCosts && <button className="link-button danger" onClick={() => deleteDepense(item._id)}>Supprimer</button>}</td></tr>)}</tbody></table></div> : <p className="empty-state">Aucun plein enregistré.</p>}
+    {carburantOverview?.parVehicule?.length > 0 && <section className="card-section"><div className="section-header"><h3>Consommation moyenne par véhicule</h3></div><div className="table-wrap"><table><thead><tr><th>Véhicule</th><th>L/100 km</th><th>Coût carburant/km</th></tr></thead><tbody>{carburantOverview.parVehicule.map((item) => <tr key={item.vehicule}><td>{item.libelle}</td><td>{item.consommationMoyenne == null ? '—' : `${item.consommationMoyenne.toFixed(2)} L/100 km`}</td><td>{item.coutParKilometre == null ? '—' : `${item.coutParKilometre.toFixed(2)} €`}</td></tr>)}</tbody></table></div></section>}
+    </>}
+  </section>;
+}
