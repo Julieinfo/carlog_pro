@@ -4,7 +4,68 @@ const Alerte = require('../models/Alerte');
 const Affectation = require('../models/Affectation');
 const Vehicule = require('../models/Vehicule');
 const User = require('../models/User');
+const Entretien = require('../models/Entretien');
+const Document = require('../models/Document');
+const Depense = require('../models/Depense');
 const repondreErreur = require('../utils/reponseErreur');
+
+async function synchroniserAlertesAutomatiques(entrepriseId) {
+    const maintenant = new Date();
+    const dansTrenteJours = new Date(maintenant);
+    dansTrenteJours.setDate(dansTrenteJours.getDate() + 30);
+    const sources = [];
+    const entretiens = await Entretien.find({
+        entreprise: entrepriseId,
+        statut: { $ne: 'realise' },
+        dateEntretien: { $lte: dansTrenteJours }
+    }).select('_id vehicule dateEntretien typeEntretien statut').lean();
+    entretiens.forEach((item) => sources.push({
+        sourceCle: `entretien:${item._id}`,
+        vehicule: item.vehicule,
+        typeAlerte: 'maintenance',
+        niveauUrgence: new Date(item.dateEntretien) < maintenant ? 'high' : 'medium',
+        titre: new Date(item.dateEntretien) < maintenant ? 'Entretien en retard' : 'Entretien à venir',
+        description: `${item.typeEntretien} · échéance ${new Date(item.dateEntretien).toLocaleDateString('fr-FR')}`
+    }));
+    const documents = await Document.find({
+        entreprise: entrepriseId,
+        statut: { $ne: 'archive' },
+        dateEcheance: { $lte: dansTrenteJours }
+    }).select('_id vehicule dateEcheance typeDocument').lean();
+    documents.forEach((item) => {
+        const expire = new Date(item.dateEcheance) < maintenant;
+        sources.push({
+            sourceCle: `document:${item._id}`,
+            vehicule: item.vehicule,
+            typeAlerte: 'administratif',
+            niveauUrgence: expire ? 'critical' : 'high',
+            titre: expire ? 'Document expiré' : 'Document arrivant à échéance',
+            description: `${item.typeDocument} · échéance ${new Date(item.dateEcheance).toLocaleDateString('fr-FR')}`
+        });
+    });
+    const pleins = await Depense.find({ entreprise: entrepriseId, categorie: 'carburant', kilometrage: { $exists: true }, litres: { $exists: true } })
+        .select('_id vehicule kilometrage litres montant dateDepense').sort({ vehicule: 1, kilometrage: 1 }).lean();
+    const precedent = new Map();
+    pleins.forEach((item) => {
+        const ancien = precedent.get(String(item.vehicule));
+        if (ancien && item.kilometrage > ancien.kilometrage && item.litres / (item.kilometrage - ancien.kilometrage) * 100 > 12) {
+            sources.push({
+                sourceCle: `carburant:${item._id}`,
+                vehicule: item.vehicule,
+                typeAlerte: 'carburant',
+                niveauUrgence: 'high',
+                titre: 'Consommation inhabituelle',
+                description: 'La consommation dépasse 12 L/100 km.'
+            });
+        }
+        precedent.set(String(item.vehicule), item);
+    });
+    await Promise.all(sources.map((source) => Alerte.updateOne(
+        { entreprise: entrepriseId, sourceCle: source.sourceCle },
+        { $setOnInsert: { ...source, entreprise: entrepriseId, automatique: true, statut: 'active' } },
+        { upsert: true }
+    )));
+}
 
 // ==========================================
 // 1. [CREATE] - Créer une alerte
@@ -69,6 +130,7 @@ exports.creerAlerte = async (req, res) => {
 exports.getAlertes = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
+        await synchroniserAlertesAutomatiques(entrepriseId);
         
         // Possibilite de filtrer par statut via l'URL (ex: /api/alertes?statut=active).
         // C'est pratique pour le frontend qui peut avoir des onglets (toutes, actives, resolues).
@@ -76,6 +138,7 @@ exports.getAlertes = async (req, res) => {
         const filtre = { entreprise: entrepriseId };
         if (req.query.statut) filtre.statut = req.query.statut;
         if (req.query.niveauUrgence) filtre.niveauUrgence = req.query.niveauUrgence;
+        if (req.query.vehicule) filtre.vehicule = req.query.vehicule;
         if (req.user.role === 'mecanicien') filtre.typeAlerte = 'maintenance';
         if (req.user.role === 'conducteur') {
             const affectations = await Affectation.find({

@@ -49,7 +49,7 @@ const alerteSchema = new mongoose.Schema(
         // default: 'medium' evite d'avoir a specifier l'urgence a chaque creation.
         niveauUrgence: {
         type: String,
-        enum: ['low', 'medium', 'critical'],
+        enum: ['information', 'low', 'medium', 'high', 'critical'],
         default: 'medium'
         },
         // Statut de l'alerte dans le cycle de vie (active -> en_cours -> resolue).
@@ -67,6 +67,15 @@ const alerteSchema = new mongoose.Schema(
         // Date a laquelle l'alerte a ete resolue (pour le suivi et les stats).
         dateResolution: {
         type: Date
+        },
+        automatique: {
+        type: Boolean,
+        default: false
+        },
+        sourceCle: {
+        type: String,
+        trim: true,
+        sparse: true
         }
     },
     { 
@@ -80,6 +89,7 @@ const alerteSchema = new mongoose.Schema(
 // L'index (entreprise + statut) permet de recuperer rapidement les alertes actives d'une entreprise.
 // C'est crucial pour les performances car le dashboard affiche souvent les alertes en premier.
 alerteSchema.index({ entreprise: 1, statut: 1 });
+alerteSchema.index({ entreprise: 1, sourceCle: 1 }, { unique: true, sparse: true });
 
 // Export du modele Mongoose pour pouvoir l'utiliser dans les controleurs.
 module.exports = mongoose.model('Alerte', alerteSchema);

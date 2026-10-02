@@ -257,6 +257,7 @@ Une feature est finie quand :
 - [2026-10-02] · Suivi carburant ajouté sous Coûts : pleins enrichis (station, type de carburant), consommation L/100 km, coût/km, moyennes par véhicule, alerte au-delà de 12 L/100 km, modification et suppression. Tests RBAC ciblés (18) et build frontend validés.
 - [2026-10-02] · Module Documents & contrats ajouté : dépôt local de fichiers contrôlés (10 Mo), consultation authentifiée, téléchargement, archivage, suppression, association véhicule, filtres et statuts d’échéance avec alertes à 30 jours. `multer` est utilisé pour le multipart ; le stockage local est réservé au développement et devra être remplacé par un stockage persistant avant la production.
 - [2026-10-02] · Page Rapports ajoutée : sélecteur de période et véhicule, rapports activité/coûts/carburant/entretiens/alertes/affectations, tableau de résultat, export CSV et génération PDF via impression navigateur, sans nouvelle dépendance.
+- [2026-10-02] · Alertes enrichies : priorités information/faible/moyen/élevé/critique, statuts affichés active/traitée/ignorée, filtres véhicule/priorité/statut, compteur dans la navigation et actions de traitement/ignorance. Synchronisation automatique persistée pour les entretiens à venir/en retard, documents arrivant à échéance/expirés et consommations supérieures à 12 L/100 km.
 
 ---
 
