@@ -12,6 +12,17 @@ const userSchema = new mongoose.Schema({
     // lowercase: true assure la coherence (pas de doublons Test@Example.com vs test@example.com).
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     telephone: { type: String, trim: true },
+    notifications: {
+        application: { type: Boolean, default: true },
+        email: { type: Boolean, default: false },
+        entretienAvenir: { type: Boolean, default: true },
+        entretienRetard: { type: Boolean, default: true },
+        documentExpiration: { type: Boolean, default: true },
+        contratEcheance: { type: Boolean, default: true },
+        carburantInhabituel: { type: Boolean, default: true },
+        resumeHebdomadaire: { type: Boolean, default: false },
+        resumeMensuel: { type: Boolean, default: false }
+    },
     // Mot de passe qui sera hash avant d'etre stocke (voir le pre('save') hook).
     // minlength: 8 impose une longueur minimale pour la securite.
     // select:false evite qu'un mot de passe hashé parte par erreur dans une reponse API.

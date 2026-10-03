@@ -270,6 +270,7 @@ Une feature est finie quand :
 - [2026-10-02] · Correction écran noir Vite : les imports du contexte d’authentification sont désormais uniformisés avec l’extension `.jsx`, évitant deux instances de `AuthContext` pendant le hot reload (`useAuth` hors `AuthProvider`).
 - [2026-10-02] · Ajout d’un Error Boundary frontend : une exception React affiche désormais un message visible et un bouton de rechargement au lieu de laisser un écran noir silencieux.
 - [2026-10-02] · L’onglet visible « Paramètres entreprise » a été retiré de la navigation principale à la demande de Julie ; la page reste accessible uniquement depuis le menu Profil.
+- [2026-10-03] · Préférences de notification ajoutées au menu Profil : notifications dans l’application, e-mails, rappels d’entretiens, alertes documents/contrats, consommation inhabituelle et résumés périodiques. Les choix sont persistés par utilisateur via `PATCH /api/auth/me`, avec validation et whitelist serveur ; les e-mails et résumés sont désactivés par défaut.
 
 ---
 
