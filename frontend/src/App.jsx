@@ -4,18 +4,25 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import PagesLegales, { slugPageLegale } from './pages/PagesLegales';
 import MotDePasseOublie from './pages/MotDePasseOublie';
+import { Page404, PageAccesRefuse } from './pages/PagesErreur';
 import { useEffect, useState } from 'react';
 import ThemeToggle from './components/ThemeToggle';
 
 const ANCRE_MOT_DE_PASSE_OUBLIE = '#/mot-de-passe-oublie';
+const ANCRES_PROTEGEES = ['#/dashboard', '#/utilisateurs', '#/entreprise', '#/acces-refuse'];
 
 export default function App() {
-  const { isAuthenticated, verification } = useAuth();
+  const { isAuthenticated, verification, user } = useAuth();
   const [pageAuth, setPageAuth] = useState('login'); // 'login' ou 'register'
   const [pageLegale, setPageLegale] = useState(slugPageLegale);
   const [motDePasseOublie, setMotDePasseOublie] = useState(
     () => window.location.hash === ANCRE_MOT_DE_PASSE_OUBLIE,
   );
+  const [pageErreur, setPageErreur] = useState(() => {
+    const hash = window.location.hash;
+    return hash && !slugPageLegale(hash) && hash !== ANCRE_MOT_DE_PASSE_OUBLIE && !ANCRES_PROTEGEES.includes(hash);
+  });
+  const [messageAccesRefuse, setMessageAccesRefuse] = useState('');
   const [theme, setTheme] = useState(() => {
     try {
       return localStorage.getItem('carlog-theme') === 'dark' ? 'dark' : 'light';
@@ -37,6 +44,8 @@ export default function App() {
     const surChangementAncre = () => {
       setPageLegale(slugPageLegale());
       setMotDePasseOublie(window.location.hash === ANCRE_MOT_DE_PASSE_OUBLIE);
+      const hash = window.location.hash;
+      setPageErreur(Boolean(hash && !slugPageLegale(hash) && hash !== ANCRE_MOT_DE_PASSE_OUBLIE && !ANCRES_PROTEGEES.includes(hash)));
     };
     window.addEventListener('hashchange', surChangementAncre);
     return () => window.removeEventListener('hashchange', surChangementAncre);
@@ -48,6 +57,10 @@ export default function App() {
   // Pages publiques accessibles sans session, y compris pendant la vérification du jeton.
   if (pageLegale) return <PagesLegales slug={pageLegale} themeToggle={themeToggle} />;
   if (motDePasseOublie) return <MotDePasseOublie themeToggle={themeToggle} />;
+  if (window.location.hash === '#/acces-refuse') {
+    return <PageAccesRefuse themeToggle={themeToggle} message={messageAccesRefuse || undefined} onHome={() => { window.location.hash = ''; }} />;
+  }
+  if (pageErreur) return <Page404 themeToggle={themeToggle} onHome={() => { window.location.hash = ''; }} />;
 
   if (verification) {
     return (
@@ -68,5 +81,19 @@ export default function App() {
     );
   }
 
-  return <Dashboard themeToggle={themeToggle} />;
+  if (window.location.hash === '#/utilisateurs' && user?.role !== 'admin') {
+    return <PageAccesRefuse themeToggle={themeToggle} onHome={() => { window.location.hash = ''; }} />;
+  }
+  if (window.location.hash === '#/entreprise' && user?.role !== 'admin') {
+    return <PageAccesRefuse themeToggle={themeToggle} onHome={() => { window.location.hash = ''; }} message="Les paramètres de l’entreprise sont réservés à l’administrateur." />;
+  }
+
+  return <Dashboard
+    themeToggle={themeToggle}
+    onAccessDenied={(message) => {
+      setMessageAccesRefuse(message);
+      window.location.hash = '#/acces-refuse';
+      setPageErreur(false);
+    }}
+  />;
 }
