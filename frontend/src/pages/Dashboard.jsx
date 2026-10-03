@@ -61,6 +61,14 @@ function LocalPagination({ page, totalPages, setPage }) {
   </div>;
 }
 
+function Toast({ toast, onClose }) {
+  if (!toast) return null;
+  return <div className={`toast toast-${toast.type}`} role={toast.type === 'error' ? 'alert' : 'status'} aria-live="polite">
+    <span>{toast.message}</span>
+    <button type="button" onClick={onClose} aria-label="Fermer la notification">×</button>
+  </div>;
+}
+
 function TopBar({ user, themeToggle, notificationCount, onHome, onNotifications, onMenuAction, onLogout }) {
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -104,7 +112,7 @@ function TopBar({ user, themeToggle, notificationCount, onHome, onNotifications,
   );
 }
 
-export default function Dashboard({ themeToggle }) {
+export default function Dashboard({ themeToggle, onAccessDenied }) {
   const { token, logout, user, login } = useAuth();
   const [tab, setTab] = useState('accueil');
   const [vehicles, setVehicles] = useState([]);
@@ -121,6 +129,7 @@ export default function Dashboard({ themeToggle }) {
   const [actionLoading, setActionLoading] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [toast, setToast] = useState(null);
   const [vehicleFilters, setVehicleFilters] = useState({ search: '', typeVehicule: '', statut: '', page: 1 });
   const [pagination, setPagination] = useState({ totalPages: 1, currentPage: 1, totalItems: 0 });
   const [vehicleForm, setVehicleForm] = useState(vehicleInitial);
@@ -156,6 +165,22 @@ export default function Dashboard({ themeToggle }) {
   const actionEnCours = Boolean(actionLoading);
 
   useEffect(() => {
+    if (!notice) return undefined;
+    setToast({ type: 'success', message: notice });
+    const timeout = window.setTimeout(() => setToast(null), 4500);
+    return () => window.clearTimeout(timeout);
+  }, [notice]);
+
+  async function executerAction(labelAction, action) {
+    setActionLoading(labelAction);
+    try {
+      return await action();
+    } finally {
+      setActionLoading('');
+    }
+  }
+
+  useEffect(() => {
     if (user) setProfileForm({ ...profileInitial, nom: user.nom || '', prenom: user.prenom || '', email: user.email || '', telephone: user.telephone || '' });
   }, [user]);
   useEffect(() => {
@@ -184,14 +209,6 @@ export default function Dashboard({ themeToggle }) {
       return;
     }
 
-    async function executerAction(labelAction, action) {
-      setActionLoading(labelAction);
-      try {
-        return await action();
-      } finally {
-        setActionLoading('');
-      }
-    }
     const [vehicleResult, alertResult, assignmentResult, entretienResult, depenseResult, coutsResult, carburantResult, documentResult, statsResult, userResult] = results;
     if (vehicleResult.status === 'fulfilled') {
       setVehicles(vehicleResult.value.data?.data || []);
@@ -220,6 +237,7 @@ export default function Dashboard({ themeToggle }) {
     try {
       const response = await api.getProfil();
       login(response.data, token);
+      setNotice('Statut de l’abonnement actualisé.');
     } catch (exception) { handleError(exception); }
   }
 
@@ -284,7 +302,12 @@ export default function Dashboard({ themeToggle }) {
     if (exception.response?.status === 401) {
       logout();
       setError('Votre session a expiré. Veuillez vous reconnecter.');
-    } else setError(messageErreurApi(exception));
+      setToast({ type: 'error', message: 'Votre session a expiré. Veuillez vous reconnecter.' });
+    } else {
+      const message = messageErreurApi(exception);
+      setError(message);
+      setToast({ type: 'error', message });
+    }
   }
   async function saveVehicle(event) {
     event.preventDefault();
@@ -543,6 +566,7 @@ export default function Dashboard({ themeToggle }) {
       else if (action === 'profil') setTab('profil');
       else if (action === 'notifications') setTab('notifications');
       else if (action === 'entreprise' && isAdmin) setTab('entreprise');
+      else if (action === 'entreprise') onAccessDenied?.('Les paramètres de l’entreprise sont réservés à l’administrateur.');
       else setNotice(action === 'notifications'
         ? 'Les préférences de notification sont accessibles depuis le menu du profil.'
         : action === 'entreprise'
@@ -566,11 +590,13 @@ export default function Dashboard({ themeToggle }) {
   };
 
   return <div>
+    <Toast toast={toast} onClose={() => setToast(null)} />
     <TopBar user={user} themeToggle={themeToggle} notificationCount={activeAlertCount} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
       if (action === 'documents') setTab('documents');
       else if (action === 'profil') setTab('profil');
       else if (action === 'notifications') setTab('notifications');
       else if (action === 'entreprise' && isAdmin) setTab('entreprise');
+      else if (action === 'entreprise') onAccessDenied?.('Les paramètres de l’entreprise sont réservés à l’administrateur.');
       else setNotice(action === 'notifications'
         ? 'Les préférences de notification sont accessibles depuis le menu du profil.'
         : action === 'entreprise'

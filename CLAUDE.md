@@ -275,6 +275,7 @@ Une feature est finie quand :
 - [2026-10-03] · Phase 2A des états dashboard ajoutée : recherche, filtres conservés, tri explicite et pagination accessible sur les listes véhicules et entretiens. Les listes alertes, affectations, utilisateurs, documents et coûts restent à harmoniser séparément en raison de leurs rendus et actions différents.
 - [2026-10-03] · Phase 3A des états dashboard ajoutée : recherche, tri et pagination locale sur les alertes et affectations, avec conservation des actions de traitement, d’ignorance, de modification et de clôture. Les listes utilisateurs, documents et coûts restent à traiter dans la prochaine tranche.
 - [2026-10-03] · Phase 4 des états dashboard ajoutée : recherche, tri et pagination locale sur les utilisateurs, documents et historique des dépenses, avec conservation des actions d’administration, consultation, téléchargement, archivage, suppression et export.
+- [2026-10-03] · Finitions de navigation ajoutées : page 404 personnalisée pour les ancres inconnues, page « Accès refusé » pour les routes protégées ou rôles non autorisés, et toasts de succès/erreur après les actions du dashboard. Build Vite relancé mais bloqué localement par `Access is denied` lors de la suppression d’un fichier temporaire esbuild.
 
 ---
 
