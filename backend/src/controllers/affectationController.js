@@ -41,7 +41,7 @@ exports.getAffectations = async (req, res) => {
     } catch (err) {
         // En cas d'erreur, on renvoie un 500 avec le message d'erreur.
         // En prod, on devrait logger l'erreur et renvoyer un message plus genérique pour ne pas exposer les details techniques.
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -102,7 +102,7 @@ exports.creerAffectation = async (req, res) => {
     } catch (err) {
         if (err.code === 11000) return res.status(409).json({ message: 'Ce véhicule ou ce conducteur possède déjà une affectation en cours.' });
         if (err.status) return res.status(err.status).json({ message: err.message });
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     } finally {
         await session.endSession();
     }
@@ -140,7 +140,7 @@ exports.getAffectationById = async (req, res) => {
 
         res.status(200).json(affectation);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -155,6 +155,7 @@ exports.getAffectationById = async (req, res) => {
  * Valeur de retour : l'objet affectation modifie
  */
 exports.modifierAffectation = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         const entrepriseId = req.user.entreprise;
 
@@ -178,37 +179,89 @@ exports.modifierAffectation = async (req, res) => {
             ...(req.body.kmFin !== undefined && { kmFin: req.body.kmFin })
         };
 
-        const affectationExistante = await Affectation.findOne({ _id: req.params.id, entreprise: entrepriseId });
-        if (!affectationExistante) {
-            return res.status(404).json({ message: 'Affectation introuvable ou accès refusé.' });
-        }
-
-        if (req.body.vehicule !== undefined) {
-            const vehiculeValide = await Vehicule.exists({ _id: req.body.vehicule, entreprise: entrepriseId, actif: true });
-            if (!vehiculeValide) {
-                return res.status(400).json({ message: 'Le véhicule sélectionné est invalide pour cette entreprise.' });
+        let affectationModifiee;
+        await session.withTransaction(async () => {
+            const filtreAffectation = { _id: req.params.id, entreprise: entrepriseId };
+            const affectationExistante = await Affectation.findOne(filtreAffectation).session(session);
+            if (!affectationExistante) {
+                throw Object.assign(new Error('Affectation introuvable ou accès refusé.'), { status: 404 });
             }
-        }
-        if (req.body.conducteur !== undefined) {
-            const conducteurValide = await User.exists({ _id: req.body.conducteur, entreprise: entrepriseId, role: 'conducteur', actif: true });
-            if (!conducteurValide) {
-                return res.status(400).json({ message: 'Le conducteur sélectionné est invalide pour cette entreprise.' });
+
+            const vehiculeChange = req.body.vehicule !== undefined &&
+                String(req.body.vehicule) !== String(affectationExistante.vehicule);
+            const conducteurChange = req.body.conducteur !== undefined &&
+                String(req.body.conducteur) !== String(affectationExistante.conducteur);
+
+            if (req.body.vehicule !== undefined) {
+                const vehiculeValide = await Vehicule.exists({ _id: req.body.vehicule, entreprise: entrepriseId, actif: true }).session(session);
+                if (!vehiculeValide) {
+                    throw Object.assign(new Error('Le véhicule sélectionné est invalide pour cette entreprise.'), { status: 400 });
+                }
             }
-        }
+            if (req.body.conducteur !== undefined) {
+                const conducteurValide = await User.exists({ _id: req.body.conducteur, entreprise: entrepriseId, role: 'conducteur', actif: true }).session(session);
+                if (!conducteurValide) {
+                    throw Object.assign(new Error('Le conducteur sélectionné est invalide pour cette entreprise.'), { status: 400 });
+                }
+            }
 
-        const affectationModifiee = await Affectation.findOneAndUpdate(
-            { _id: req.params.id, entreprise: entrepriseId },
-            donneesValides,
-            { new: true, runValidators: true }
-        );
+            if (affectationExistante.statut === 'en_cours' && (vehiculeChange || conducteurChange)) {
+                const vehiculeCible = req.body.vehicule !== undefined ? req.body.vehicule : affectationExistante.vehicule;
+                const conducteurCible = req.body.conducteur !== undefined ? req.body.conducteur : affectationExistante.conducteur;
+                const conflit = await Affectation.findOne({
+                    entreprise: entrepriseId,
+                    _id: { $ne: req.params.id },
+                    statut: 'en_cours',
+                    $or: [{ vehicule: vehiculeCible }, { conducteur: conducteurCible }]
+                }).session(session);
+                if (conflit) {
+                    throw Object.assign(new Error('Ce véhicule ou ce conducteur possède déjà une affectation en cours.'), { status: 409 });
+                }
+            }
 
-        if (!affectationModifiee) {
-            return res.status(404).json({ message: 'Affectation introuvable ou accès refusé.' });
-        }
+            if (vehiculeChange && affectationExistante.statut === 'en_cours') {
+                const nouveauVehicule = await Vehicule.findOne({
+                    _id: req.body.vehicule,
+                    entreprise: entrepriseId,
+                    actif: true
+                }).session(session);
+                if (!nouveauVehicule) {
+                    throw Object.assign(new Error('Le véhicule sélectionné est invalide pour cette entreprise.'), { status: 400 });
+                }
+                if (['en_panne', 'en_maintenance'].includes(nouveauVehicule.statut)) {
+                    throw Object.assign(new Error('Ce véhicule ne peut pas être affecté dans son état actuel.'), { status: 400 });
+                }
+
+                const ancienVehicule = await Vehicule.findOne({
+                    _id: affectationExistante.vehicule,
+                    entreprise: entrepriseId
+                }).session(session);
+                if (ancienVehicule) {
+                    ancienVehicule.statut = 'disponible';
+                    await ancienVehicule.save({ session });
+                }
+                nouveauVehicule.statut = 'en_course';
+                await nouveauVehicule.save({ session });
+            }
+
+            affectationModifiee = await Affectation.findOneAndUpdate(
+                filtreAffectation,
+                donneesValides,
+                { new: true, runValidators: true, session }
+            );
+
+            if (!affectationModifiee) {
+                throw Object.assign(new Error('Affectation introuvable ou accès refusé.'), { status: 404 });
+            }
+        });
 
         res.status(200).json({ message: 'Affectation mise à jour avec succès.', affectation: affectationModifiee });
     } catch (err) {
-        repondreErreur(res, err);
+        if (err.code === 11000) return res.status(409).json({ message: 'Ce véhicule ou ce conducteur possède déjà une affectation en cours.' });
+        if (err.status) return res.status(err.status).json({ message: err.message });
+        repondreErreur(res, err, 500, req);
+    } finally {
+        await session.endSession();
     }
 };
 
@@ -273,7 +326,7 @@ exports.terminerAffectation = async (req, res) => {
         res.status(200).json({ message: 'Affectation clôturée avec succès et archivée dans l\'historique.', affectation });
     } catch (err) {
         if (err.status) return res.status(err.status).json({ message: err.message });
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     } finally {
         await session.endSession();
     }
@@ -290,24 +343,36 @@ exports.terminerAffectation = async (req, res) => {
  * Valeur de retour : message de confirmation
  */
 exports.supprimerAffectation = async (req, res) => {
+    const session = await mongoose.startSession();
     try {
         const entrepriseId = req.user.entreprise;
+        await session.withTransaction(async () => {
+            const affectationSupprimee = await Affectation.findOneAndDelete(
+                { _id: req.params.id, entreprise: entrepriseId },
+                { session }
+            );
 
-        // Securisation multi-tenant : on filtre par ID ET par entreprise.
-        // findOneAndDelete est parfait pour ça : il fait la recherche et la suppression en une seule operation atomique.
-        const affectationSupprimee = await Affectation.findOneAndDelete(
-            { _id: req.params.id, entreprise: entrepriseId }
-        );
+            if (!affectationSupprimee) {
+                throw Object.assign(new Error('Affectation introuvable ou accès refusé.'), { status: 404 });
+            }
 
-        if (!affectationSupprimee) {
-            return res.status(404).json({ message: 'Affectation introuvable ou accès refusé.' });
-        }
+            if (affectationSupprimee.statut === 'en_cours') {
+                const vehicule = await Vehicule.findOne({
+                    _id: affectationSupprimee.vehicule,
+                    entreprise: entrepriseId
+                }).session(session);
+                if (vehicule) {
+                    vehicule.statut = 'disponible';
+                    await vehicule.save({ session });
+                }
+            }
+        });
 
-        // J'ai choisi d'autoriser la suppression meme pour les affectations en cours.
-        // En prod, on pourrait vouloir empecher ça pour forcer la cloture propre (terminerAffectation).
-        // Mais pour l'instant, ça donne de la flexibilite pour corriger les erreurs.
         res.status(200).json({ message: 'Affectation supprimée avec succès.' });
     } catch (err) {
-        repondreErreur(res, err);
+        if (err.status) return res.status(err.status).json({ message: err.message });
+        repondreErreur(res, err, 500, req);
+    } finally {
+        await session.endSession();
     }
 };

@@ -1,9 +1,71 @@
 // Import du modele Mongoose pour les alertes.
 // Les alertes servent a signaler des problemes ou des evenements sur les vehicules.
 const Alerte = require('../models/Alerte');
+const Affectation = require('../models/Affectation');
 const Vehicule = require('../models/Vehicule');
 const User = require('../models/User');
+const Entretien = require('../models/Entretien');
+const Document = require('../models/Document');
+const Depense = require('../models/Depense');
 const repondreErreur = require('../utils/reponseErreur');
+
+async function synchroniserAlertesAutomatiques(entrepriseId) {
+    const maintenant = new Date();
+    const dansTrenteJours = new Date(maintenant);
+    dansTrenteJours.setDate(dansTrenteJours.getDate() + 30);
+    const sources = [];
+    const entretiens = await Entretien.find({
+        entreprise: entrepriseId,
+        statut: { $ne: 'realise' },
+        dateEntretien: { $lte: dansTrenteJours }
+    }).select('_id vehicule dateEntretien typeEntretien statut').lean();
+    entretiens.forEach((item) => sources.push({
+        sourceCle: `entretien:${item._id}`,
+        vehicule: item.vehicule,
+        typeAlerte: 'maintenance',
+        niveauUrgence: new Date(item.dateEntretien) < maintenant ? 'high' : 'medium',
+        titre: new Date(item.dateEntretien) < maintenant ? 'Entretien en retard' : 'Entretien à venir',
+        description: `${item.typeEntretien} · échéance ${new Date(item.dateEntretien).toLocaleDateString('fr-FR')}`
+    }));
+    const documents = await Document.find({
+        entreprise: entrepriseId,
+        statut: { $ne: 'archive' },
+        dateEcheance: { $lte: dansTrenteJours }
+    }).select('_id vehicule dateEcheance typeDocument').lean();
+    documents.forEach((item) => {
+        const expire = new Date(item.dateEcheance) < maintenant;
+        sources.push({
+            sourceCle: `document:${item._id}`,
+            vehicule: item.vehicule,
+            typeAlerte: 'administratif',
+            niveauUrgence: expire ? 'critical' : 'high',
+            titre: expire ? 'Document expiré' : 'Document arrivant à échéance',
+            description: `${item.typeDocument} · échéance ${new Date(item.dateEcheance).toLocaleDateString('fr-FR')}`
+        });
+    });
+    const pleins = await Depense.find({ entreprise: entrepriseId, categorie: 'carburant', kilometrage: { $exists: true }, litres: { $exists: true } })
+        .select('_id vehicule kilometrage litres montant dateDepense').sort({ vehicule: 1, kilometrage: 1 }).lean();
+    const precedent = new Map();
+    pleins.forEach((item) => {
+        const ancien = precedent.get(String(item.vehicule));
+        if (ancien && item.kilometrage > ancien.kilometrage && item.litres / (item.kilometrage - ancien.kilometrage) * 100 > 12) {
+            sources.push({
+                sourceCle: `carburant:${item._id}`,
+                vehicule: item.vehicule,
+                typeAlerte: 'carburant',
+                niveauUrgence: 'high',
+                titre: 'Consommation inhabituelle',
+                description: 'La consommation dépasse 12 L/100 km.'
+            });
+        }
+        precedent.set(String(item.vehicule), item);
+    });
+    await Promise.all(sources.map((source) => Alerte.updateOne(
+        { entreprise: entrepriseId, sourceCle: source.sourceCle },
+        { $setOnInsert: { ...source, entreprise: entrepriseId, automatique: true, statut: 'active' } },
+        { upsert: true }
+    )));
+}
 
 // ==========================================
 // 1. [CREATE] - Créer une alerte
@@ -50,7 +112,7 @@ exports.creerAlerte = async (req, res) => {
 
         res.status(201).json(nouvelleAlerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -68,6 +130,7 @@ exports.creerAlerte = async (req, res) => {
 exports.getAlertes = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
+        await synchroniserAlertesAutomatiques(entrepriseId);
         
         // Possibilite de filtrer par statut via l'URL (ex: /api/alertes?statut=active).
         // C'est pratique pour le frontend qui peut avoir des onglets (toutes, actives, resolues).
@@ -75,7 +138,18 @@ exports.getAlertes = async (req, res) => {
         const filtre = { entreprise: entrepriseId };
         if (req.query.statut) filtre.statut = req.query.statut;
         if (req.query.niveauUrgence) filtre.niveauUrgence = req.query.niveauUrgence;
+        if (req.query.vehicule) filtre.vehicule = req.query.vehicule;
         if (req.user.role === 'mecanicien') filtre.typeAlerte = 'maintenance';
+        if (req.user.role === 'conducteur') {
+            const affectations = await Affectation.find({
+                entreprise: entrepriseId,
+                conducteur: req.user._id,
+                statut: 'en_cours'
+            }).select('vehicule');
+            filtre.vehicule = {
+                $in: affectations.map((affectation) => affectation.vehicule).filter(Boolean)
+            };
+        }
 
         const alertes = await Alerte.find(filtre)
         .populate('vehicule', 'marque modele immatriculation')
@@ -84,7 +158,7 @@ exports.getAlertes = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -104,6 +178,20 @@ exports.getAlertesByVehicule = async (req, res) => {
         const { vehiculeId } = req.params;
         const entrepriseId = req.user.entreprise;
 
+        if (req.user.role === 'conducteur') {
+            const affectations = await Affectation.find({
+                entreprise: entrepriseId,
+                conducteur: req.user._id,
+                statut: 'en_cours'
+            }).select('vehicule');
+            const vehiculeAffecte = affectations.some((affectation) =>
+                String(affectation.vehicule) === String(vehiculeId)
+            );
+            if (!vehiculeAffecte) {
+                return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
+            }
+        }
+
         // Securite multi-tenant : on s'assure que le vehicule appartient a la meme entreprise.
         // C'est crucial pour eviter qu'une entreprise puisse voir l'historique des vehicules d'une autre.
         // J'utilise un filtre combine (entreprise + vehicule) pour garantir l'isolation.
@@ -116,7 +204,7 @@ exports.getAlertesByVehicule = async (req, res) => {
 
         res.status(200).json(alertes);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -148,9 +236,23 @@ exports.getAlerteById = async (req, res) => {
         return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
         }
 
+        if (req.user.role === 'conducteur') {
+            const affectations = await Affectation.find({
+                entreprise: entrepriseId,
+                conducteur: req.user._id,
+                statut: 'en_cours'
+            }).select('vehicule');
+            const vehiculeAffecte = alerte.vehicule && affectations.some((affectation) =>
+                String(affectation.vehicule) === String(alerte.vehicule._id || alerte.vehicule)
+            );
+            if (!vehiculeAffecte) {
+                return res.status(404).json({ message: 'Alerte introuvable ou accès non autorisé.' });
+            }
+        }
+
         res.status(200).json(alerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -215,7 +317,7 @@ exports.modifierAlerte = async (req, res) => {
 
         res.status(200).json(alerte);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -249,6 +351,6 @@ exports.supprimerAlerte = async (req, res) => {
 
         res.status(200).json({ message: 'Alerte supprimée avec succès.' });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

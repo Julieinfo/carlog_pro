@@ -3,10 +3,21 @@ node_modules/
 backend/node_modules/
 
 # Environnement et secrets
-.env .env.test
+.env
+.env.test
+.env.development
+.env.local
+.env.*.local
 backend/.env
 backend/.env.test
+
+# Sauvegardes locales synchronisées par OneDrive (jamais versionnées par Git)
+/backups/
+
+# Dossier de travail local : caches et fichiers temporaires de build
+/tmp/
 
 # Fichiers système
 .DS_Store
 Thumbs.db
+backend/uploads/

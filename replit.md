@@ -46,6 +46,8 @@ npm ci
 npm run build
 ```
 
+Cette configuration sert au développement et à la Preview : elle lance Vite et `nodemon`. Elle ne constitue pas à elle seule une configuration de déploiement de production ; le fournisseur de production et ses paramètres HTTPS doivent encore être choisis et vérifiés avant publication.
+
 L'endpoint public de verification technique est `GET /api/health` et renvoie uniquement `{ "status": "ok" }`.
 Le frontend Vite ecoute sur le port 5173 par defaut, ou sur le premier port disponible si celui-ci est deja occupe. `VITE_PORT` permet de definir un autre port sans modifier le code.
 

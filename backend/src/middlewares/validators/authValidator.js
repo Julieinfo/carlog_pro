@@ -69,6 +69,8 @@ exports.validateInscription = [
 
     body('emailProfessionnel')
         .trim()
+        .notEmpty().withMessage('L\'email professionnel est obligatoire.')
+        .bail()
         .isEmail().withMessage('L\'email professionnel est invalide.')
         .normalizeEmail(),
 
@@ -82,18 +84,15 @@ exports.validateInscription = [
 
     body('adresse.codePostal')
         .trim()
-        .notEmpty().withMessage('Le code postal est obligatoire.'),
+        .matches(/^[0-9]{5}$/).withMessage('Le code postal doit contenir 5 chiffres.'),
 
     body('adresse.ville')
         .trim()
         .notEmpty().withMessage('La ville est obligatoire.'),
 
     body('siret')
-        .if((value, { req }) => req.body.adresse?.pays === 'France')
         .trim()
-        .notEmpty().withMessage('Le SIRET est obligatoire en France.')
-        .isNumeric().withMessage('Le SIRET doit contenir uniquement des chiffres.')
-        .isLength({ min: 14, max: 14 }).withMessage('Le SIRET doit contenir 14 chiffres.'),
+        .matches(/^[0-9]{14}$/).withMessage('Le SIRET doit contenir exactement 14 chiffres.'),
 
     body('numeroIdentificationEtranger')
         .if((value, { req }) => req.body.adresse?.pays && req.body.adresse.pays !== 'France')

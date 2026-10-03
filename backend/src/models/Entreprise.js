@@ -11,6 +11,8 @@ const entrepriseSchema = new mongoose.Schema({
     required: true, 
     trim: true 
   },
+  logoUrl: { type: String, trim: true, default: '' },
+  secteurActivite: { type: String, trim: true, default: '' },
   
   // Contacts utilises dans les echanges de gestion (facturation, support, alertes...).
   telephone: { 
@@ -34,6 +36,15 @@ const entrepriseSchema = new mongoose.Schema({
     ville: { type: String, required: true },
     pays: { type: String, default: 'France' }
   },
+  tailleFlotte: { type: Number, min: 0, default: 0 },
+  devise: { type: String, enum: ['EUR', 'USD', 'GBP'], default: 'EUR' },
+  fuseauHoraire: { type: String, default: 'Europe/Paris' },
+  formatDate: { type: String, enum: ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'], default: 'DD/MM/YYYY' },
+  uniteDistance: { type: String, enum: ['kilometres', 'miles'], default: 'kilometres' },
+  uniteCarburant: { type: String, enum: ['litres', 'gallons'], default: 'litres' },
+  seuilConsommationInhabituelle: { type: Number, min: 0, default: 12 },
+  delaiAlerteDocument: { type: Number, min: 0, max: 365, default: 30 },
+  delaiAlerteContrat: { type: Number, min: 0, max: 365, default: 30 },
 
   // Les identifiants legaux dependent du pays, d'ou les validations conditionnelles.
   siret: { 

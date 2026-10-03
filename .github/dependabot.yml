@@ -1,0 +1,24 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /backend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    # react et react-dom doivent rester sur la même version majeure : une mise à jour
+    # de l'un sans l'autre rend `npm ci` impossible (peer dependency) et casse le build Vercel.
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
