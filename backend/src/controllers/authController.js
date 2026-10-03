@@ -6,6 +6,35 @@ const repondreErreur = require('../utils/reponseErreur');
 const { ecrire, contexteRequete } = require('../utils/journal');
 const { estVerrouille, enregistrerEchec, reinitialiser } = require('../utils/verrouillageConnexion');
 
+const notificationsParDefaut = {
+    application: true,
+    email: false,
+    entretienAvenir: true,
+    entretienRetard: true,
+    documentExpiration: true,
+    contratEcheance: true,
+    carburantInhabituel: true,
+    resumeHebdomadaire: false,
+    resumeMensuel: false
+};
+
+function notificationsUtilisateur(user) {
+    return { ...notificationsParDefaut, ...(user.notifications?.toObject?.() || user.notifications || {}) };
+}
+
+function ajouterNotifications(user) {
+    return {
+        id: user._id,
+        nom: user.nom,
+        prenom: user.prenom,
+        telephone: user.telephone || '',
+        email: user.email,
+        role: user.role,
+        entrepriseId: user.entreprise,
+        notifications: notificationsUtilisateur(user)
+    };
+}
+
 /**
  * Genere un token JWT pour un utilisateur.
  * Role : creer un jeton d'authentification qui sera utilise par le client pour les requetes suivantes.
@@ -96,13 +125,8 @@ exports.inscription = async (req, res) => {
         // C'est une bonne pratique UX : l'utilisateur n'a pas a se reconnecter apres s'etre inscrit.
         res.status(201).json({
         token: genererToken(user._id),
-        user: { 
-            id: user._id, 
-            nom: user.nom, 
-            prenom: user.prenom,
-            telephone: user.telephone || '',
-            email: user.email, 
-            role: user.role,
+        user: {
+            ...ajouterNotifications(user),
             entrepriseId: entreprise._id,
             abonnement: entreprise.statutAbonnement
         },
@@ -164,14 +188,8 @@ exports.connexion = async (req, res) => {
         // J'aurais pu implementer un systeme de refresh token, mais pour l'instant un simple token suffit.
         res.json({
         token: genererToken(user._id),
-        user: { 
-            id: user._id, 
-            nom: user.nom, 
-            prenom: user.prenom,
-            telephone: user.telephone || '',
-            email: user.email, 
-            role: user.role,
-            entrepriseId: user.entreprise,
+        user: {
+            ...ajouterNotifications(user),
             abonnement: entreprise?.statutAbonnement ?? null
         },
         });
@@ -200,6 +218,7 @@ exports.getProfil = async (req, res) => {
             telephone: req.user.telephone || '',
             role: req.user.role,
             entrepriseId: req.user.entreprise,
+            notifications: notificationsUtilisateur(req.user),
             abonnement: req.entreprise?.statutAbonnement ?? null
         });
     } catch (err) {
@@ -209,12 +228,31 @@ exports.getProfil = async (req, res) => {
 
 exports.modifierProfil = async (req, res) => {
     try {
-        const { nom, prenom, email, telephone, motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse } = req.body;
+        const { nom, prenom, email, telephone, notifications, motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse } = req.body;
         const modifications = {};
         for (const champ of ['nom', 'prenom', 'telephone']) {
             if (Object.prototype.hasOwnProperty.call(req.body, champ)) {
                 if (typeof req.body[champ] !== 'string' || (champ !== 'telephone' && !req.body[champ].trim())) {
                     return res.status(400).json({ message: `Le champ ${champ} est invalide.` });
+                }
+                if (notifications !== undefined) {
+                    if (!notifications || typeof notifications !== 'object' || Array.isArray(notifications)) {
+                        return res.status(400).json({ message: 'Les préférences de notification sont invalides.' });
+                    }
+                    const champsNotifications = Object.keys(notificationsParDefaut);
+                    if (Object.keys(notifications).some((champ) => !champsNotifications.includes(champ))) {
+                        return res.status(400).json({ message: 'Les préférences de notification sont invalides.' });
+                    }
+                    const preferences = {};
+                    for (const champ of champsNotifications) {
+                        if (notifications[champ] !== undefined && typeof notifications[champ] !== 'boolean') {
+                            return res.status(400).json({ message: 'Les préférences de notification sont invalides.' });
+                        }
+                        if (notifications[champ] !== undefined) preferences[champ] = notifications[champ];
+                    }
+                    if (Object.keys(preferences).length) {
+                        modifications.notifications = { ...notificationsUtilisateur(req.user), ...preferences };
+                    }
                 }
                 modifications[champ] = req.body[champ].trim();
             }
@@ -254,6 +292,7 @@ exports.modifierProfil = async (req, res) => {
             telephone: utilisateurModifie.telephone || '',
             role: utilisateurModifie.role,
             entrepriseId: utilisateurModifie.entreprise,
+            notifications: notificationsUtilisateur(utilisateurModifie),
             abonnement: req.user.entreprise?.statutAbonnement ?? null
         });
     } catch (err) {

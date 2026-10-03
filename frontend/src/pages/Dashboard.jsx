@@ -27,6 +27,7 @@ const entretienInitial = { vehicule: '', typeEntretien: 'revision', statut: 'pla
 const depenseInitial = { vehicule: '', categorie: 'carburant', dateDepense: '', montant: '', kilometrage: '', litres: '', prixAuLitre: '', description: '' };
 const documentInitial = { vehicule: '', typeDocument: 'assurance', reference: '', prestataire: '', dateDebut: '', dateEcheance: '', cout: '' };
 const profileInitial = { nom: '', prenom: '', email: '', telephone: '', motDePasseActuel: '', nouveauMotDePasse: '', confirmationMotDePasse: '' };
+const notificationsInitial = { application: true, email: false, entretienAvenir: true, entretienRetard: true, documentExpiration: true, contratEcheance: true, carburantInhabituel: true, resumeHebdomadaire: false, resumeMensuel: false };
 const entrepriseInitial = { nom: '', logoUrl: '', secteurActivite: '', telephone: '', emailProfessionnel: '', adresse: { rue: '', codePostal: '', ville: '', pays: 'France' }, tailleFlotte: 0, siret: '', devise: 'EUR', fuseauHoraire: 'Europe/Paris', formatDate: 'DD/MM/YYYY', uniteDistance: 'kilometres', uniteCarburant: 'litres', seuilConsommationInhabituelle: 12, delaiAlerteDocument: 30, delaiAlerteContrat: 30 };
 const typesRapport = ['activite', 'couts', 'carburant', 'entretiens', 'alertes', 'affectations'];
 const libellesRapport = { activite: 'Activité', couts: 'Coûts', carburant: 'Carburant', entretiens: 'Entretiens', alertes: 'Alertes', affectations: 'Affectations' };
@@ -120,6 +121,7 @@ export default function Dashboard({ themeToggle }) {
   const [reportFilters, setReportFilters] = useState({ type: 'activite', debut: '', fin: '', vehicule: '' });
   const [generatedReport, setGeneratedReport] = useState(null);
   const [profileForm, setProfileForm] = useState(profileInitial);
+  const [notificationsForm, setNotificationsForm] = useState(notificationsInitial);
   const [entrepriseForm, setEntrepriseForm] = useState(entrepriseInitial);
 
   const isAdmin = user?.role === 'admin';
@@ -131,6 +133,9 @@ export default function Dashboard({ themeToggle }) {
 
   useEffect(() => {
     if (user) setProfileForm({ ...profileInitial, nom: user.nom || '', prenom: user.prenom || '', email: user.email || '', telephone: user.telephone || '' });
+  }, [user]);
+  useEffect(() => {
+    if (user) setNotificationsForm({ ...notificationsInitial, ...(user.notifications || {}) });
   }, [user]);
 
   async function loadData(params = {}) {
@@ -201,6 +206,16 @@ export default function Dashboard({ themeToggle }) {
       login(response.data, token);
       setProfileForm({ ...profileInitial, nom: response.data.nom, prenom: response.data.prenom, email: response.data.email, telephone: response.data.telephone || '' });
       setNotice('Profil enregistré.');
+    } catch (exception) { handleError(exception); }
+  }
+
+  async function saveNotifications(event) {
+    event.preventDefault();
+    try {
+      const response = await api.updateProfil({ notifications: notificationsForm });
+      login(response.data, token);
+      setNotificationsForm({ ...notificationsInitial, ...(response.data.notifications || {}) });
+      setNotice('Préférences de notification enregistrées.');
     } catch (exception) { handleError(exception); }
   }
 
@@ -458,9 +473,10 @@ export default function Dashboard({ themeToggle }) {
     <TopBar user={user} themeToggle={themeToggle} notificationCount={alerts.filter((item) => item.statut === 'active' || item.statut === 'en_cours').length} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
       if (action === 'documents') setTab('documents');
       else if (action === 'profil') setTab('profil');
+      else if (action === 'notifications') setTab('notifications');
       else if (action === 'entreprise' && isAdmin) setTab('entreprise');
       else setNotice(action === 'notifications'
-        ? 'Les préférences de notification seront disponibles dans une prochaine version.'
+        ? 'Les préférences de notification sont accessibles depuis le menu du profil.'
         : action === 'entreprise'
           ? (isAdmin ? 'Les paramètres de l’entreprise sont accessibles depuis l’administration des utilisateurs.' : 'Les paramètres de l’entreprise sont réservés à l’administrateur.')
           : 'Les informations de votre profil sont affichées dans le menu du profil.');
@@ -485,9 +501,10 @@ export default function Dashboard({ themeToggle }) {
     <TopBar user={user} themeToggle={themeToggle} notificationCount={activeAlertCount} onHome={() => setTab('accueil')} onNotifications={() => setTab('alertes')} onMenuAction={(action) => {
       if (action === 'documents') setTab('documents');
       else if (action === 'profil') setTab('profil');
+      else if (action === 'notifications') setTab('notifications');
       else if (action === 'entreprise' && isAdmin) setTab('entreprise');
       else setNotice(action === 'notifications'
-        ? 'Les préférences de notification seront disponibles dans une prochaine version.'
+        ? 'Les préférences de notification sont accessibles depuis le menu du profil.'
         : action === 'entreprise'
           ? (isAdmin ? 'Les paramètres de l’entreprise sont accessibles depuis l’administration des utilisateurs.' : 'Les paramètres de l’entreprise sont réservés à l’administrateur.')
           : 'Les informations de votre profil sont affichées dans le menu du profil.');
@@ -504,6 +521,7 @@ export default function Dashboard({ themeToggle }) {
       {tab === 'documents' && <DocumentSection {...{ documents, documentFilters, setDocumentFilters, documentForm, setDocumentForm, documentFile, setDocumentFile, saveDocument, downloadDocument, previewDocument, archiveDocument, deleteDocument, loadData, vehicles, canManageDocuments: !readOnly && ['admin', 'fleet_manager', 'comptable'].includes(user?.role), canDeleteDocuments: !readOnly && ['admin', 'fleet_manager'].includes(user?.role) }} />}
       {tab === 'rapports' && <RapportsSection {...{ reportFilters, setReportFilters, generateReport, generatedReport, exportReportCsv, exportReportPdf, vehicles }} />}
       {tab === 'profil' && <ProfileSection user={user} profileForm={profileForm} setProfileForm={setProfileForm} onSubmit={saveProfile} onCancel={() => setProfileForm({ ...profileInitial, nom: user?.nom || '', prenom: user?.prenom || '', email: user?.email || '', telephone: user?.telephone || '' })} />}
+      {tab === 'notifications' && <NotificationsSection form={notificationsForm} setForm={setNotificationsForm} onSubmit={saveNotifications} onCancel={() => setNotificationsForm({ ...notificationsInitial, ...(user?.notifications || {}) })} />}
       {tab === 'entreprise' && isAdmin && (
         <EntrepriseSettingsSection
           form={entrepriseForm}
@@ -690,6 +708,33 @@ function ProfileSection({ user, profileForm, setProfileForm, onSubmit, onCancel 
       <div className="form-grid"><Field label="Mot de passe actuel"><input type={showPasswords ? 'text' : 'password'} autoComplete="current-password" value={profileForm.motDePasseActuel} onChange={(e) => update('motDePasseActuel', e.target.value)} /></Field><Field label="Nouveau mot de passe"><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" value={profileForm.nouveauMotDePasse} onChange={(e) => update('nouveauMotDePasse', e.target.value)} /></Field><Field label="Confirmation du nouveau mot de passe"><input type={showPasswords ? 'text' : 'password'} autoComplete="new-password" value={profileForm.confirmationMotDePasse} onChange={(e) => update('confirmationMotDePasse', e.target.value)} /></Field></div>
       <label className="auth-remember"><input type="checkbox" checked={showPasswords} onChange={(e) => setShowPasswords(e.target.checked)} /> Afficher les mots de passe</label>
       <div className="item-actions profile-actions"><button className="btn-primary">Enregistrer les modifications</button><button type="button" className="btn-secondary" onClick={onCancel}>Annuler</button></div>
+    </form>
+  </section>;
+}
+
+function NotificationsSection({ form, setForm, onSubmit, onCancel }) {
+  const preferences = [
+    ['application', 'Notifications dans l’application', 'Afficher les alertes et rappels dans CarLog Pro.'],
+    ['email', 'Notifications par e-mail', 'Autoriser l’envoi des notifications à votre adresse e-mail.'],
+    ['entretienAvenir', 'Rappel d’entretien à venir', 'Être prévenu avant un entretien planifié.'],
+    ['entretienRetard', 'Rappel d’entretien en retard', 'Être prévenu lorsqu’un entretien n’a pas été réalisé à temps.'],
+    ['documentExpiration', 'Alerte document arrivant à expiration', 'Surveiller les documents proches de leur échéance.'],
+    ['contratEcheance', 'Alerte contrat arrivant à échéance', 'Surveiller les contrats proches de leur échéance.'],
+    ['carburantInhabituel', 'Alerte carburant / consommation inhabituelle', 'Signaler une consommation supérieure au seuil défini.'],
+    ['resumeHebdomadaire', 'Résumé hebdomadaire de la flotte', 'Recevoir un bilan synthétique chaque semaine.'],
+    ['resumeMensuel', 'Résumé mensuel des coûts', 'Recevoir un bilan mensuel des dépenses et coûts.']
+  ];
+  return <section className="workspace notification-settings">
+    <div className="section-header"><div><p className="eyebrow">Compte utilisateur</p><h2>Préférences de notification</h2></div></div>
+    <form onSubmit={onSubmit}>
+      <p className="section-intro">Choisissez les informations que vous souhaitez recevoir. Les e-mails sont désactivés par défaut.</p>
+      <div className="notification-options">
+        {preferences.map(([key, title, description]) => <label className="notification-option" key={key}>
+          <span><strong>{title}</strong><small>{description}</small></span>
+          <input type="checkbox" checked={Boolean(form[key])} onChange={(event) => setForm({ ...form, [key]: event.target.checked })} />
+        </label>)}
+      </div>
+      <div className="item-actions profile-actions"><button className="btn-primary">Enregistrer les préférences</button><button type="button" className="btn-secondary" onClick={onCancel}>Annuler</button></div>
     </form>
   </section>;
 }
