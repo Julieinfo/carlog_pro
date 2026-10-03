@@ -271,6 +271,10 @@ Une feature est finie quand :
 - [2026-10-02] · Ajout d’un Error Boundary frontend : une exception React affiche désormais un message visible et un bouton de rechargement au lieu de laisser un écran noir silencieux.
 - [2026-10-02] · L’onglet visible « Paramètres entreprise » a été retiré de la navigation principale à la demande de Julie ; la page reste accessible uniquement depuis le menu Profil.
 - [2026-10-03] · Préférences de notification ajoutées au menu Profil : notifications dans l’application, e-mails, rappels d’entretiens, alertes documents/contrats, consommation inhabituelle et résumés périodiques. Les choix sont persistés par utilisateur via `PATCH /api/auth/me`, avec validation et whitelist serveur ; les e-mails et résumés sont désactivés par défaut.
+- [2026-10-03] · Phase 1 des états dashboard ajoutée : état d’action partagé avec message accessible et désactivation des contrôles pendant les envois, confirmations d’archivage des documents et états de focus/disabled harmonisés.
+- [2026-10-03] · Phase 2A des états dashboard ajoutée : recherche, filtres conservés, tri explicite et pagination accessible sur les listes véhicules et entretiens. Les listes alertes, affectations, utilisateurs, documents et coûts restent à harmoniser séparément en raison de leurs rendus et actions différents.
+- [2026-10-03] · Phase 3A des états dashboard ajoutée : recherche, tri et pagination locale sur les alertes et affectations, avec conservation des actions de traitement, d’ignorance, de modification et de clôture. Les listes utilisateurs, documents et coûts restent à traiter dans la prochaine tranche.
+- [2026-10-03] · Phase 4 des états dashboard ajoutée : recherche, tri et pagination locale sur les utilisateurs, documents et historique des dépenses, avec conservation des actions d’administration, consultation, téléchargement, archivage, suppression et export.
 
 ---
 
