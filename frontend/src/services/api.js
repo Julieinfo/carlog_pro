@@ -1,10 +1,12 @@
 import axios from 'axios';
 import { lireToken, effacerSession } from './stockageSession';
 
+const apiBaseUrl = import.meta.env.PROD
+  ? (import.meta.env.VITE_API_URL || 'https://carlog-pro.onrender.com/api')
+  : 'http://localhost:5000/api';
+
 const API = axios.create({
-  // En production, /api passe par le meme domaine que le frontend.
-  // VITE_API_URL reste disponible si le frontend et l'API sont deployes separement.
-  baseURL: import.meta.env.DEV ? 'http://localhost:5000/api' : (import.meta.env.VITE_API_URL || '/api'),
+  baseURL: apiBaseUrl,
 });
 
 const estRequeteConnexion = (error) => /\/auth\/connexion(?:[/?#]|$)/.test(error.config?.url || '');
