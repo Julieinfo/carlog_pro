@@ -10,6 +10,11 @@ backend/node_modules/
 .env.*.local
 backend/.env
 backend/.env.test
+mobile/.env
+mobile/.env.local
+mobile/.env.development
+mobile/.env.production
+!mobile/.env.example
 
 # Sauvegardes locales synchronisées par OneDrive (jamais versionnées par Git)
 /backups/
