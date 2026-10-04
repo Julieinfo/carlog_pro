@@ -1,0 +1,8 @@
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, Text } from 'react-native';
+import { AppCard } from '@/components/AppCard';
+import { Screen } from '@/components/Screen';
+import { useAppTheme } from '@/hooks/useAppTheme';
+const alerts = [{ id: 'essence', title: 'Mettre de l’essence', vehicle: 'Renault Mégane', priority: 'Moyenne', status: 'Active' }, { id: 'controle', title: 'Contrôle technique à prévoir', vehicle: 'Fiat Panda', priority: 'Élevée', status: 'Active' }, { id: 'entretien', title: 'Entretien annuel validé', vehicle: 'Toyota Aygo', priority: 'Information', status: 'Traitée' }];
+export default function AlertesScreen() { const { colors, spacing } = useAppTheme(); return <Screen><Text style={[styles.title, { color: colors.text }]}>Alertes</Text><Text style={[styles.description, { color: colors.mutedText }]}>Suivez les événements importants de votre flotte.</Text>{alerts.map((alert) => <Pressable key={alert.id} onPress={() => router.push({ pathname: '/alertes/[id]', params: { id: alert.id } })} style={({ pressed }) => ({ marginTop: spacing.md, opacity: pressed ? 0.8 : 1 })}><AppCard><Text style={[styles.alertTitle, { color: colors.text }]}>{alert.title}</Text><Text style={[styles.description, { color: colors.mutedText }]}>{alert.vehicle} · {alert.priority}</Text><Text style={[styles.status, { color: alert.status === 'Active' ? colors.danger : colors.success }]}>{alert.status}</Text></AppCard></Pressable>)}</Screen>; }
+const styles = StyleSheet.create({ title: { fontSize: 28, fontWeight: '800', marginTop: 8 }, description: { fontSize: 14, lineHeight: 21, marginTop: 6 }, alertTitle: { fontSize: 16, fontWeight: '800' }, status: { fontSize: 13, fontWeight: '700', marginTop: 10 } });

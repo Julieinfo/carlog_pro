@@ -1,0 +1,4 @@
+import { FontAwesome6 } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import { useAppTheme } from '@/hooks/useAppTheme';
+export default function TabLayout() { const { colors } = useAppTheme(); return <Tabs screenOptions={{ headerStyle: { backgroundColor: colors.surface }, headerTintColor: colors.text, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.mutedText, tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border } }}>{[['index', 'Accueil', 'house'], ['vehicules', 'Véhicules', 'car'], ['actions', 'Actions', 'plus'], ['alertes', 'Alertes', 'bell'], ['profil', 'Profil', 'user']].map(([name, title, icon]) => <Tabs.Screen key={name} name={name} options={{ title, tabBarIcon: ({ color, size }) => <FontAwesome6 color={color} name={icon} size={size} solid /> }} />)}</Tabs>; }

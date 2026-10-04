@@ -278,6 +278,8 @@ Une feature est finie quand :
 - [2026-10-03] · Finitions de navigation ajoutées : page 404 personnalisée pour les ancres inconnues, page « Accès refusé » pour les routes protégées ou rôles non autorisés, et toasts de succès/erreur après les actions du dashboard. Build Vite relancé mais bloqué localement par `Access is denied` lors de la suppression d’un fichier temporaire esbuild.
 - [2026-10-04] · Phase 1 mobile initialisée dans `mobile/` avec Expo SDK 57, TypeScript, Expo Router, écran « Mobile est prêt », configuration CarLog Pro, palette mobile, variables publiques `.env.example` et environnement Android local via `10.0.2.2`. Projet lancé dans l’émulateur Android ; TypeScript, ESLint et bundle Metro validés.
 - [2026-10-04] · Phase 2 mobile ajoutée : design system centralisé clair/sombre, hook `useAppTheme`, composants `Screen`, `AppButton`, `AppCard` et `StatusBadge`, puis écran de prévisualisation CarLog Pro Mobile. TypeScript, ESLint et Expo Doctor validés ; l’export Android reste bloqué par une permission Windows sur le fichier temporaire Hermes.
+- [2026-10-04] · Phase 3 mobile ajoutée : navigation Expo Router avec authentification de démonstration, cinq onglets (accueil, véhicules, actions, alertes, profil), fiches véhicule/alerte et formulaires terrain pour plein/anomalie. TypeScript, ESLint et Expo Doctor validés.
+- [2026-10-04] · Correction navigation mobile : après connexion, Expo Router cible désormais le groupe `/(tabs)` plutôt que `/(tabs)/index`, ce qui supprime l’erreur « Unmatched Route ». Metro a été relancé avec le cache vidé.
 
 ---
 

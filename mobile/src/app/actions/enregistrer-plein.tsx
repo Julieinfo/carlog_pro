@@ -1,0 +1,8 @@
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { AppButton } from '@/components/AppButton';
+import { Screen } from '@/components/Screen';
+import { useAppTheme } from '@/hooks/useAppTheme';
+export default function EnregistrerPleinScreen() { const [saved, setSaved] = useState(false); const { colors, radius, spacing } = useAppTheme(); if (saved) return <Screen><Text style={[styles.title, { color: colors.text }]}>Plein enregistré</Text><Text style={[styles.detail, { color: colors.mutedText }]}>Le plein de démonstration a bien été ajouté.</Text><AppButton label="Retour aux actions" onPress={() => router.replace('/(tabs)/actions')} /></Screen>; return <Screen><Text style={[styles.title, { color: colors.text }]}>Enregistrer un plein</Text><Text style={[styles.detail, { color: colors.mutedText }]}>Renault Mégane · FF-069-VC</Text>{['Kilométrage', 'Volume (L)', 'Prix au litre (€)'].map((label) => <View key={label}><Text style={[styles.label, { color: colors.text, marginTop: spacing.lg }]}>{label}</Text><TextInput keyboardType="decimal-pad" placeholder={label} placeholderTextColor={colors.mutedText} style={[styles.input, { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md, color: colors.text }]} /></View>)}<View style={{ height: spacing.xl }} /><AppButton label="Enregistrer le plein" onPress={() => setSaved(true)} /></Screen>; }
+const styles = StyleSheet.create({ title: { fontSize: 28, fontWeight: '800', marginTop: 8 }, detail: { fontSize: 15, marginTop: 8 }, label: { fontSize: 14, fontWeight: '700' }, input: { borderWidth: 1, fontSize: 16, minHeight: 52, marginTop: 8, paddingHorizontal: 16 } });
