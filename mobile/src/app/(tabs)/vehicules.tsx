@@ -1,0 +1,9 @@
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppCard } from '@/components/AppCard';
+import { Screen } from '@/components/Screen';
+import { StatusBadge } from '@/components/StatusBadge';
+import { useAppTheme } from '@/hooks/useAppTheme';
+const vehicles = [{ id: 'renault-megane', name: 'Renault Mégane', plate: 'FF-069-VC', mileage: '48 230 km', status: 'En circulation' as const }, { id: 'fiat-panda', name: 'Fiat Panda', plate: 'GQ-639-LB', mileage: '31 805 km', status: 'En circulation' as const }, { id: 'toyota-aygo', name: 'Toyota Aygo', plate: 'FK-868-VS', mileage: '18 420 km', status: 'Disponible' as const }];
+export default function VehiculesScreen() { const { colors, spacing } = useAppTheme(); return <Screen><Text style={[styles.title, { color: colors.text }]}>Véhicules</Text><Text style={[styles.description, { color: colors.mutedText }]}>Consultez l’état de votre flotte.</Text><View style={{ height: spacing.xl }} />{vehicles.map((vehicle) => <Pressable key={vehicle.id} onPress={() => router.push({ pathname: '/vehicules/[id]', params: { id: vehicle.id } })} style={({ pressed }) => ({ marginBottom: spacing.md, opacity: pressed ? 0.8 : 1 })}><AppCard><View style={styles.row}><View style={styles.info}><Text style={[styles.name, { color: colors.text }]}>{vehicle.name}</Text><Text style={[styles.detail, { color: colors.mutedText }]}>{vehicle.plate} · {vehicle.mileage}</Text></View><StatusBadge status={vehicle.status} /></View></AppCard></Pressable>)}</Screen>; }
+const styles = StyleSheet.create({ title: { fontSize: 28, fontWeight: '800', marginTop: 8 }, description: { fontSize: 14, marginTop: 6 }, row: { alignItems: 'center', flexDirection: 'row', gap: 12, justifyContent: 'space-between' }, info: { flex: 1 }, name: { fontSize: 16, fontWeight: '800' }, detail: { fontSize: 13, marginTop: 5 } });
