@@ -283,6 +283,7 @@ Une feature est finie quand :
 - [2026-10-07] · Phase 4 mobile ajoutée : session de démonstration persistée dans `expo-secure-store`, restauration au démarrage, déconnexion avec effacement sécurisé, validation du formulaire de connexion, affichage/masquage du mot de passe, erreurs et bouton désactivé pendant l’envoi. L’API réelle et le JWT restent prévus pour l’étape suivante.
 - [2026-10-07] · Phase 5 mobile commencée : données fictives centralisées pour véhicules, alertes et dashboard, helpers de formatage et badge de priorité ajoutés ; accueil, liste véhicules et alertes enrichis avec recherche, filtres, navigation et états vides. TypeScript, ESLint et `git diff --check` passent.
 - [2026-10-07] · Correction configuration TypeScript mobile : dépendances accidentellement repassées vers Expo 44/Router 58 réalignées sur Expo SDK 57, `ignoreDeprecations: "6.0"` ajouté pour TypeScript 6 et résolution de `expo/tsconfig.base` validée.
+- [2026-10-07] · Phase 6 mobile amorcée : client `fetch` authentifié avec JWT, gestion centralisée des erreurs 401, services auth/flotte et types API ajoutés ; la connexion mobile utilise désormais `/api/auth/connexion` et restaure le profil via `/api/auth/me`. Les écrans restent encore sur les données fictives jusqu’à l’adaptation des formats métier.
 
 ---
 

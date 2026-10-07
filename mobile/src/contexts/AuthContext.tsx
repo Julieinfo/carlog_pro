@@ -13,6 +13,9 @@ import {
   saveSession,
   type StoredSession,
 } from '@/services/session';
+import { ApiError } from '@/services/api';
+import { getCurrentUser, login } from '@/services/authApi';
+import type { ApiUser } from '@/types/api';
 
 export type DemoUser = StoredSession['user'];
 
@@ -29,8 +32,14 @@ type AuthContextValue = {
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-const DEMO_EMAIL = 'julie@carlogpro.demo';
-const DEMO_PASSWORD = 'CarLog2026!';
+function normalizeUser(user: ApiUser): DemoUser {
+  return {
+    firstName: user.prenom,
+    lastName: user.nom,
+    email: user.email,
+    role: user.role === 'admin' ? 'Administratrice' : user.role,
+  };
+}
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<DemoUser | null>(null);
@@ -40,7 +49,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
     async function restoreSession() {
       try {
         const storedSession = await getStoredSession();
-        if (storedSession) setUser(storedSession.user);
+        if (storedSession) {
+          setUser(storedSession.user);
+          try {
+            const currentUser = await getCurrentUser();
+            const normalizedUser = normalizeUser(currentUser);
+            setUser(normalizedUser);
+            await saveSession({ ...storedSession, user: normalizedUser });
+          } catch (error) {
+            if (error instanceof ApiError && error.status === 401) {
+              await clearSession();
+              setUser(null);
+            }
+          }
+        }
       } finally {
         setIsLoading(false);
       }
@@ -54,21 +76,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       user,
       isLoading,
       signIn: async ({ email, password }) => {
-        await new Promise((resolve) => setTimeout(resolve, 700));
-
-        if (email.trim().toLowerCase() !== DEMO_EMAIL || password !== DEMO_PASSWORD) {
-          throw new Error('Adresse e-mail ou mot de passe incorrect.');
-        }
-
-        const session: StoredSession = {
-          token: 'demo-session-carlog-pro',
-          user: {
-            firstName: 'Julie',
-            lastName: 'De Castro',
-            email: DEMO_EMAIL,
-            role: 'Administratrice',
-          },
-        };
+        const response = await login(email.trim().toLowerCase(), password);
+        const session: StoredSession = { token: response.token, user: normalizeUser(response.user) };
 
         await saveSession(session);
         setUser(session.user);

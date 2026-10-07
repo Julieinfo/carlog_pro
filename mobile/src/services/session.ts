@@ -8,7 +8,7 @@ export type StoredSession = {
     firstName: string;
     lastName: string;
     email: string;
-    role: 'Administratrice';
+    role: string;
   };
 };
 
