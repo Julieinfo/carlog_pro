@@ -280,6 +280,7 @@ Une feature est finie quand :
 - [2026-10-04] · Phase 2 mobile ajoutée : design system centralisé clair/sombre, hook `useAppTheme`, composants `Screen`, `AppButton`, `AppCard` et `StatusBadge`, puis écran de prévisualisation CarLog Pro Mobile. TypeScript, ESLint et Expo Doctor validés ; l’export Android reste bloqué par une permission Windows sur le fichier temporaire Hermes.
 - [2026-10-04] · Phase 3 mobile ajoutée : navigation Expo Router avec authentification de démonstration, cinq onglets (accueil, véhicules, actions, alertes, profil), fiches véhicule/alerte et formulaires terrain pour plein/anomalie. TypeScript, ESLint et Expo Doctor validés.
 - [2026-10-04] · Correction navigation mobile : après connexion, Expo Router cible désormais le groupe `/(tabs)` plutôt que `/(tabs)/index`, ce qui supprime l’erreur « Unmatched Route ». Metro a été relancé avec le cache vidé.
+- [2026-10-07] · Phase 4 mobile ajoutée : session de démonstration persistée dans `expo-secure-store`, restauration au démarrage, déconnexion avec effacement sécurisé, validation du formulaire de connexion, affichage/masquage du mot de passe, erreurs et bouton désactivé pendant l’envoi. L’API réelle et le JWT restent prévus pour l’étape suivante.
 
 ---
 
