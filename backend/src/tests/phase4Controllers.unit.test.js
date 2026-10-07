@@ -6,13 +6,19 @@ jest.mock('../models/Affectation', () => ({
 }));
 jest.mock('../models/Vehicule', () => ({ findOne: jest.fn(), exists: jest.fn() }));
 jest.mock('../models/User', () => ({ exists: jest.fn() }));
-jest.mock('../models/Alerte', () => ({ find: jest.fn(), findOne: jest.fn() }));
+jest.mock('../models/Alerte', () => ({ find: jest.fn(), findOne: jest.fn(), updateOne: jest.fn() }));
+jest.mock('../models/Entretien', () => ({ find: jest.fn() }));
+jest.mock('../models/Document', () => ({ find: jest.fn() }));
+jest.mock('../models/Depense', () => ({ find: jest.fn() }));
 
 const mongoose = require('mongoose');
 const Affectation = require('../models/Affectation');
 const Vehicule = require('../models/Vehicule');
 const User = require('../models/User');
 const Alerte = require('../models/Alerte');
+const Entretien = require('../models/Entretien');
+const Document = require('../models/Document');
+const Depense = require('../models/Depense');
 const {
     modifierAffectation,
     supprimerAffectation
@@ -37,6 +43,7 @@ function queryMock(value) {
         populate: jest.fn(() => query),
         select: jest.fn(() => query),
         sort: jest.fn(() => query),
+        lean: jest.fn(() => Promise.resolve(value)),
         session: jest.fn(() => Promise.resolve(value)),
         then: (resolve, reject) => Promise.resolve(value).then(resolve, reject)
     };
@@ -51,7 +58,12 @@ function transactionSession() {
 }
 
 describe('Corrections de cohérence et d’accès Phase 4', () => {
-    beforeEach(() => jest.clearAllMocks());
+    beforeEach(() => {
+        jest.clearAllMocks();
+        for (const model of [Entretien, Document, Depense]) {
+            model.find.mockReturnValue(queryMock([]));
+        }
+    });
 
     it('renvoie 409 si le véhicule demandé est déjà utilisé par une affectation en cours', async () => {
         const session = transactionSession();

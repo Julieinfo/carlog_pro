@@ -32,7 +32,13 @@ describe('contrat et lecture de l’abonnement entreprise', () => {
 
         expect(res.json.mock.calls[0][0].user).toEqual({
             id: 'user-id', nom: 'Martin', prenom: 'Camille', email: 'camille@example.com',
-            role: 'admin', entrepriseId: 'company-id', abonnement: 'past_due'
+            telephone: '', role: 'admin', entrepriseId: 'company-id',
+            notifications: {
+                application: true, email: false, entretienAvenir: true, entretienRetard: true,
+                documentExpiration: true, contratEcheance: true, carburantInhabituel: true,
+                resumeHebdomadaire: false, resumeMensuel: false
+            },
+            abonnement: 'past_due'
         });
     });
 
@@ -46,7 +52,13 @@ describe('contrat et lecture de l’abonnement entreprise', () => {
         expect(res.status).toHaveBeenCalledWith(200);
         expect(res.json.mock.calls[0][0]).toEqual({
             id: 'user-id', nom: 'Martin', prenom: 'Camille', email: 'camille@example.com',
-            role: 'admin', entrepriseId: 'company-id', abonnement: 'trial'
+            telephone: '', role: 'admin', entrepriseId: 'company-id',
+            notifications: {
+                application: true, email: false, entretienAvenir: true, entretienRetard: true,
+                documentExpiration: true, contratEcheance: true, carburantInhabituel: true,
+                resumeHebdomadaire: false, resumeMensuel: false
+            },
+            abonnement: 'trial'
         });
     });
 
