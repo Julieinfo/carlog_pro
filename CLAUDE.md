@@ -284,6 +284,9 @@ Une feature est finie quand :
 - [2026-10-07] · Phase 5 mobile commencée : données fictives centralisées pour véhicules, alertes et dashboard, helpers de formatage et badge de priorité ajoutés ; accueil, liste véhicules et alertes enrichis avec recherche, filtres, navigation et états vides. TypeScript, ESLint et `git diff --check` passent.
 - [2026-10-07] · Correction configuration TypeScript mobile : dépendances accidentellement repassées vers Expo 44/Router 58 réalignées sur Expo SDK 57, `ignoreDeprecations: "6.0"` ajouté pour TypeScript 6 et résolution de `expo/tsconfig.base` validée.
 - [2026-10-07] · Phase 6 mobile amorcée : client `fetch` authentifié avec JWT, gestion centralisée des erreurs 401, services auth/flotte et types API ajoutés ; la connexion mobile utilise désormais `/api/auth/connexion` et restaure le profil via `/api/auth/me`. Les écrans restent encore sur les données fictives jusqu’à l’adaptation des formats métier.
+- [2026-10-07] · Phase 7 mobile, priorité photo : `expo-image-picker` ajouté avec permissions galerie/appareil photo, sélection ou prise de photo dans le formulaire de signalement, aperçu et suppression locale de la pièce jointe. TypeScript, ESLint, Expo Doctor (21/21) et `git diff --check` passent.
+- [2026-10-07] · Connexion mobile clarifiée : les identifiants affichés étaient une démo locale et ne correspondaient à aucun compte backend ; le mobile indique désormais d’utiliser un compte web réel. Le verrouillage anti-brute-force est conservé, mais les messages 429 n’exposent plus la notion de nombre de tentatives.
+- [2026-10-07] · Écran de connexion mobile nettoyé : le bloc d’information « compte de démonstration » a été supprimé ; la connexion utilise uniquement les identifiants réels du SaaS.
 
 ---
 

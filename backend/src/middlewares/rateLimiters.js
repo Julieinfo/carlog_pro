@@ -1,6 +1,6 @@
 const rateLimit = require('express-rate-limit');
 
-const MESSAGE_RATE_LIMIT = 'Trop de tentatives. Réessayez plus tard.';
+const MESSAGE_RATE_LIMIT = 'Connexion temporairement indisponible. Réessayez plus tard.';
 
 function creerLimiteur({ windowMs, max, skipSuccessfulRequests }) {
     return rateLimit({

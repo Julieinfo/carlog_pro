@@ -163,7 +163,7 @@ exports.connexion = async (req, res) => {
         const { email, motDePasse } = req.body;
 
         if (estVerrouille(email)) {
-            return res.status(429).json({ message: 'Trop de tentatives. Réessayez plus tard.' });
+            return res.status(429).json({ message: 'Connexion temporairement indisponible. Réessayez plus tard.' });
         }
         
         // motDePasse est cache dans le schema (select: false), donc on l'ajoute explicitement juste pour cette verification.

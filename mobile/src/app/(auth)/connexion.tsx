@@ -54,10 +54,6 @@ export default function ConnexionScreen() {
         <Text style={[styles.eyebrow, { color: colors.primary }]}>ESPACE ENTREPRISE</Text>
         <Text style={[styles.title, { color: colors.text }]}>Connexion</Text>
         <Text style={[styles.description, { color: colors.mutedText }]}>Accédez à votre espace de gestion de flotte.</Text>
-        <View style={[styles.demoBox, { backgroundColor: colors.primarySoft, borderColor: colors.primary, borderRadius: radius.md, marginTop: spacing.xl }]}>
-          <Text style={[styles.demoTitle, { color: colors.text }]}>Compte de démonstration</Text>
-          <Text style={[styles.demoText, { color: colors.mutedText }]}>E-mail : julie@carlogpro.demo{'\n'}Mot de passe : CarLog2026!</Text>
-        </View>
         <Text style={[styles.label, { color: colors.text, marginTop: spacing.xl }]}>Adresse e-mail</Text>
         <TextInput
           accessibilityLabel="Adresse e-mail"
@@ -107,9 +103,6 @@ const styles = StyleSheet.create({
   eyebrow: { fontSize: 12, fontWeight: '800', letterSpacing: 1.2 },
   title: { fontSize: 30, fontWeight: '800', marginTop: 8 },
   description: { fontSize: 16, lineHeight: 24, marginTop: 8 },
-  demoBox: { borderLeftWidth: 3, padding: 12 },
-  demoTitle: { fontSize: 14, fontWeight: '700' },
-  demoText: { fontSize: 13, lineHeight: 20, marginTop: 4 },
   label: { fontSize: 14, fontWeight: '700' },
   input: { borderWidth: 1, fontSize: 16, minHeight: 52, marginTop: 8, paddingHorizontal: 16 },
   passwordContainer: { alignItems: 'center', borderWidth: 1, flexDirection: 'row', marginTop: 8, minHeight: 52, paddingLeft: 16 },

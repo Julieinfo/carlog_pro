@@ -38,6 +38,9 @@ export async function apiRequest<T>(endpoint: string, options: ApiRequestOptions
     await clearSession();
     throw new ApiError('Votre session a expiré. Veuillez vous reconnecter.', 401);
   }
+  if (response.status === 429) {
+    throw new ApiError('Connexion temporairement indisponible. Réessayez plus tard.', 429);
+  }
   if (!response.ok) {
     const message = data && typeof data === 'object' && 'message' in data && typeof data.message === 'string'
       ? data.message

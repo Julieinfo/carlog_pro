@@ -16,7 +16,7 @@ describe('creerLimiteur', () => {
         await request(app).post('/connexion').expect(401);
         const depassement = await request(app).post('/connexion').expect(429);
 
-        expect(depassement.body).toEqual({ message: 'Trop de tentatives. Réessayez plus tard.' });
+        expect(depassement.body).toEqual({ message: 'Connexion temporairement indisponible. Réessayez plus tard.' });
         expect(depassement.body.message).not.toMatch(/\d/);
         expect(depassement.headers).toHaveProperty('ratelimit-limit', '2');
         expect(depassement.headers).not.toHaveProperty('x-ratelimit-limit');

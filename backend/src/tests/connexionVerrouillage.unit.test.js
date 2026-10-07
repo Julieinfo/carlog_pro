@@ -23,7 +23,7 @@ describe('authController.connexion avec email verrouillé', () => {
         await connexion(req, res);
 
         expect(res.status).toHaveBeenCalledWith(429);
-        expect(res.json).toHaveBeenCalledWith({ message: 'Trop de tentatives. Réessayez plus tard.' });
+        expect(res.json).toHaveBeenCalledWith({ message: 'Connexion temporairement indisponible. Réessayez plus tard.' });
         expect(User.findOne).not.toHaveBeenCalled();
     });
 });
