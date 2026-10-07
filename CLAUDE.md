@@ -281,6 +281,7 @@ Une feature est finie quand :
 - [2026-10-04] · Phase 3 mobile ajoutée : navigation Expo Router avec authentification de démonstration, cinq onglets (accueil, véhicules, actions, alertes, profil), fiches véhicule/alerte et formulaires terrain pour plein/anomalie. TypeScript, ESLint et Expo Doctor validés.
 - [2026-10-04] · Correction navigation mobile : après connexion, Expo Router cible désormais le groupe `/(tabs)` plutôt que `/(tabs)/index`, ce qui supprime l’erreur « Unmatched Route ». Metro a été relancé avec le cache vidé.
 - [2026-10-07] · Phase 4 mobile ajoutée : session de démonstration persistée dans `expo-secure-store`, restauration au démarrage, déconnexion avec effacement sécurisé, validation du formulaire de connexion, affichage/masquage du mot de passe, erreurs et bouton désactivé pendant l’envoi. L’API réelle et le JWT restent prévus pour l’étape suivante.
+- [2026-10-07] · Phase 5 mobile commencée : données fictives centralisées pour véhicules, alertes et dashboard, helpers de formatage et badge de priorité ajoutés ; accueil, liste véhicules et alertes enrichis avec recherche, filtres, navigation et états vides. TypeScript, ESLint et `git diff --check` passent.
 
 ---
 
