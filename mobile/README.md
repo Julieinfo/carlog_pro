@@ -1,56 +1,109 @@
-# Welcome to your Expo app 👋
+# CarLog Pro Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Application mobile Android-first qui complète le SaaS CarLog Pro pour la consultation de flotte, les alertes et les actions terrain.
 
-## Get started
+> Projet portfolio : ne publiez aucune donnée personnelle, aucun secret et aucun identifiant fonctionnel.
 
-1. Install dependencies
+## Fonctionnalités
 
-   ```bash
-   npm install
-   ```
+- Authentification auprès de l'API Express et session persistante via Expo SecureStore
+- Tableau de bord mobile et navigation par onglets
+- Recherche et filtres de véhicules
+- Alertes avec priorités et états
+- Fiche véhicule et actions terrain
+- Enregistrement d'un plein et signalement d'anomalie
+- Ajout local d'une photo depuis la galerie ou l'appareil photo
+- Profil, déconnexion et thèmes clair/sombre
+- États de chargement, erreurs réseau et expiration de session
 
-2. Start the app
+Les écrans encore en cours de synchronisation avec l'API utilisent explicitement des données fictives centralisées dans `src/data/`.
 
-   ```bash
-   npx expo start
-   ```
+## Stack
 
-In the output, you'll find options to open the app in a
+- React Native 0.86
+- Expo SDK 57
+- TypeScript
+- Expo Router
+- Expo SecureStore
+- Expo ImagePicker
+- API Node.js, Express et MongoDB
+- Android Studio Emulator
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+## Installation
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+Prérequis : Node.js LTS, Android Studio avec un émulateur Android, et un compte de test CarLog Pro si l'API réelle est utilisée.
 
 ```bash
-npm run reset-project
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Pour l'émulateur Android :
 
-### Other setup steps
+```bash
+npx expo start --android
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Les variables publiques sont documentées dans `.env.example`. Elles contiennent uniquement l'URL de l'API et le nom de l'application :
 
-## Learn more
+```env
+EXPO_PUBLIC_API_URL=http://10.0.2.2:5000/api
+EXPO_PUBLIC_APP_NAME=CarLog Pro
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+Sur un téléphone physique, remplacez `10.0.2.2` par l'adresse IP LAN du PC ou utilisez l'URL de l'API de production configurée localement. Ne mettez jamais de secret dans une variable `EXPO_PUBLIC_*`.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Contrôles qualité
 
-## Join the community
+```bash
+npx tsc --noEmit
+npm run lint
+npx expo-doctor
+npx expo export --platform web
+```
 
-Join our community of developers creating universal apps.
+## Build APK de portfolio
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+La configuration [eas.json](./eas.json) contient un profil `preview` destiné à une distribution interne :
+
+```bash
+npx eas-cli@latest build --platform android --profile preview
+```
+
+Cette commande nécessite une authentification EAS et n'est pas lancée automatiquement. L'APK généré doit être partagé via une distribution interne, pas committé dans Git.
+
+## Documentation de démonstration
+
+Voir [docs/DEMO.md](./docs/DEMO.md) pour le parcours conseillé, les règles de sécurité et la commande de build.
+
+## Architecture
+
+```text
+src/app/       Écrans et routes Expo Router
+src/components  Composants UI réutilisables
+src/contexts/   Session et état d'authentification
+src/data/       Données fictives en attente de synchronisation API
+src/services/   API, session et médias
+src/types/      Types TypeScript
+src/utils/      Fonctions utilitaires
+assets/         Identité visuelle et ressources Expo
+docs/           Documentation de démonstration
+```
+
+## Décision produit
+
+- **Web** : administration complète, analyses, rapports et exports.
+- **Mobile** : consultation, alertes et actions rapides sur le terrain.
+
+## Évolutions prévues
+
+- Synchronisation complète des listes et actions avec l'API
+- Upload persistant des photos
+- Notifications push
+- Fonctionnement hors connexion
+- Biométrie
+- Publication Android et iOS
+
+## Auteure
+
+Julie De Castro
