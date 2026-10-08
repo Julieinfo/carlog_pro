@@ -9,10 +9,19 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_APP_NAME": "CarLog Pro",
+        "EXPO_PUBLIC_API_URL": "https://carlog-pro.onrender.com/api"
+      },
       "android": {
         "buildType": "apk"
       }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_APP_NAME": "CarLog Pro",
+        "EXPO_PUBLIC_API_URL": "https://carlog-pro.onrender.com/api"
+      }
+    }
   }
 }

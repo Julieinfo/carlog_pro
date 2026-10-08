@@ -14,8 +14,8 @@
       "package": "com.juliedecastro.carlogpro",
       "adaptiveIcon": {
         "backgroundColor": "#E52525",
-        "foregroundImage": "./assets/images/icon.png",
-        "monochromeImage": "./assets/images/icon.png"
+        "foregroundImage": "./assets/images/adaptive-icon.png",
+        "monochromeImage": "./assets/images/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [

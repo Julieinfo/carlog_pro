@@ -71,6 +71,7 @@ npx eas-cli@latest build --platform android --profile preview
 ```
 
 Cette commande nécessite une authentification EAS et n'est pas lancée automatiquement. L'APK généré doit être partagé via une distribution interne, pas committé dans Git.
+L'URL publique de l'API et le nom de l'application sont injectés dans le profil EAS ; aucun fichier `.env` local n'est nécessaire pour la build distante.
 
 ## Documentation de démonstration
 
