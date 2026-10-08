@@ -38,7 +38,7 @@ exports.validateCreerAlerte = [
     // Le niveau d'urgence est optionnel mais si fourni, doit faire partie de l'enum.
     body('niveauUrgence')
         .optional()
-        .isIn(['low', 'medium', 'critical']).withMessage("Le niveau d'urgence est invalide."),
+        .isIn(['information', 'low', 'medium', 'high', 'critical']).withMessage("Le niveau de priorité est invalide."),
 
     // Le vehicule est optionnel mais si fourni, doit etre un ObjectId valide.
     body('vehicule')
@@ -79,7 +79,7 @@ exports.validateModifierAlerte = [
 
     body('niveauUrgence')
         .optional()
-        .isIn(['low', 'medium', 'critical']).withMessage("Le niveau d'urgence est invalide."),
+        .isIn(['information', 'low', 'medium', 'high', 'critical']).withMessage("Le niveau de priorité est invalide."),
 
     body('statut')
         .optional()

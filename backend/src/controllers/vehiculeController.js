@@ -13,7 +13,7 @@ const repondreErreur = require('../utils/reponseErreur');
 exports.creerVehicule = async (req, res) => {
     try {
         const entrepriseId = req.user.entreprise;
-        const { immatriculation, marque, modele, typeVehicule, annee, kilometrage, ptac, carburant, statut } = req.body;
+        const { immatriculation, marque, modele, photoUrl, typeVehicule, annee, dateMiseEnService, kilometrage, ptac, carburant, statut } = req.body;
 
         // On valide ici les champs minimum pour eviter de polluer la base avec des fiches inexploitables.
         // J'ai choisi de faire cette validation manuellement plutot que d'utiliser une bibliotheque de validation
@@ -39,6 +39,8 @@ exports.creerVehicule = async (req, res) => {
         immatriculation: immatriculation.toUpperCase().trim(),
         marque,
         modele,
+        photoUrl,
+        dateMiseEnService,
         typeVehicule,
         annee,
         kilometrage,
@@ -49,7 +51,7 @@ exports.creerVehicule = async (req, res) => {
 
         res.status(201).json(nouveauVehicule);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -150,7 +152,7 @@ exports.getVehicules = async (req, res) => {
         });
 
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -184,7 +186,7 @@ exports.getVehiculeById = async (req, res) => {
 
         res.status(200).json(vehicule);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -229,6 +231,8 @@ exports.modifierVehicule = async (req, res) => {
             ...(req.body.immatriculation !== undefined && { immatriculation: req.body.immatriculation }),
             ...(req.body.marque !== undefined && { marque: req.body.marque }),
             ...(req.body.modele !== undefined && { modele: req.body.modele }),
+            ...(req.body.photoUrl !== undefined && { photoUrl: req.body.photoUrl }),
+            ...(req.body.dateMiseEnService !== undefined && { dateMiseEnService: req.body.dateMiseEnService }),
             ...(req.body.typeVehicule !== undefined && { typeVehicule: req.body.typeVehicule }),
             ...(req.body.annee !== undefined && { annee: req.body.annee }),
             ...(req.body.kilometrage !== undefined && { kilometrage: req.body.kilometrage }),
@@ -247,7 +251,7 @@ exports.modifierVehicule = async (req, res) => {
 
         res.status(200).json(vehicule);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -285,6 +289,6 @@ exports.supprimerVehicule = async (req, res) => {
 
         res.status(200).json({ message: 'Véhicule archivé avec succès.' });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };

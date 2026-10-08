@@ -1,0 +1,8 @@
+import { router } from 'expo-router';
+import { StyleSheet, Text, View } from 'react-native';
+import { AppButton } from '@/components/AppButton';
+import { AppCard } from '@/components/AppCard';
+import { Screen } from '@/components/Screen';
+import { useAppTheme } from '@/hooks/useAppTheme';
+export default function ActionsScreen() { const { colors, spacing } = useAppTheme(); return <Screen><Text style={[styles.title, { color: colors.text }]}>Actions terrain</Text><Text style={[styles.description, { color: colors.mutedText }]}>Enregistrez rapidement les opérations réalisées sur le terrain.</Text><View style={{ height: spacing.xl }} /><AppCard><Text style={[styles.cardTitle, { color: colors.text }]}>Carburant</Text><Text style={[styles.description, { color: colors.mutedText }]}>Ajoutez un plein avec le véhicule, le kilométrage et le volume.</Text><View style={{ height: spacing.md }} /><AppButton label="Enregistrer un plein" onPress={() => router.push('/actions/enregistrer-plein')} /></AppCard><View style={{ height: spacing.lg }} /><AppCard><Text style={[styles.cardTitle, { color: colors.text }]}>Anomalie</Text><Text style={[styles.description, { color: colors.mutedText }]}>Signalez un problème observé sur un véhicule.</Text><View style={{ height: spacing.md }} /><AppButton label="Signaler une anomalie" variant="secondary" onPress={() => router.push('/actions/signaler-anomalie')} /></AppCard></Screen>; }
+const styles = StyleSheet.create({ title: { color: '#10213D', fontSize: 28, fontWeight: '800', marginTop: 8 }, description: { fontSize: 14, lineHeight: 21, marginTop: 6 }, cardTitle: { fontSize: 18, fontWeight: '800' } });

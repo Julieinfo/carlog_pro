@@ -1,27 +1,56 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { api } from '../services/api';
+import { lireToken, sessionPersistante, ecrireSession, effacerSession } from '../services/stockageSession';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [verification, setVerification] = useState(true);
 
-  // Au montage, on récupère la session sauvegardée
+  // Au montage, on valide le token côté API et on restaure les données de profil à jour.
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    if (savedToken && savedUser) {
-      setToken(savedToken);
-      setUser(JSON.parse(savedUser));
+    let mounted = true;
+
+    async function verifierSession() {
+      const savedToken = lireToken();
+      if (!savedToken) {
+        effacerSession();
+        if (mounted) setVerification(false);
+        return;
+      }
+
+      try {
+        const response = await api.getProfil();
+        const userData = response.data || response;
+        if (!mounted) return;
+
+        setToken(savedToken);
+        setUser(userData);
+        // On réécrit la session dans le même emplacement qu'à la connexion.
+        ecrireSession(userData, savedToken, sessionPersistante());
+      } catch {
+        if (mounted) logout();
+      } finally {
+        if (mounted) setVerification(false);
+      }
     }
+
+    verifierSession();
+    return () => { mounted = false; };
   }, []);
 
-  const login = (userData, tokenValue) => {
-    // 1. Sauvegarde dans le localStorage
-    localStorage.setItem('token', tokenValue);
-    localStorage.setItem('user', JSON.stringify(userData));
+  useEffect(() => {
+    window.addEventListener('auth:session-expired', logout);
+    return () => window.removeEventListener('auth:session-expired', logout);
+  }, []);
 
-    // 2. Mise à jour de l'état React
+  // seSouvenir omis (ex. rafraîchissement du profil) : on conserve l'emplacement déjà utilisé.
+  const login = (userData, tokenValue, seSouvenir) => {
+    const persistant = seSouvenir === undefined ? sessionPersistante() : seSouvenir;
+    ecrireSession(userData, tokenValue, persistant);
+
     setUser(userData);
     setToken(tokenValue);
   };
@@ -29,11 +58,10 @@ export function AuthProvider({ children }) {
   function logout() {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    effacerSession();
   }
 
-  const value = { user, token, login, logout, isAuthenticated: !!token };
+  const value = { user, token, login, logout, verification, isAuthenticated: !!token };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

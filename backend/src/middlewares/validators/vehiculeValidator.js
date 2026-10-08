@@ -40,6 +40,14 @@ exports.validateCreerVehicule = [
         .trim()
         .notEmpty().withMessage('Le modèle est obligatoire.'),
 
+    body('photoUrl')
+        .optional({ values: 'falsy' })
+        .isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage('La photo doit être une URL HTTP ou HTTPS valide.'),
+
+    body('dateMiseEnService')
+        .optional({ values: 'falsy' })
+        .isISO8601().withMessage('La date de mise en circulation est invalide.'),
+
     // Le type de vehicule est obligatoire et doit faire partie de l'enum.
     body('typeVehicule')
         .notEmpty().withMessage('Le type de véhicule est obligatoire.')
@@ -48,7 +56,7 @@ exports.validateCreerVehicule = [
     // Le PTAC est obligatoire et doit etre positif.
     body('ptac')
         .notEmpty().withMessage('Le PTAC est obligatoire.')
-        .isInt({ min: 0 }).withMessage('Le PTAC doit être un nombre positif.'),
+        .isInt({ min: 1 }).withMessage('Le PTAC doit être un nombre entier supérieur à 0.'),
 
     // L'annee est optionnelle mais si fournie, doit etre entre 1900 et l'annee courante + 1.
     body('annee')
@@ -93,13 +101,21 @@ exports.validateModifierVehicule = [
         .trim()
         .notEmpty().withMessage('Le modèle ne peut pas être vide.'),
 
+    body('photoUrl')
+        .optional({ values: 'falsy' })
+        .isURL({ protocols: ['http', 'https'], require_protocol: true }).withMessage('La photo doit être une URL HTTP ou HTTPS valide.'),
+
+    body('dateMiseEnService')
+        .optional({ values: 'falsy' })
+        .isISO8601().withMessage('La date de mise en circulation est invalide.'),
+
     body('typeVehicule')
         .optional()
         .isIn(['porteur', 'tracteur', 'remorque', 'utilitaire', 'voiture']).withMessage('Le type de véhicule est invalide.'),
 
     body('ptac')
         .optional()
-        .isInt({ min: 0 }).withMessage('Le PTAC doit être un nombre positif.'),
+        .isInt({ min: 1 }).withMessage('Le PTAC doit être un nombre entier supérieur à 0.'),
 
     body('annee')
         .optional()

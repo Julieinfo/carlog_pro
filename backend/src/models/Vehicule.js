@@ -32,6 +32,11 @@ const vehiculeSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    photoUrl: {
+        type: String,
+        trim: true,
+        maxlength: 1000
+    },
     // Annee de fabrication du vehicule.
     // min: 1900 et max: annee courante + 1 evitent les valeurs absurdes.
     annee: {
@@ -50,7 +55,7 @@ const vehiculeSchema = new mongoose.Schema({
     ptac: {
         type: Number,
         required: true,
-        min: 0
+        min: [1, 'Le PTAC doit être supérieur à 0.']
     },
     // Type de carburant du vehicule.
     // default: "diesel" car c'est le plus courant dans le transport de marchandises.

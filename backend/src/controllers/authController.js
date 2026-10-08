@@ -3,6 +3,37 @@ const mongoose = require('mongoose');
 const User = require('../models/User');
 const Entreprise = require('../models/Entreprise');
 const repondreErreur = require('../utils/reponseErreur');
+const { ecrire, contexteRequete } = require('../utils/journal');
+const { estVerrouille, enregistrerEchec, reinitialiser } = require('../utils/verrouillageConnexion');
+
+const notificationsParDefaut = {
+    application: true,
+    email: false,
+    entretienAvenir: true,
+    entretienRetard: true,
+    documentExpiration: true,
+    contratEcheance: true,
+    carburantInhabituel: true,
+    resumeHebdomadaire: false,
+    resumeMensuel: false
+};
+
+function notificationsUtilisateur(user) {
+    return { ...notificationsParDefaut, ...(user.notifications?.toObject?.() || user.notifications || {}) };
+}
+
+function ajouterNotifications(user) {
+    return {
+        id: user._id,
+        nom: user.nom,
+        prenom: user.prenom,
+        telephone: user.telephone || '',
+        email: user.email,
+        role: user.role,
+        entrepriseId: user.entreprise,
+        notifications: notificationsUtilisateur(user)
+    };
+}
 
 /**
  * Genere un token JWT pour un utilisateur.
@@ -94,18 +125,22 @@ exports.inscription = async (req, res) => {
         // C'est une bonne pratique UX : l'utilisateur n'a pas a se reconnecter apres s'etre inscrit.
         res.status(201).json({
         token: genererToken(user._id),
-        user: { 
-            id: user._id, 
-            nom: user.nom, 
-            prenom: user.prenom,
-            email: user.email, 
-            role: user.role,
-            entrepriseId: entreprise._id
+        user: {
+            ...ajouterNotifications(user),
+            entrepriseId: entreprise._id,
+            abonnement: entreprise.statutAbonnement
         },
         });
     } catch (err) {
         if (err.code === 11000) {
             return res.status(400).json({ message: 'Un compte ou une entreprise avec ces informations existe déjà.' });
+        }
+        if (process.env.NODE_ENV !== 'test') {
+            ecrire('error', 'registration_failed', {
+                ...contexteRequete(req),
+                status: 500,
+                errorName: err.name || 'Error'
+            });
         }
         const message = process.env.NODE_ENV === 'production' ? 'Erreur lors de la création du compte.' : err.message;
         res.status(500).json({ message });
@@ -126,6 +161,10 @@ exports.inscription = async (req, res) => {
 exports.connexion = async (req, res) => {
     try {
         const { email, motDePasse } = req.body;
+
+        if (estVerrouille(email)) {
+            return res.status(429).json({ message: 'Connexion temporairement indisponible. Réessayez plus tard.' });
+        }
         
         // motDePasse est cache dans le schema (select: false), donc on l'ajoute explicitement juste pour cette verification.
         // C'est une bonne pratique de securite : par defaut, on ne renvoie jamais le mot de passe dans les requetes.
@@ -135,24 +174,27 @@ exports.connexion = async (req, res) => {
         // Si on disait "Email inexistant" ou "Mot de passe incorrect", un attaquant pourrait enumerer les comptes.
         // J'ai choisi de ne pas differencier les cas pour eviter ce type d'attaque.
         if (!user || !(await user.verifierMotDePasse(motDePasse))) {
+        enregistrerEchec(email);
         return res.status(401).json({ message: 'Identifiants invalides.' });
         }
+
+        reinitialiser(email);
         
+        const entreprise = user.typeCompte === 'entreprise'
+            ? await Entreprise.findById(user.entreprise).select('statutAbonnement')
+            : null;
+
         // On renvoie un nouveau token a chaque connexion.
         // J'aurais pu implementer un systeme de refresh token, mais pour l'instant un simple token suffit.
         res.json({
         token: genererToken(user._id),
-        user: { 
-            id: user._id, 
-            nom: user.nom, 
-            prenom: user.prenom,
-            email: user.email, 
-            role: user.role,
-            entrepriseId: user.entreprise
+        user: {
+            ...ajouterNotifications(user),
+            abonnement: entreprise?.statutAbonnement ?? null
         },
         });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
@@ -168,50 +210,142 @@ exports.connexion = async (req, res) => {
  */
 exports.getProfil = async (req, res) => {
     try {
-        // req.user est disponible grace au middleware protect qui a decode le JWT.
-        // J'ai choisi de renvoyer req.user directement plutot que de refaire une requete a la base,
-        // car les infos dans le token sont suffisantes pour afficher le profil.
-        // Si on avait besoin de donnees a jour (ex: role modifie), il faudrait refaire une requete.
-        
-        // J'exclus explicitement le mot de passe de la reponse pour la securite.
-        // Meme si le middleware le fait deja, c'est une double securite.
-        const { motDePasse, ...userSansMotDePasse } = req.user.toObject();
-        
-        res.status(200).json(userSansMotDePasse);
+        res.status(200).json({
+            id: req.user._id,
+            nom: req.user.nom,
+            prenom: req.user.prenom,
+            email: req.user.email,
+            telephone: req.user.telephone || '',
+            role: req.user.role,
+            entrepriseId: req.user.entreprise,
+            notifications: notificationsUtilisateur(req.user),
+            abonnement: req.entreprise?.statutAbonnement ?? null
+        });
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
     }
 };
 
-exports.modifierEtatEntreprise = async (req, res) => {
+exports.modifierProfil = async (req, res) => {
     try {
-        const donnees = {};
-        if (req.body.statutAbonnement !== undefined) {
-            if (!['trial', 'active', 'past_due', 'canceled'].includes(req.body.statutAbonnement)) {
-                return res.status(400).json({ message: 'Statut d’abonnement invalide.' });
+        const { nom, prenom, email, telephone, notifications, motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse } = req.body;
+        const modifications = {};
+        for (const champ of ['nom', 'prenom', 'telephone']) {
+            if (Object.prototype.hasOwnProperty.call(req.body, champ)) {
+                if (typeof req.body[champ] !== 'string' || (champ !== 'telephone' && !req.body[champ].trim())) {
+                    return res.status(400).json({ message: `Le champ ${champ} est invalide.` });
+                }
+                if (notifications !== undefined) {
+                    if (!notifications || typeof notifications !== 'object' || Array.isArray(notifications)) {
+                        return res.status(400).json({ message: 'Les préférences de notification sont invalides.' });
+                    }
+                    const champsNotifications = Object.keys(notificationsParDefaut);
+                    if (Object.keys(notifications).some((champ) => !champsNotifications.includes(champ))) {
+                        return res.status(400).json({ message: 'Les préférences de notification sont invalides.' });
+                    }
+                    const preferences = {};
+                    for (const champ of champsNotifications) {
+                        if (notifications[champ] !== undefined && typeof notifications[champ] !== 'boolean') {
+                            return res.status(400).json({ message: 'Les préférences de notification sont invalides.' });
+                        }
+                        if (notifications[champ] !== undefined) preferences[champ] = notifications[champ];
+                    }
+                    if (Object.keys(preferences).length) {
+                        modifications.notifications = { ...notificationsUtilisateur(req.user), ...preferences };
+                    }
+                }
+                modifications[champ] = req.body[champ].trim();
             }
-            donnees.statutAbonnement = req.body.statutAbonnement;
         }
-        if (req.body.formuleAbonnement !== undefined) {
-            if (!['starter', 'premium', 'enterprise'].includes(req.body.formuleAbonnement)) {
-                return res.status(400).json({ message: 'Formule d’abonnement invalide.' });
+        if (email !== undefined) {
+            if (typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+                return res.status(400).json({ message: 'Le format de l’email est invalide.' });
             }
-            donnees.formuleAbonnement = req.body.formuleAbonnement;
+            modifications.email = email.toLowerCase().trim();
+            const emailExistant = await User.findOne({ email: modifications.email, _id: { $ne: req.user._id } });
+            if (emailExistant) return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
         }
-        if (req.body.actif !== undefined) {
-            if (typeof req.body.actif !== 'boolean') return res.status(400).json({ message: 'L’état actif doit être booléen.' });
-            donnees.actif = req.body.actif;
+        const changementMotDePasse = [motDePasseActuel, nouveauMotDePasse, confirmationMotDePasse].some(Boolean);
+        if (changementMotDePasse) {
+            if (!motDePasseActuel || !nouveauMotDePasse || nouveauMotDePasse !== confirmationMotDePasse) {
+                return res.status(400).json({ message: 'Le mot de passe actuel et la confirmation du nouveau mot de passe sont obligatoires.' });
+            }
+            const utilisateurAvecMotDePasse = await User.findById(req.user._id).select('+motDePasse');
+            if (!utilisateurAvecMotDePasse || !(await utilisateurAvecMotDePasse.verifierMotDePasse(motDePasseActuel))) {
+                return res.status(401).json({ message: 'Le mot de passe actuel est incorrect.' });
+            }
+            if (nouveauMotDePasse.length < 8 || !/[A-Z]/.test(nouveauMotDePasse) || !/[a-z]/.test(nouveauMotDePasse) || !/[0-9]/.test(nouveauMotDePasse) || !/[\W_]/.test(nouveauMotDePasse)) {
+                return res.status(400).json({ message: 'Le nouveau mot de passe doit contenir au moins 8 caractères, une majuscule, une minuscule, un chiffre et un caractère spécial.' });
+            }
+            modifications.motDePasse = nouveauMotDePasse;
         }
+        if (!Object.keys(modifications).length) return res.status(400).json({ message: 'Aucune information à modifier.' });
+        const utilisateurModifie = await User.findById(req.user._id);
+        if (!utilisateurModifie) return res.status(404).json({ message: 'Utilisateur introuvable.' });
+        Object.assign(utilisateurModifie, modifications);
+        await utilisateurModifie.save();
+        res.status(200).json({
+            id: utilisateurModifie._id,
+            nom: utilisateurModifie.nom,
+            prenom: utilisateurModifie.prenom,
+            email: utilisateurModifie.email,
+            telephone: utilisateurModifie.telephone || '',
+            role: utilisateurModifie.role,
+            entrepriseId: utilisateurModifie.entreprise,
+            notifications: notificationsUtilisateur(utilisateurModifie),
+            abonnement: req.user.entreprise?.statutAbonnement ?? null
+        });
+    } catch (err) {
+        if (err.code === 11000) return res.status(400).json({ message: 'Cet email est déjà utilisé.' });
+        repondreErreur(res, err, 500, req);
+    }
+};
 
-        const entreprise = await Entreprise.findOneAndUpdate(
-            { _id: req.user.entreprise },
-            donnees,
-            { new: true, runValidators: true }
-        ).select('-__v');
+exports.getEntreprise = async (req, res) => {
+    try {
+        const entreprise = await Entreprise.findById(req.user.entreprise)
+            .select('-__v');
 
         if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
         res.status(200).json(entreprise);
     } catch (err) {
-        repondreErreur(res, err);
+        repondreErreur(res, err, 500, req);
+    }
+};
+
+exports.modifierEntreprise = async (req, res) => {
+    try {
+        const champs = [
+            'nom', 'logoUrl', 'secteurActivite', 'telephone', 'emailProfessionnel',
+            'adresse', 'tailleFlotte', 'devise', 'fuseauHoraire', 'formatDate',
+            'uniteDistance', 'uniteCarburant', 'seuilConsommationInhabituelle',
+            'delaiAlerteDocument', 'delaiAlerteContrat'
+        ];
+        const modifications = {};
+        for (const champ of champs) {
+            if (Object.prototype.hasOwnProperty.call(req.body, champ)) modifications[champ] = req.body[champ];
+        }
+        if (!modifications.nom || typeof modifications.nom !== 'string' || !modifications.nom.trim()) {
+            return res.status(400).json({ message: 'Le nom de l’entreprise est obligatoire.' });
+        }
+        if (modifications.logoUrl && (!/^https:\/\//i.test(modifications.logoUrl) || modifications.logoUrl.length > 500)) {
+            return res.status(400).json({ message: 'Le logo doit être une URL HTTPS valide.' });
+        }
+        if (modifications.emailProfessionnel && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(modifications.emailProfessionnel)) {
+            return res.status(400).json({ message: 'Le format de l’email de contact est invalide.' });
+        }
+        if (modifications.adresse) {
+            const { rue, codePostal, ville, pays } = modifications.adresse;
+            if (!rue?.trim() || !/^[0-9]{5}$/.test(codePostal || '') || !ville?.trim()) {
+                return res.status(400).json({ message: 'L’adresse de l’entreprise est invalide.' });
+            }
+            modifications.adresse = { rue: rue.trim(), codePostal, ville: ville.trim(), pays: pays?.trim() || 'France' };
+        }
+        const entreprise = await Entreprise.findByIdAndUpdate(req.user.entreprise, modifications, { new: true, runValidators: true });
+        if (!entreprise) return res.status(404).json({ message: 'Entreprise introuvable.' });
+        res.status(200).json(entreprise);
+    } catch (err) {
+        if (err.code === 11000) return res.status(400).json({ message: 'Ce SIRET est déjà utilisé.' });
+        repondreErreur(res, err, 500, req);
     }
 };

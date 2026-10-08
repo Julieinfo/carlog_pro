@@ -1,14 +1,21 @@
 import { useState } from 'react';
-import { api } from '../services/api';
+import { api, messageErreurApi } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import ChampMotDePasse from '../components/ChampMotDePasse';
+import PiedDePageLegal from '../components/PiedDePageLegal';
 
-export default function Register({ onGoToLogin }) {
+export default function Register({ onGoToLogin, themeToggle }) {
   const [form, setForm] = useState({
     nom: '',
     prenom: '',
     email: '',
     motDePasse: '',
     nomEntreprise: '',
+    siret: '',
+    telephoneEntreprise: '',
+    adresseRue: '',
+    adresseCodePostal: '',
+    adresseVille: '',
   });
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(false);
@@ -24,16 +31,21 @@ export default function Register({ onGoToLogin }) {
     setErreur('');
     setChargement(true);
 
-    // On complète l'objet envoyé au backend avec des données valides par défaut
+    const { nom, prenom, email, motDePasse, nomEntreprise, siret, telephoneEntreprise,
+      adresseRue, adresseCodePostal, adresseVille } = form;
     const payload = {
-      ...form,
-      siret: Math.floor(10000000000000 + Math.random() * 90000000000000).toString(),
-      emailProfessionnel: form.email,
-      telephoneEntreprise: '0102030405',
+      nom,
+      prenom,
+      email,
+      motDePasse,
+      nomEntreprise,
+      siret,
+      emailProfessionnel: email,
+      telephoneEntreprise,
       adresse: {
-        rue: '1 rue de la Paix',
-        codePostal: '75000',
-        ville: 'Paris',
+        rue: adresseRue,
+        codePostal: adresseCodePostal,
+        ville: adresseVille,
         pays: 'France',
       },
     };
@@ -42,10 +54,10 @@ export default function Register({ onGoToLogin }) {
       const res = await api.inscription(payload);
       // Prise en charge selon que api.js retourne res.data ou la réponse Axios
       const data = res.data || res;
-      login(data.user, data.token);
+      // Un compte vient d'être créé : la session est conservée après fermeture du navigateur.
+      login(data.user, data.token, true);
     } catch (err) {
-      // Correction de la coquille (err.response au lieu de err.reponse)
-      setErreur(err.response?.data?.message || err.message);
+      setErreur(messageErreurApi(err, 'Impossible de créer le compte.'));
     } finally {
       setChargement(false);
     }
@@ -55,6 +67,7 @@ export default function Register({ onGoToLogin }) {
     <div className="auth-shell">
       <header className="navbar">
         <div className="logo">CarLog <span>Pro</span></div>
+        {themeToggle}
       </header>
 
       <main className="dashboard-container auth-container">
@@ -65,6 +78,10 @@ export default function Register({ onGoToLogin }) {
               <h1>Créer un compte</h1>
             </div>
           </div>
+
+          <p className="auth-demo-note" role="note">
+            Démonstration portfolio : utilisez uniquement des données fictives. N'y saisissez pas de données personnelles ou de flotte réelles.
+          </p>
 
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="auth-fields-row">
@@ -81,13 +98,58 @@ export default function Register({ onGoToLogin }) {
               <span>Email</span>
               <input type="email" name="email" value={form.email} onChange={handleChange} required autoComplete="email" />
             </label>
-            <label className="field">
-              <span>Mot de passe</span>
-              <input type="password" name="motDePasse" value={form.motDePasse} onChange={handleChange} required autoComplete="new-password" />
-            </label>
+            <ChampMotDePasse
+              libelle="Mot de passe"
+              name="motDePasse"
+              valeur={form.motDePasse}
+              onChange={handleChange}
+              autoComplete="new-password"
+            />
             <label className="field">
               <span>Nom de l'entreprise</span>
               <input name="nomEntreprise" value={form.nomEntreprise} onChange={handleChange} required autoComplete="organization" />
+            </label>
+            <label className="field">
+              <span>SIRET</span>
+              <input
+                type="text"
+                name="siret"
+                value={form.siret}
+                onChange={handleChange}
+                required
+                pattern="[0-9]{14}"
+                maxLength={14}
+                title="Le SIRET doit contenir exactement 14 chiffres."
+                inputMode="numeric"
+                autoComplete="off"
+              />
+            </label>
+            <label className="field">
+              <span>Téléphone de l'entreprise</span>
+              <input type="tel" name="telephoneEntreprise" value={form.telephoneEntreprise} onChange={handleChange} required autoComplete="tel" />
+            </label>
+            <label className="field">
+              <span>Rue</span>
+              <input name="adresseRue" value={form.adresseRue} onChange={handleChange} required autoComplete="address-line1" />
+            </label>
+            <label className="field">
+              <span>Code postal</span>
+              <input
+                type="text"
+                name="adresseCodePostal"
+                value={form.adresseCodePostal}
+                onChange={handleChange}
+                required
+                pattern="[0-9]{5}"
+                maxLength={5}
+                title="Le code postal doit contenir 5 chiffres."
+                inputMode="numeric"
+                autoComplete="postal-code"
+              />
+            </label>
+            <label className="field">
+              <span>Ville</span>
+              <input name="adresseVille" value={form.adresseVille} onChange={handleChange} required autoComplete="address-level2" />
             </label>
 
             {erreur && <p className="auth-error" role="alert">{erreur}</p>}
@@ -97,12 +159,20 @@ export default function Register({ onGoToLogin }) {
             </button>
           </form>
 
+          <p className="auth-cgu">
+            En créant un compte, vous confirmez avoir pris connaissance des{' '}
+            <a href="#/cgu">conditions d'utilisation</a> et de la{' '}
+            <a href="#/politique-confidentialite">politique de confidentialité</a>.
+          </p>
+
           <p className="auth-switch">
             Déjà un compte ?{' '}
             <button className="link-button" type="button" onClick={onGoToLogin}>
               Se connecter
             </button>
           </p>
+
+          <PiedDePageLegal />
         </section>
       </main>
     </div>
